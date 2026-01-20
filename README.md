@@ -19,7 +19,7 @@
 
 ## 🌟 Overview
 
-AI Accessibility Enhancer is a browser extension that empowers users to take control of web accessibility in real-time. Unlike traditional tools that only identify problems, this extension provides immediate, client-side remediation of common accessibility barriers—putting solutions directly in users' hands.
+Accessibility Text Enhancer is a browser extension that empowers users to take control of web accessibility in real-time. Unlike traditional tools that only identify problems, this extension provides immediate, client-side remediation of common accessibility barriers—putting solutions directly in users' hands.
 
 Developed as part of an MSc Computer Engineering dissertation at Solent University, this tool bridges the critical gap between **identifying** accessibility issues and **fixing** them.
 
@@ -402,5 +402,6 @@ Found a bug or have a feature request?
 **Making the web accessible, one selection at a time** ♿
 
 [⬆ Back to Top](#accessibility-text-enhancer)
+
 
 </div>
