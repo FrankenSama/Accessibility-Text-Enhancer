@@ -9,7 +9,7 @@
 
 **A real-time, user-driven browser extension for web accessibility enhancement**
 
-[Features](#features) • [Installation](#installation) • [Usage](#usage) • [Research](#research) • [Contributing](#contributing)
+[Features](##features) • [Installation](#installation) • [Usage](#usage) • [Research](#research) • [Contributing](#contributing)
 
 ![Demo Screenshot](docs/images/demo-screenshot.png)
 
