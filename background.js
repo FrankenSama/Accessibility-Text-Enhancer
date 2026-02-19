@@ -30,15 +30,23 @@ chrome.runtime.onInstalled.addListener((details) => {
     }
 });
 
+// NEW: Inject content script when a page finishes loading
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+    // Check if the page has finished loading
+    if (changeInfo.status === 'complete' && tab.url && !tab.url.startsWith('chrome://')) {
+        // Only inject if extension is enabled (check storage)
+        chrome.storage.local.get(['extensionEnabled'], (result) => {
+            if (result.extensionEnabled !== false) { // Default to true if not set
+                injectContentScript(tabId);
+            }
+        });
+    }
+});
+
 // Handle extension icon click
 chrome.action.onClicked.addListener((tab) => {
     // User clicked the extension icon - inject content script
-    chrome.scripting.executeScript({
-        target: { tabId: tab.id },
-        files: ['content-scripts/content.js']
-    }).catch(err => {
-        console.log('Error injecting content script:', err);
-    });
+    injectContentScript(tab.id);
 });
 
 // Handle keyboard shortcuts
@@ -48,52 +56,77 @@ chrome.commands.onCommand.addListener((command) => {
     chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
         if (tabs[0]) {
             // First inject the content script if needed
-            chrome.scripting.executeScript({
-                target: { tabId: tabs[0].id },
-                files: ['content-scripts/content.js']
-            }).then(() => {
-                // Then send the command based on the shortcut
-                switch(command) {
-                    case 'toggle-extension':
-                        toggleExtension(tabs[0].id);
-                        break;
-                    case 'increase-size':
-                        chrome.tabs.sendMessage(tabs[0].id, {
-                            action: "executeCommand",
-                            command: "undo"
-                        });
-                        break;
-                    case 'decrease-size':
-                        chrome.tabs.sendMessage(tabs[0].id, {
-                            action: "executeCommand",
-                            command: "redo"
-                        });
-                        break;
-                }
-            }).catch(err => {
-                console.log('Content script already injected or error:', err);
-                // Still try to send the message
-                switch(command) {
-                    case 'toggle-extension':
-                        toggleExtension(tabs[0].id);
-                        break;
-                    case 'increase-size':
-                        chrome.tabs.sendMessage(tabs[0].id, {
-                            action: "executeCommand",
-                            command: "undo"
-                        });
-                        break;
-                    case 'decrease-size':
-                        chrome.tabs.sendMessage(tabs[0].id, {
-                            action: "executeCommand",
-                            command: "redo"
-                        });
-                        break;
-                }
+            injectContentScript(tabs[0].id).then(() => {
+                // Then send the command
+                sendCommandToContent(tabs[0].id, command);
             });
         }
     });
 });
+
+/**
+ * Inject content script into tab
+ * @param {number} tabId - The tab ID
+ * @returns {Promise}
+ */
+function injectContentScript(tabId) {
+    return chrome.scripting.executeScript({
+        target: { tabId: tabId },
+        files: ['content-scripts/content.js']
+    }).then(() => {
+        return chrome.scripting.insertCSS({
+            target: { tabId: tabId },
+            files: ['content-scripts/content.css']
+        });
+    }).catch(err => {
+        // This error is expected if script is already injected
+        console.log('Injection info (may already be injected):', err.message);
+    });
+}
+
+/**
+ * Send command to content script
+ * @param {number} tabId - The tab ID
+ * @param {string} command - The command to send
+ */
+function sendCommandToContent(tabId, command) {
+    let action = '';
+    
+    // Map commands to actions
+    switch(command) {
+        case 'toggle-extension':
+            toggleExtension(tabId);
+            return;
+        case 'toggle-bold':
+            action = 'bold';
+            break;
+        case 'toggle-highlight':
+            action = 'highlight';
+            break;
+        case 'increase-size':
+            action = 'sizeUp';
+            break;
+        case 'decrease-size':
+            action = 'sizeDown';
+            break;
+        case 'undo-change':
+            action = 'undo';
+            break;
+        case 'redo-change':
+            action = 'redo';
+            break;
+        default:
+            console.log('Unknown command:', command);
+            return;
+    }
+    
+    chrome.tabs.sendMessage(tabId, {
+        action: "executeCommand",
+        command: action
+    }).catch(err => {
+        console.log('Error sending command:', err);
+    });
+}
 
 /**
  * Toggle extension on/off
@@ -107,6 +140,8 @@ function toggleExtension(tabId) {
         chrome.tabs.sendMessage(tabId, {
             action: "setEnabled",
             value: newState
+        }).catch(err => {
+            console.log('Error toggling extension:', err);
         });
     });
 }
@@ -122,11 +157,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             chrome.storage.local.set({ sessionStats: stats });
         });
     }
-});
-
-// Keep service worker alive
-chrome.runtime.onStartup.addListener(() => {
-    console.log('Extension started');
 });
 
 // Set badge text based on extension state

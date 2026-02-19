@@ -2,9 +2,18 @@
 (function() {
     'use strict';
     
-    // Prevent multiple initializations
-    if (window.__accessibilityEnhancerInitialized) return;
+    // Reset the initialization flag on page load
+    // This ensures the script can run again after refresh
+    window.__accessibilityEnhancerInitialized = false;
+    
+    // Prevent multiple initializations in the same page session
+    if (window.__accessibilityEnhancerInitialized) {
+        console.log('Accessibility Enhancer already initialized');
+        return;
+    }
     window.__accessibilityEnhancerInitialized = true;
+    
+    console.log('Accessibility Enhancer initializing... (Page load: ' + new Date().toLocaleTimeString() + ')');
 
     // ==================== STATE MANAGEMENT ====================
     
@@ -38,13 +47,42 @@
      */
     async function initialize() {
         try {
+            console.log('Initializing Accessibility Enhancer...');
             await loadExtensionState();
             await loadSiteSettings();
             setupEventListeners();
             setupKeyboardShortcuts();
-            console.log('Accessibility Text Enhancer initialized');
+            
+            // Add active indicator
+            addActiveIndicator();
+            
+            // Check if there's already text selected when page loads
+            const selection = window.getSelection();
+            if (selection && selection.toString().trim().length > 0) {
+                STATE.currentSelection = selection;
+                const range = selection.getRangeAt(0);
+                setTimeout(() => {
+                    const toolbar = createToolbar();
+                    if (toolbar) {
+                        positionToolbar(toolbar, range);
+                    }
+                }, CONFIG.selectionDelay);
+            }
+            
+            console.log('Accessibility Text Enhancer initialized successfully');
         } catch (error) {
             console.error('Initialization error:', error);
+        }
+    }
+
+    /**
+     * Add visual indicator that extension is active
+     */
+    function addActiveIndicator() {
+        if (!document.getElementById('accessibility-enhancer-active-indicator')) {
+            const indicator = document.createElement('div');
+            indicator.id = 'accessibility-enhancer-active-indicator';
+            document.body.appendChild(indicator);
         }
     }
 

@@ -2,34 +2,20 @@
 document.addEventListener('DOMContentLoaded', function() {
     const toggle = document.getElementById('toggle');
     const statusDiv = document.getElementById('status');
-    const enhancementCount = document.getElementById('enhancementCount');
     const currentDomain = document.getElementById('currentDomain');
 
     // Get current tab information and inject content script
     chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
         if (tabs[0]) {
-            const url = new URL(tabs[0].url);
-            currentDomain.textContent = url.hostname || 'N/A';
-            
-            // Check if scripting API is available
-            if (chrome.scripting) {
-                // Inject content script when popup opens (user gesture)
-                chrome.scripting.executeScript({
-                    target: { tabId: tabs[0].id },
-                    files: ['content-scripts/content.js']
-                }).catch(err => {
-                    console.log('Error injecting content script:', err);
-                    // Fallback: Try using executeScript on the action
-                    chrome.action.executeScript({
-                        tabId: tabs[0].id,
-                        files: ['content-scripts/content.js']
-                    }).catch(fallbackErr => {
-                        console.log('Fallback also failed:', fallbackErr);
-                    });
-                });
-            } else {
-                console.log('Scripting API not available');
+            try {
+                const url = new URL(tabs[0].url);
+                currentDomain.textContent = url.hostname || 'N/A';
+            } catch (e) {
+                currentDomain.textContent = 'N/A';
             }
+            
+            // Inject content script when popup opens
+            injectContentScript(tabs[0].id);
         }
     });
 
@@ -38,11 +24,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const isEnabled = result.extensionEnabled !== undefined ? result.extensionEnabled : true;
         toggle.checked = isEnabled;
         updateStatus(isEnabled);
-
-        // Update statistics
-        if (result.sessionStats) {
-            if (enhancementCount) enhancementCount.textContent = result.sessionStats.totalEnhancements || 0;
-        }
     });
 
     // Handle toggle changes
@@ -59,14 +40,53 @@ document.addEventListener('DOMContentLoaded', function() {
                 chrome.tabs.sendMessage(tabs[0].id, {
                     action: "setEnabled",
                     value: isEnabled
-                }, function(response) {
-                    if (chrome.runtime.lastError) {
-                        console.log('Content script not ready yet');
-                    }
+                }).catch(err => {
+                    console.log('Content script not ready, injecting first...');
+                    // If content script isn't ready, inject it and then send message
+                    injectContentScript(tabs[0].id).then(() => {
+                        setTimeout(() => {
+                            chrome.tabs.sendMessage(tabs[0].id, {
+                                action: "setEnabled",
+                                value: isEnabled
+                            }).catch(e => console.log('Still failed:', e));
+                        }, 100);
+                    });
                 });
             }
         });
     });
+
+    /**
+     * Inject content script into tab
+     * @param {number} tabId - The tab ID
+     * @returns {Promise}
+     */
+    function injectContentScript(tabId) {
+        return new Promise((resolve, reject) => {
+            if (chrome.scripting) {
+                chrome.scripting.executeScript({
+                    target: { tabId: tabId },
+                    files: ['content-scripts/content.js']
+                }).then(() => {
+                    console.log('Content script injected successfully');
+                    // Also inject CSS
+                    return chrome.scripting.insertCSS({
+                        target: { tabId: tabId },
+                        files: ['content-scripts/content.css']
+                    });
+                }).then(() => {
+                    console.log('Content CSS injected successfully');
+                    resolve();
+                }).catch(err => {
+                    console.log('Error injecting content script:', err.message);
+                    // Script might already be injected, which is fine
+                    resolve(); // Resolve anyway
+                });
+            } else {
+                reject(new Error('Scripting API not available'));
+            }
+        });
+    }
 
     /**
      * Update status display
@@ -83,9 +103,8 @@ document.addEventListener('DOMContentLoaded', function() {
     chrome.storage.onChanged.addListener(function(changes, namespace) {
         if (changes.sessionStats) {
             const stats = changes.sessionStats.newValue;
-            if (stats && enhancementCount) {
-                enhancementCount.textContent = stats.totalEnhancements || 0;
-            }
+            // Optional: You could display this somewhere else
+            console.log('Stats updated:', stats);
         }
     });
 });

@@ -290,3 +290,18 @@
         font-size: 12px;
     }
 }
+
+/* Visual indicator that extension is active */
+#accessibility-enhancer-active-indicator {
+    position: fixed;
+    bottom: 10px;
+    right: 10px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: #4CAF50;
+    box-shadow: 0 0 10px #4CAF50;
+    z-index: 2147483647;
+    opacity: 0.5;
+    pointer-events: none;
+}

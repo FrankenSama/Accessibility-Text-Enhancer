@@ -34,19 +34,19 @@
       },
       "description": "Toggle extension on/off"
     },
-    "increase-size": {
+    "undo-change": {
       "suggested_key": {
         "default": "Ctrl+Z",
-        "mac": "Command+Shift+Z"
+        "mac": "Command+Z"
       },
-      "description": "Undo Change"
+      "description": "Undo last change"
     },
-    "decrease-size": {
+    "redo-change": {
       "suggested_key": {
         "default": "Ctrl+Y",
-        "mac": "Command+Shift+Y"
+        "mac": "Command+Y"
       },
-      "description": "Redo Change"
+      "description": "Redo last change"
     }
   }
 }
