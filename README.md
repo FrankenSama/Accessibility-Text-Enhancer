@@ -7,9 +7,7 @@
 ![Chrome](https://img.shields.io/badge/Chrome-Extension-yellow.svg)
 ![Accessibility](https://img.shields.io/badge/WCAG-2.2-purple.svg)
 
-**A real-time, user-driven browser extension for web accessibility enhancement**
-
-[Features](#features) • [Installation](#installation) • [Usage](#usage) • [Research](#research) • [Contributing](#contributing)
+**A real-time, user-driven browser extension for web accessibility enhancement**
 
 ![Demo Screenshot](docs/images/demo-screenshot.png)
 
@@ -19,7 +17,7 @@
 
 ## 🌟 Overview
 
-AI Accessibility Enhancer is a browser extension that empowers users to take control of web accessibility in real-time. Unlike traditional tools that only identify problems, this extension provides immediate, client-side remediation of common accessibility barriers—putting solutions directly in users' hands.
+Accessibility Text Enhancer is a browser extension that empowers users to take control of web accessibility in real-time. Unlike traditional tools that only identify problems, this extension provides immediate, client-side remediation of common accessibility barriers—putting solutions directly in users' hands.
 
 Developed as part of an MSc Computer Engineering dissertation at Solent University, this tool bridges the critical gap between **identifying** accessibility issues and **fixing** them.
 
@@ -402,5 +400,6 @@ Found a bug or have a feature request?
 **Making the web accessible, one selection at a time** ♿
 
 [⬆ Back to Top](#accessibility-text-enhancer)
+
 
 </div>
