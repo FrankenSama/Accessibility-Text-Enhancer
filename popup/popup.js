@@ -11,13 +11,25 @@ document.addEventListener('DOMContentLoaded', function() {
             const url = new URL(tabs[0].url);
             currentDomain.textContent = url.hostname || 'N/A';
             
-            // Inject content script when popup opens (user gesture)
-            chrome.scripting.executeScript({
-                target: { tabId: tabs[0].id },
-                files: ['content-scripts/content.js']
-            }).catch(err => {
-                console.log('Content script already injected or error:', err);
-            });
+            // Check if scripting API is available
+            if (chrome.scripting) {
+                // Inject content script when popup opens (user gesture)
+                chrome.scripting.executeScript({
+                    target: { tabId: tabs[0].id },
+                    files: ['content-scripts/content.js']
+                }).catch(err => {
+                    console.log('Error injecting content script:', err);
+                    // Fallback: Try using executeScript on the action
+                    chrome.action.executeScript({
+                        tabId: tabs[0].id,
+                        files: ['content-scripts/content.js']
+                    }).catch(fallbackErr => {
+                        console.log('Fallback also failed:', fallbackErr);
+                    });
+                });
+            } else {
+                console.log('Scripting API not available');
+            }
         }
     });
 
