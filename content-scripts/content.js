@@ -1,6 +1,10 @@
 // content-scripts/content.js
 (function() {
     'use strict';
+    
+    // Prevent multiple initializations
+    if (window.__accessibilityEnhancerInitialized) return;
+    window.__accessibilityEnhancerInitialized = true;
 
     // ==================== STATE MANAGEMENT ====================
     
@@ -99,6 +103,10 @@
             } else {
                 showToast('Extension enabled');
             }
+            sendResponse({ status: "success" });
+        }
+        else if (request.action === "executeCommand") {
+            handleCommand(request.command);
             sendResponse({ status: "success" });
         }
         return true;
@@ -288,6 +296,9 @@
                 readTextAloud(elementToStyle);
                 break;
         }
+
+        // Increment stats
+        chrome.runtime.sendMessage({ action: "incrementStats" });
 
         updateToolbarState();
     }
@@ -783,7 +794,7 @@
             if (!STATE.isExtensionEnabled) return;
 
             // Ctrl/Cmd + Z = Undo
-            if (e.ctrlKey && e.key === 'z' && !e.shiftKey) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
                 const toolbar = document.getElementById(CONFIG.toolbarId);
                 if (toolbar) {
                     e.preventDefault();
@@ -792,11 +803,27 @@
             }
 
             // Ctrl/Cmd + Y or Ctrl/Cmd + Shift + Z = Redo
-            if (e.ctrlKey && (e.key === 'y' || (e.shiftKey && e.key === 'Z'))) {
+            if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.shiftKey && e.key === 'Z'))) {
                 const toolbar = document.getElementById(CONFIG.toolbarId);
                 if (toolbar) {
                     e.preventDefault();
                     redo();
+                }
+            }
+
+            // Ctrl/Cmd + Shift + B = Bold
+            if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'B') {
+                e.preventDefault();
+                if (STATE.currentSelection && STATE.currentSelection.toString().trim().length > 0) {
+                    enhanceSelection('bold');
+                }
+            }
+
+            // Ctrl/Cmd + Shift + H = Highlight
+            if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'H') {
+                e.preventDefault();
+                if (STATE.currentSelection && STATE.currentSelection.toString().trim().length > 0) {
+                    enhanceSelection('highlight');
                 }
             }
         });

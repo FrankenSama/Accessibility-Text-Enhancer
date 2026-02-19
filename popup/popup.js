@@ -5,11 +5,19 @@ document.addEventListener('DOMContentLoaded', function() {
     const enhancementCount = document.getElementById('enhancementCount');
     const currentDomain = document.getElementById('currentDomain');
 
-    // Get current tab information
+    // Get current tab information and inject content script
     chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
         if (tabs[0]) {
             const url = new URL(tabs[0].url);
             currentDomain.textContent = url.hostname || 'N/A';
+            
+            // Inject content script when popup opens (user gesture)
+            chrome.scripting.executeScript({
+                target: { tabId: tabs[0].id },
+                files: ['content-scripts/content.js']
+            }).catch(err => {
+                console.log('Content script already injected or error:', err);
+            });
         }
     });
 
@@ -21,7 +29,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Update statistics
         if (result.sessionStats) {
-            enhancementCount.textContent = result.sessionStats.totalEnhancements || 0;
+            if (enhancementCount) enhancementCount.textContent = result.sessionStats.totalEnhancements || 0;
         }
     });
 
@@ -63,7 +71,7 @@ document.addEventListener('DOMContentLoaded', function() {
     chrome.storage.onChanged.addListener(function(changes, namespace) {
         if (changes.sessionStats) {
             const stats = changes.sessionStats.newValue;
-            if (stats) {
+            if (stats && enhancementCount) {
                 enhancementCount.textContent = stats.totalEnhancements || 0;
             }
         }

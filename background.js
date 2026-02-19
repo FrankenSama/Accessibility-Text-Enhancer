@@ -30,26 +30,67 @@ chrome.runtime.onInstalled.addListener((details) => {
     }
 });
 
+// Handle extension icon click
+chrome.action.onClicked.addListener((tab) => {
+    // User clicked the extension icon - inject content script
+    chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        files: ['content-scripts/content.js']
+    }).catch(err => {
+        console.log('Error injecting content script:', err);
+    });
+});
+
 // Handle keyboard shortcuts
 chrome.commands.onCommand.addListener((command) => {
     console.log('Command received:', command);
     
     chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
         if (tabs[0]) {
-            switch(command) {
-                case 'toggle-extension':
-                    toggleExtension(tabs[0].id);
-                    break;
-                case 'toggle-bold':
-                    sendCommandToContent(tabs[0].id, 'bold');
-                    break;
-                case 'increase-size':
-                    sendCommandToContent(tabs[0].id, 'sizeUp');
-                    break;
-                case 'decrease-size':
-                    sendCommandToContent(tabs[0].id, 'sizeDown');
-                    break;
-            }
+            // First inject the content script if needed
+            chrome.scripting.executeScript({
+                target: { tabId: tabs[0].id },
+                files: ['content-scripts/content.js']
+            }).then(() => {
+                // Then send the command based on the shortcut
+                switch(command) {
+                    case 'toggle-extension':
+                        toggleExtension(tabs[0].id);
+                        break;
+                    case 'increase-size':
+                        chrome.tabs.sendMessage(tabs[0].id, {
+                            action: "executeCommand",
+                            command: "undo"
+                        });
+                        break;
+                    case 'decrease-size':
+                        chrome.tabs.sendMessage(tabs[0].id, {
+                            action: "executeCommand",
+                            command: "redo"
+                        });
+                        break;
+                }
+            }).catch(err => {
+                console.log('Content script already injected or error:', err);
+                // Still try to send the message
+                switch(command) {
+                    case 'toggle-extension':
+                        toggleExtension(tabs[0].id);
+                        break;
+                    case 'increase-size':
+                        chrome.tabs.sendMessage(tabs[0].id, {
+                            action: "executeCommand",
+                            command: "undo"
+                        });
+                        break;
+                    case 'decrease-size':
+                        chrome.tabs.sendMessage(tabs[0].id, {
+                            action: "executeCommand",
+                            command: "redo"
+                        });
+                        break;
+                }
+            });
         }
     });
 });
@@ -70,18 +111,6 @@ function toggleExtension(tabId) {
     });
 }
 
-/**
- * Send command to content script
- * @param {number} tabId - The tab ID
- * @param {string} command - The command to send
- */
-function sendCommandToContent(tabId, command) {
-    chrome.tabs.sendMessage(tabId, {
-        action: "executeCommand",
-        command: command
-    });
-}
-
 // Track usage statistics
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === 'incrementStats') {
@@ -98,13 +127,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 // Keep service worker alive
 chrome.runtime.onStartup.addListener(() => {
     console.log('Extension started');
-});
-
-// Handle tab updates
-chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-    if (changeInfo.status === 'complete') {
-        // Could inject analytics or update badge here
-    }
 });
 
 // Set badge text based on extension state
