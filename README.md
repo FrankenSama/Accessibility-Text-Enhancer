@@ -70,7 +70,7 @@ A user-centric, real-time accessibility enhancement tool that:
 ## 📦 Installation
 
 ### Chrome Web Store (Recommended)
-*Coming Soon*
+https://chromewebstore.google.com/detail/accessibility-text-enhanc/cgpanifaahogfainpnkebmbgemodgfli?authuser=5&hl=en-GB&pli=1
 
 ### Manual Installation (Developer Mode)
 
