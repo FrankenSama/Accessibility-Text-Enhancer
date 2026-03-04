@@ -7,7 +7,8 @@
 ![Chrome](https://img.shields.io/badge/Chrome-Extension-yellow.svg)
 ![Accessibility](https://img.shields.io/badge/WCAG-2.2-purple.svg)
 
-**A real-time, user-driven browser extension for web accessibility enhancement**
+**A real-time, user-driven browser extension for web accessibility enhancement**
+
 
 ![Demo Screenshot](docs/images/demo-screenshot.png)
 
@@ -70,7 +71,7 @@ A user-centric, real-time accessibility enhancement tool that:
 ## 📦 Installation
 
 ### Chrome Web Store (Recommended)
-https://chromewebstore.google.com/detail/accessibility-text-enhanc/cgpanifaahogfainpnkebmbgemodgfli?authuser=5&hl=en-GB&pli=1
+https://chromewebstore.google.com/detail/cgpanifaahogfainpnkebmbgemodgfli
 
 ### Manual Installation (Developer Mode)
 
@@ -403,3 +404,4 @@ Found a bug or have a feature request?
 
 
 </div>
+
