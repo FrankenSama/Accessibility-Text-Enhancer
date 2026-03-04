@@ -71,7 +71,7 @@ A user-centric, real-time accessibility enhancement tool that:
 ## 📦 Installation
 
 ### Chrome Web Store (Recommended)
-https://chromewebstore.google.com/detail/cgpanifaahogfainpnkebmbgemodgfli
+[Link](https://chromewebstore.google.com/detail/cgpanifaahogfainpnkebmbgemodgfli)
 
 ### Manual Installation (Developer Mode)
 
@@ -404,4 +404,5 @@ Found a bug or have a feature request?
 
 
 </div>
+
 
