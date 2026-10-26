@@ -44,12 +44,12 @@ A user-centric, real-time accessibility enhancement tool that:
 
 | Feature | Description |
 |---------|-------------|
-| **Bold Toggle** | Increase text weight for better readability |
-| **Highlight** | Add a yellow background, or an outline when the text is too light for one |
-| **Font Size** | Increase/decrease text size (8-50px) |
-| **Font Style** | Toggle between sans-serif and serif fonts |
-| **Text Spacing** | Adjust letter and word spacing |
-| **Contrast Fix** | Choose black or white text based on the background |
+| **Bold Toggle** | Make just the selected words bold; Shift-click applies to the whole paragraph |
+| **Highlight** | Highlight just the selection with a yellow background or outline; Shift-click applies to the paragraph |
+| **Font Size** | Resize the paragraph around the selection (8-50px); Shift-click targets only the selection |
+| **Font Style** | Switch the paragraph between sans-serif and serif; Shift-click targets only the selection |
+| **Text Spacing** | Adjust the paragraph's letter and word spacing; Shift-click targets only the selection |
+| **Contrast Fix** | Choose black or white text for the paragraph based on its background; Shift-click targets only the selection |
 | **Read Aloud** | Text-to-speech for selected content |
 
 ### 🚀 Advanced Capabilities
@@ -102,6 +102,14 @@ A user-centric, real-time accessibility enhancement tool that:
 2. **Toolbar Appears**: The accessibility toolbar will appear at the top of your screen
 3. **Apply Enhancements**: Click any button to enhance the selected text
 4. **Undo if Needed**: Use the undo button or `Ctrl+Z` to revert changes
+
+### Selection Scope
+
+Bold and Highlight change only the words you selected. Font size, font style, text spacing, and contrast change the nearest paragraph or block, because those adjustments only read well when the whole block moves together.
+
+- **Shift-click flips the scope**: Bold/Highlight apply to the paragraph, while the readability buttons apply only to the selected text.
+- If a selection crosses several paragraphs, Bold and Highlight fall back to each paragraph and a toast explains what happened.
+- One undo step restores every element changed by a single action.
 
 ### Keyboard Shortcuts
 

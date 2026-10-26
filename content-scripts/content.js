@@ -18,7 +18,8 @@
         history: [],
         historyIndex: -1,
         toolbarTimeout: null,
-        positionFrame: null
+        positionFrame: null,
+        isApplyingCommand: false
     };
 
     const CONFIG = {
@@ -26,16 +27,62 @@
         settingsPanelId: 'accessibility-settings-panel',
         settingsOverlayId: 'accessibility-settings-overlay',
         highlightAttr: 'data-accessibility-highlight',
+        selectionAttr: 'data-atx-selection',
         selectionDelay: 150,
         toastDuration: 2000,
         maxHistorySize: 50,
+        maxWrapNodes: 200,
         fontSizeMin: 8,
         fontSizeMax: 50
+    };
+
+    // Commands that change readability, so they apply to the nearest block
+    // rather than only the selected words.
+    const BLOCK_COMMANDS = new Set([
+        'sizeDown',
+        'sizeUp',
+        'fontStyle',
+        'spacing',
+        'contrast'
+    ]);
+
+    // Commands whose effect is a binary toggle. When a selection covers several
+    // targets, they all move in the same direction instead of inverting mixed
+    // styles element by element.
+    const TOGGLE_COMMANDS = new Set([
+        'bold',
+        'highlight',
+        'fontStyle',
+        'spacing'
+    ]);
+
+    // Inline properties each command controls. When a command is applied to a
+    // whole block, matching overrides on exact-selection wrappers inside that
+    // block are cleared so the wrappers inherit the block-level result.
+    const COMMAND_PROPERTIES = {
+        bold: ['font-weight'],
+        highlight: ['background-color', 'outline'],
+        sizeDown: ['font-size'],
+        sizeUp: ['font-size'],
+        fontStyle: ['font-family'],
+        spacing: ['letter-spacing', 'word-spacing'],
+        contrast: ['color']
     };
 
     // Yellow used by the highlight feature. Highlight only paints a background
     // when the current text colour stays readable against it.
     const HIGHLIGHT_COLOR = { r: 255, g: 235, b: 59 };
+
+    // Wrappers are HTML spans, so they can only be inserted around HTML text.
+    const HTML_NAMESPACE = 'http://www.w3.org/1999/xhtml';
+
+    // Content that commands must never style: the extension's own UI, scripts,
+    // styles, form controls, and editable regions.
+    // An empty or "plaintext-only" contenteditable is still editable, so only
+    // an explicit "false" opts an element out.
+    const SKIP_SELECTOR = `#${CONFIG.toolbarId}, #${CONFIG.settingsPanelId}, ` +
+        'script, style, textarea, input, select, ' +
+        '[contenteditable]:not([contenteditable="false"])';
 
     let settingsReturnFocus = null;
 
@@ -161,19 +208,19 @@
             </div>
 
             <div class="button-group">
-                <button type="button" data-command="bold" data-tooltip="Bold (Alt+Shift+B)">Bold</button>
-                <button type="button" data-command="highlight" data-tooltip="Highlight (Alt+Shift+H)">Highlight</button>
+                <button type="button" data-command="bold" data-tooltip="Bold (Alt+Shift+B) · Shift: paragraph">Bold</button>
+                <button type="button" data-command="highlight" data-tooltip="Highlight (Alt+Shift+H) · Shift: paragraph">Highlight</button>
             </div>
 
             <div class="button-group">
-                <button type="button" data-command="sizeDown" class="size-btn" data-tooltip="Decrease Size">A-</button>
-                <button type="button" data-command="sizeUp" class="size-btn" data-tooltip="Increase Size">A+</button>
+                <button type="button" data-command="sizeDown" class="size-btn" data-tooltip="Decrease Size · Shift: selection">A-</button>
+                <button type="button" data-command="sizeUp" class="size-btn" data-tooltip="Increase Size · Shift: selection">A+</button>
             </div>
 
             <div class="button-group">
-                <button type="button" data-command="fontStyle" class="icon-btn" data-tooltip="Toggle Font Style">A</button>
-                <button type="button" data-command="spacing" class="icon-btn" data-tooltip="Text Spacing">↔️</button>
-                <button type="button" data-command="contrast" class="icon-btn" data-tooltip="Fix Contrast">🎨</button>
+                <button type="button" data-command="fontStyle" class="icon-btn" data-tooltip="Toggle Font Style · Shift: selection">A</button>
+                <button type="button" data-command="spacing" class="icon-btn" data-tooltip="Text Spacing · Shift: selection">↔️</button>
+                <button type="button" data-command="contrast" class="icon-btn" data-tooltip="Fix Contrast · Shift: selection">🎨</button>
                 <button type="button" data-command="readAloud" class="icon-btn" data-tooltip="Read Aloud">🔊</button>
             </div>
 
@@ -199,7 +246,9 @@
 
             btn.addEventListener('click', (event) => {
                 event.stopPropagation();
-                handleCommand(btn.dataset.command);
+                handleCommand(btn.dataset.command, {
+                    scope: getScopeOverride(btn.dataset.command, event.shiftKey)
+                });
             });
         });
 
@@ -277,13 +326,455 @@
                !(overlay && overlay.contains(event.target));
     }
 
+    // ==================== SELECTION SCOPE ====================
+
+    /**
+     * Find the nearest block-level ancestor of a node.
+     * @param {Node} node
+     * @returns {HTMLElement|null} Null when the node is not in the main document
+     *     (for example, inside a shadow root).
+     */
+    function closestBlock(node) {
+        let element = node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
+
+        while (element && element !== document.documentElement) {
+            const display = getComputedStyle(element).display;
+            // Treat inline-level boxes (including inline-block/flex/grid) as
+            // part of the surrounding text flow rather than as blocks.
+            if (display !== 'inline' &&
+                !display.startsWith('inline-') &&
+                display !== 'contents' &&
+                display !== 'none') {
+                return element;
+            }
+            element = element.parentElement;
+        }
+
+        return element === document.documentElement ? getMountNode() : null;
+    }
+
+    /**
+     * Collect the text nodes that intersect a range.
+     * @param {Range} range
+     * @returns {Text[]}
+     */
+    function getSelectedTextNodes(range) {
+        const root = range.commonAncestorContainer;
+        const nodes = [];
+
+        if (root.nodeType === Node.TEXT_NODE) {
+            if (range.intersectsNode(root)) {
+                nodes.push(root);
+            }
+        } else {
+            const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+                acceptNode(node) {
+                    return range.intersectsNode(node)
+                        ? NodeFilter.FILTER_ACCEPT
+                        : NodeFilter.FILTER_REJECT;
+                }
+            });
+
+            while (walker.nextNode()) {
+                nodes.push(walker.currentNode);
+            }
+        }
+
+        const excluded = new Map();
+
+        return nodes.filter((node) => {
+            const parent = node.parentElement;
+            if (!parent) {
+                return false;
+            }
+
+            let skip = excluded.get(parent);
+            if (skip === undefined) {
+                skip = Boolean(parent.closest(SKIP_SELECTOR));
+                excluded.set(parent, skip);
+            }
+
+            return !skip;
+        });
+    }
+
+    /**
+     * The part of a text node that a range covers.
+     * @param {Range} range
+     * @param {Text} node
+     * @returns {string}
+     */
+    function selectedSlice(range, node) {
+        const start = node === range.startContainer ? range.startOffset : 0;
+        const end = node === range.endContainer ? range.endOffset : node.nodeValue.length;
+        return node.nodeValue.slice(Math.min(start, end), Math.max(start, end));
+    }
+
+    /**
+     * Collect the block-level elements covered by a range.
+     * @param {Range} range
+     * @returns {HTMLElement[]}
+     */
+    function getBlocksForRange(range) {
+        const blocks = new Set();
+        const cache = new Map();
+
+        getSelectedTextNodes(range).forEach((node) => {
+            // Whitespace between blocks (and boundary-touching nodes) is not
+            // part of the selection, so it should not pull in the parent of
+            // the whole page.
+            if (!selectedSlice(range, node).trim()) {
+                return;
+            }
+
+            const parent = node.parentElement;
+            if (!parent) {
+                return;
+            }
+
+            let block = cache.get(parent);
+            if (block === undefined) {
+                block = closestBlock(parent);
+                cache.set(parent, block);
+            }
+
+            if (block) {
+                blocks.add(block);
+            }
+        });
+
+        if (blocks.size === 0) {
+            const ancestor = range.commonAncestorContainer;
+            const element = ancestor.nodeType === Node.ELEMENT_NODE
+                ? ancestor
+                : ancestor.parentElement;
+
+            // Do not fall back to a skipped container such as an editable
+            // region or the extension's own toolbar.
+            if (element && !element.closest(SKIP_SELECTOR)) {
+                const fallback = closestBlock(ancestor);
+                if (fallback) {
+                    blocks.add(fallback);
+                }
+            }
+        }
+
+        return [...blocks];
+    }
+
+    /**
+     * Find the smallest element whose text is exactly the selection.
+     * @param {Range} range
+     * @returns {HTMLElement|null}
+     */
+    function getExactElement(range) {
+        let element = range.commonAncestorContainer;
+        if (element.nodeType === Node.TEXT_NODE) {
+            element = element.parentElement;
+        }
+
+        if (!element || element.nodeType !== Node.ELEMENT_NODE) {
+            return null;
+        }
+
+        // Never style skipped content such as the extension's own UI, form
+        // controls, or editable regions.
+        if (element.closest(SKIP_SELECTOR)) {
+            return null;
+        }
+
+        const normalize = (value) => value.replace(/\s+/g, ' ').trim();
+        return normalize(element.textContent) === normalize(range.toString())
+            ? element
+            : null;
+    }
+
+    /**
+     * Find an existing selection wrapper that fully contains the range.
+     * @param {Range} range
+     * @returns {HTMLElement|null}
+     */
+    function getContainingWrapper(range) {
+        let node = range.commonAncestorContainer;
+        if (node.nodeType === Node.TEXT_NODE) {
+            node = node.parentElement;
+        }
+
+        const wrapper = node && node.closest(`[${CONFIG.selectionAttr}]`);
+        if (!wrapper) {
+            return null;
+        }
+
+        const wrapperRange = document.createRange();
+        wrapperRange.selectNodeContents(wrapper);
+
+        const startsInside = range.compareBoundaryPoints(Range.START_TO_START, wrapperRange) >= 0;
+        const endsInside = range.compareBoundaryPoints(Range.END_TO_END, wrapperRange) <= 0;
+
+        return startsInside && endsInside ? wrapper : null;
+    }
+
+    /**
+     * Wrap the selected text nodes in inline spans.
+     * @param {Range} range
+     * @returns {HTMLElement[]|null} Wrappers, or null when the range cannot be
+     *     wrapped safely.
+     */
+    function wrapRange(range) {
+        const textNodes = getSelectedTextNodes(range);
+
+        if (textNodes.length === 0 || textNodes.length > CONFIG.maxWrapNodes) {
+            return null;
+        }
+
+        // Do not mix HTML wrappers into SVG or MathML content.
+        if (textNodes.some((node) => node.parentElement.namespaceURI !== HTML_NAMESPACE)) {
+            return null;
+        }
+
+        const wrappers = [];
+
+        // Wrapping splits text nodes and can collapse the live selection, which
+        // would make the toolbar disappear. Suppress selection handling until
+        // the new selection is in place.
+        STATE.isApplyingCommand = true;
+
+        try {
+            for (const node of textNodes) {
+                const start = node === range.startContainer ? range.startOffset : 0;
+                const end = node === range.endContainer ? range.endOffset : node.nodeValue.length;
+
+                // Skip boundary-touching and whitespace-only slices, such as
+                // the indentation between two paragraphs.
+                if (start >= end || !node.nodeValue.slice(start, end).trim()) {
+                    continue;
+                }
+
+                let selected = node;
+                if (start > 0) {
+                    selected = node.splitText(start);
+                }
+                if (end - start < selected.nodeValue.length) {
+                    selected.splitText(end - start);
+                }
+
+                if (!selected.parentNode) {
+                    continue;
+                }
+
+                const span = document.createElement('span');
+                span.setAttribute(CONFIG.selectionAttr, '');
+                selected.parentNode.insertBefore(span, selected);
+                span.appendChild(selected);
+                wrappers.push(span);
+            }
+
+            if (wrappers.length === 0) {
+                return null;
+            }
+
+            const first = wrappers[0];
+            const last = wrappers[wrappers.length - 1];
+            const wrappedRange = document.createRange();
+            wrappedRange.setStart(first.firstChild, 0);
+            wrappedRange.setEnd(last.lastChild, last.lastChild.length);
+            STATE.savedRange = wrappedRange;
+
+            const selection = window.getSelection();
+            if (selection) {
+                selection.removeAllRanges();
+                selection.addRange(wrappedRange);
+            }
+
+            return wrappers;
+        } finally {
+            setTimeout(() => {
+                STATE.isApplyingCommand = false;
+            }, 0);
+        }
+    }
+
+    /**
+     * The scope a command uses when the user does not override it.
+     * @param {string} command
+     * @returns {'block'|'selection'}
+     */
+    function defaultScopeFor(command) {
+        return BLOCK_COMMANDS.has(command) ? 'block' : 'selection';
+    }
+
+    /**
+     * Shift-click flips the default scope: paragraph commands apply to the
+     * selection, and selection commands apply to the whole paragraph.
+     * @param {string} command
+     * @param {boolean} shiftKey
+     * @returns {'block'|'selection'|undefined}
+     */
+    function getScopeOverride(command, shiftKey) {
+        if (!shiftKey) {
+            return undefined;
+        }
+
+        if (BLOCK_COMMANDS.has(command)) {
+            return 'selection';
+        }
+
+        if (command === 'bold' || command === 'highlight') {
+            return 'block';
+        }
+
+        return undefined;
+    }
+
+    /**
+     * Resolve which elements a command should modify.
+     * @param {Range} range
+     * @param {string} command
+     * @param {{scope?: 'block'|'selection'}} options
+     * @returns {{targets: HTMLElement[], scope: 'block'|'selection', fallback: boolean}}
+     */
+    function resolveScope(range, command, options = {}) {
+        const scope = options.scope || defaultScopeFor(command);
+        const blocks = getBlocksForRange(range);
+
+        if (scope === 'block') {
+            return { targets: blocks, scope: 'block', fallback: false };
+        }
+
+        // A selection that covers several blocks is applied to each of them
+        // rather than wrapping across block boundaries.
+        if (blocks.length > 1) {
+            return { targets: blocks, scope: 'block', fallback: true };
+        }
+
+        const wrapper = getContainingWrapper(range);
+        if (wrapper) {
+            return { targets: [wrapper], scope: 'selection', fallback: false };
+        }
+
+        const exact = getExactElement(range);
+        if (exact) {
+            return { targets: [exact], scope: 'selection', fallback: false };
+        }
+
+        const wrappers = wrapRange(range);
+        if (wrappers) {
+            return { targets: wrappers, scope: 'selection', fallback: false };
+        }
+
+        return { targets: blocks, scope: 'block', fallback: true };
+    }
+
+    /**
+     * Describe the applied scope in a toast message.
+     * @param {{scope?: string}} options
+     * @returns {string}
+     */
+    function scopeSuffix(options) {
+        if (options.scope === 'block') {
+            return ' (paragraph)';
+        }
+        if (options.scope === 'selection') {
+            return ' (selection)';
+        }
+        return '';
+    }
+
+    /**
+     * Show a toast unless the command is being applied to several targets.
+     * @param {{silent?: boolean, scope?: string}} options
+     * @param {string} message
+     */
+    function notify(options, message) {
+        if (!options.silent) {
+            showToast(message + scopeSuffix(options));
+        }
+    }
+
+    /**
+     * Describe a grouped change for the single summary toast.
+     * @param {string} command
+     * @param {{scope: string, fallback: boolean, targets: HTMLElement[]}} resolved
+     * @returns {string}
+     */
+    function describeScope(command, resolved) {
+        const labels = {
+            bold: 'Bold',
+            highlight: 'Highlight',
+            sizeDown: 'Font size',
+            sizeUp: 'Font size',
+            fontStyle: 'Font style',
+            spacing: 'Spacing',
+            contrast: 'Contrast'
+        };
+
+        const label = labels[command] || 'Change';
+
+        if (resolved.scope === 'selection') {
+            return `${label} applied to selection`;
+        }
+
+        const count = resolved.targets.length;
+        const paragraphs = `${count} paragraph${count === 1 ? '' : 's'}`;
+
+        if (resolved.fallback) {
+            return `Selection spans blocks — ${label.toLowerCase()} applied to ${paragraphs}`;
+        }
+
+        return `${label} applied to ${paragraphs}`;
+    }
+
+    /**
+     * Whether a toggle command's effect is already applied to an element.
+     * @param {HTMLElement} element
+     * @param {string} command
+     * @returns {boolean}
+     */
+    function isCommandApplied(element, command) {
+        switch (command) {
+            case 'bold': {
+                const weight = getComputedStyle(element).fontWeight;
+                return weight === 'bold' || parseInt(weight, 10) >= 700;
+            }
+            case 'highlight':
+                return element.hasAttribute(CONFIG.highlightAttr);
+            case 'fontStyle': {
+                const family = getComputedStyle(element).fontFamily.toLowerCase();
+                return family.includes('georgia') ||
+                    (family.includes('serif') && !family.includes('sans-serif'));
+            }
+            case 'spacing':
+                return element.style.getPropertyValue('letter-spacing') === '2px' &&
+                       element.style.getPropertyValue('word-spacing') === '4px';
+            default:
+                return false;
+        }
+    }
+
+    /**
+     * Remove a command's exact-selection overrides so the wrapper inherits the
+     * block-level style instead.
+     * @param {HTMLElement} wrapper
+     * @param {string} command
+     */
+    function clearWrapperOverride(wrapper, command) {
+        (COMMAND_PROPERTIES[command] || []).forEach((property) => {
+            wrapper.style.removeProperty(property);
+        });
+
+        if (command === 'highlight') {
+            wrapper.removeAttribute(CONFIG.highlightAttr);
+        }
+    }
+
     // ==================== COMMAND HANDLING ====================
 
     /**
      * Handle toolbar command execution.
      * @param {string} command - The command to execute
+     * @param {{scope?: 'block'|'selection'}} options - Scope override
      */
-    function handleCommand(command) {
+    function handleCommand(command, options = {}) {
         switch (command) {
             case 'settings':
                 showSettingsPanel();
@@ -298,15 +789,16 @@
                 redo();
                 return;
             default:
-                enhanceSelection(command);
+                enhanceSelection(command, options);
         }
     }
 
     /**
      * Apply an enhancement to the saved selection.
      * @param {string} command - The enhancement command
+     * @param {{scope?: 'block'|'selection'}} options - Scope override
      */
-    function enhanceSelection(command) {
+    function enhanceSelection(command, options = {}) {
         if (!STATE.isExtensionEnabled || !STATE.savedRange) {
             return;
         }
@@ -316,61 +808,145 @@
             return;
         }
 
-        let elementToStyle = range.commonAncestorContainer;
-        while (elementToStyle && elementToStyle.nodeType !== Node.ELEMENT_NODE) {
-            elementToStyle = elementToStyle.parentElement;
-        }
+        const anchor = range.commonAncestorContainer.nodeType === Node.ELEMENT_NODE
+            ? range.commonAncestorContainer
+            : range.commonAncestorContainer.parentElement;
 
-        if (!elementToStyle) {
-            return;
-        }
-
-        // Never style the extension's own UI.
-        if (elementToStyle.closest(`#${CONFIG.toolbarId}, #${CONFIG.settingsPanelId}`)) {
+        if (!anchor || anchor.closest(`#${CONFIG.toolbarId}, #${CONFIG.settingsPanelId}`)) {
             return;
         }
 
         // Reading aloud does not change styles, so it should not create a
         // history entry.
         if (command === 'readAloud') {
-            readTextAloud(elementToStyle);
+            readTextAloud(anchor);
             return;
         }
 
-        const before = captureElementState(elementToStyle);
-
-        switch (command) {
-            case 'bold':
-                toggleBold(elementToStyle);
-                break;
-            case 'highlight':
-                toggleHighlight(elementToStyle);
-                break;
-            case 'sizeDown':
-                adjustFontSize(elementToStyle, -2);
-                break;
-            case 'sizeUp':
-                adjustFontSize(elementToStyle, 2);
-                break;
-            case 'fontStyle':
-                toggleFontStyle(elementToStyle);
-                break;
-            case 'spacing':
-                adjustTextSpacing(elementToStyle);
-                break;
-            case 'contrast':
-                fixTextContrast(elementToStyle);
-                break;
-            default:
-                return;
+        const resolved = resolveScope(range, command, options);
+        if (resolved.targets.length === 0) {
+            showToast('Nothing to change');
+            return;
         }
 
-        const after = captureElementState(elementToStyle);
-        if (before.style !== after.style || before.highlight !== after.highlight) {
-            pushHistory({ element: elementToStyle, before, after });
+        const commandOptions = {
+            // Only mention the scope when it differs from the command default,
+            // so the common case stays quiet.
+            scope: resolved.scope === defaultScopeFor(command) ? undefined : resolved.scope,
+            // One grouped change gets a single summary toast.
+            silent: resolved.targets.length > 1,
+            // Toggle every target the same way: if the effect is already
+            // present on all of them, turn it off everywhere; otherwise turn it
+            // on everywhere. This avoids inverting mixed styles.
+            toggleOff: TOGGLE_COMMANDS.has(command)
+                ? resolved.targets.every((target) => isCommandApplied(target, command))
+                : undefined
+        };
+
+        const changes = [];
+        const nestedWrappers = new Set();
+
+        const applyToTarget = (target) => {
+            const before = captureElementState(target);
+            applyCommand(target, command, commandOptions);
+            const after = captureElementState(target);
+
+            if (before.style !== after.style || before.highlight !== after.highlight) {
+                changes.push({ element: target, before, after });
+                return true;
+            }
+
+            return false;
+        };
+
+        let changedTargets = 0;
+
+        for (const target of resolved.targets) {
+            if (!target.isConnected) {
+                continue;
+            }
+
+            // Any exact-selection wrapper inside a target must follow the
+            // target's new value for the same property. This also covers the
+            // case where selecting a whole paragraph resolves to the paragraph
+            // itself rather than to a block command.
+            target.querySelectorAll(`[${CONFIG.selectionAttr}]`).forEach((wrapper) => {
+                nestedWrappers.add(wrapper);
+            });
+
+            if (applyToTarget(target)) {
+                changedTargets++;
+            }
+        }
+
+        // A change on a target supersedes exact-selection styling for the same
+        // property inside it, so clear those overrides. Doing this only after
+        // the target changed keeps a rejected command (such as a size limit)
+        // from wiping a selection's own styling.
+        if (changedTargets > 0) {
+            for (const wrapper of nestedWrappers) {
+                if (!wrapper.isConnected) {
+                    continue;
+                }
+
+                const before = captureElementState(wrapper);
+                clearWrapperOverride(wrapper, command);
+                const after = captureElementState(wrapper);
+
+                if (before.style !== after.style || before.highlight !== after.highlight) {
+                    changes.push({ element: wrapper, before, after });
+                }
+            }
+        }
+
+        if (changes.length === 0) {
+            // A grouped command that changed nothing (for example, every
+            // target is already at the size limit) would otherwise be silent.
+            if (commandOptions.silent) {
+                showToast('Nothing to change');
+            }
+            return;
+        }
+
+        pushHistory({ changes });
+
+        if (commandOptions.silent) {
+            showToast(describeScope(command, resolved));
         }
 
         updateToolbarState();
+    }
+
+    /**
+     * Dispatch a style command to its enhancement function.
+     * @param {HTMLElement} element - Element to modify
+     * @param {string} command - The enhancement command
+     * @param {{silent?: boolean, scope?: string}} options
+     */
+    function applyCommand(element, command, options = {}) {
+        switch (command) {
+            case 'bold':
+                toggleBold(element, options);
+                break;
+            case 'highlight':
+                toggleHighlight(element, options);
+                break;
+            case 'sizeDown':
+                adjustFontSize(element, -2, options);
+                break;
+            case 'sizeUp':
+                adjustFontSize(element, 2, options);
+                break;
+            case 'fontStyle':
+                toggleFontStyle(element, options);
+                break;
+            case 'spacing':
+                adjustTextSpacing(element, options);
+                break;
+            case 'contrast':
+                fixTextContrast(element, options);
+                break;
+        }
     }
 
     // ==================== ENHANCEMENT FUNCTIONS ====================
@@ -378,32 +954,42 @@
     /**
      * Toggle bold styling.
      * @param {HTMLElement} element - Element to modify
+     * @param {{silent?: boolean, scope?: string, toggleOff?: boolean}} options
      */
-    function toggleBold(element) {
+    function toggleBold(element, options = {}) {
         const currentWeight = getComputedStyle(element).fontWeight;
-        const isBold = currentWeight === 'bold' || parseInt(currentWeight, 10) >= 700;
+        const isBold = options.toggleOff ??
+            (currentWeight === 'bold' || parseInt(currentWeight, 10) >= 700);
         element.style.setProperty('font-weight', isBold ? 'normal' : 'bold', 'important');
-        showToast(isBold ? 'Text unbolded' : 'Text bolded');
+        notify(options, isBold ? 'Text unbolded' : 'Text bolded');
     }
 
     /**
      * Toggle highlight background or outline.
      * @param {HTMLElement} element - Element to modify
+     * @param {{silent?: boolean, scope?: string, toggleOff?: boolean}} options
      */
-    function toggleHighlight(element) {
+    function toggleHighlight(element, options = {}) {
         const mode = element.getAttribute(CONFIG.highlightAttr);
+        const shouldRemove = options.toggleOff ?? (mode === 'background' || mode === 'outline');
 
-        if (mode === 'background') {
-            element.style.removeProperty('background-color');
+        if (shouldRemove) {
+            if (mode === 'background') {
+                element.style.removeProperty('background-color');
+                notify(options, 'Highlight removed');
+            } else {
+                element.style.removeProperty('outline');
+                notify(options, 'Outline removed');
+            }
+
             element.removeAttribute(CONFIG.highlightAttr);
-            showToast('Highlight removed');
             return;
         }
 
-        if (mode === 'outline') {
-            element.style.removeProperty('outline');
-            element.removeAttribute(CONFIG.highlightAttr);
-            showToast('Outline removed');
+        // Part of a mixed selection that is being highlighted: keep the mode
+        // it already has instead of stacking a background and an outline.
+        if (mode) {
+            notify(options, mode === 'background' ? 'Text highlighted' : 'Outline applied');
             return;
         }
 
@@ -421,11 +1007,11 @@
         if (background || clipsBackgroundToText || !backgroundIsReadable) {
             element.style.setProperty('outline', '2px solid #ffeb3b', 'important');
             element.setAttribute(CONFIG.highlightAttr, 'outline');
-            showToast('Outline applied');
+            notify(options, 'Outline applied');
         } else {
             element.style.setProperty('background-color', '#ffeb3b', 'important');
             element.setAttribute(CONFIG.highlightAttr, 'background');
-            showToast('Text highlighted');
+            notify(options, 'Text highlighted');
         }
     }
 
@@ -433,51 +1019,57 @@
      * Adjust font size.
      * @param {HTMLElement} element - Element to modify
      * @param {number} change - Size change amount
+     * @param {{silent?: boolean, scope?: string}} options
      */
-    function adjustFontSize(element, change) {
+    function adjustFontSize(element, change, options = {}) {
         const currentSize = parseFloat(getComputedStyle(element).fontSize);
         const newSize = currentSize + change;
 
         if (newSize >= CONFIG.fontSizeMin && newSize <= CONFIG.fontSizeMax) {
             element.style.setProperty('font-size', `${newSize}px`, 'important');
-            showToast(`Font size: ${newSize}px`);
+            notify(options, `Font size: ${newSize}px`);
         } else {
-            showToast(`Size limit reached (${CONFIG.fontSizeMin}-${CONFIG.fontSizeMax}px)`);
+            notify(options, `Size limit reached (${CONFIG.fontSizeMin}-${CONFIG.fontSizeMax}px)`);
         }
     }
 
     /**
      * Toggle font family.
      * @param {HTMLElement} element - Element to modify
+     * @param {{silent?: boolean, scope?: string, toggleOff?: boolean}} options
      */
-    function toggleFontStyle(element) {
+    function toggleFontStyle(element, options = {}) {
         const current = getComputedStyle(element).fontFamily.toLowerCase();
+        const isSerif = options.toggleOff ??
+            (current.includes('georgia') || (current.includes('serif') && !current.includes('sans-serif')));
 
-        if (current.includes('georgia') || (current.includes('serif') && !current.includes('sans-serif'))) {
+        if (isSerif) {
             element.style.setProperty('font-family', 'Arial, sans-serif', 'important');
-            showToast('Font: Sans-serif');
+            notify(options, 'Font: Sans-serif');
         } else {
             element.style.setProperty('font-family', 'Georgia, serif', 'important');
-            showToast('Font: Serif');
+            notify(options, 'Font: Serif');
         }
     }
 
     /**
      * Toggle text spacing.
      * @param {HTMLElement} element - Element to modify
+     * @param {{silent?: boolean, scope?: string, toggleOff?: boolean}} options
      */
-    function adjustTextSpacing(element) {
-        const isSpaced = element.style.getPropertyValue('letter-spacing') === '2px' &&
-                         element.style.getPropertyValue('word-spacing') === '4px';
+    function adjustTextSpacing(element, options = {}) {
+        const isSpaced = options.toggleOff ??
+            (element.style.getPropertyValue('letter-spacing') === '2px' &&
+             element.style.getPropertyValue('word-spacing') === '4px');
 
         if (isSpaced) {
             element.style.removeProperty('letter-spacing');
             element.style.removeProperty('word-spacing');
-            showToast('Spacing reset');
+            notify(options, 'Spacing reset');
         } else {
             element.style.setProperty('letter-spacing', '2px', 'important');
             element.style.setProperty('word-spacing', '4px', 'important');
-            showToast('Spacing increased');
+            notify(options, 'Spacing increased');
         }
     }
 
@@ -575,8 +1167,9 @@
     /**
      * Force high-contrast text based on the effective background colour.
      * @param {HTMLElement} element - Element to modify
+     * @param {{silent?: boolean, scope?: string}} options
      */
-    function fixTextContrast(element) {
+    function fixTextContrast(element, options = {}) {
         const background = getEffectiveBackgroundColor(element);
         const black = { r: 0, g: 0, b: 0 };
         const white = { r: 255, g: 255, b: 255 };
@@ -584,7 +1177,7 @@
         const newColor = useBlack ? '#000000' : '#ffffff';
 
         element.style.setProperty('color', newColor, 'important');
-        showToast(`Contrast fixed: ${useBlack ? 'Black' : 'White'} text`);
+        notify(options, `Contrast fixed: ${useBlack ? 'Black' : 'White'} text`);
     }
 
     /**
@@ -645,7 +1238,7 @@
 
     /**
      * Add an entry to the undo history.
-     * @param {{element: HTMLElement, before: Object, after: Object}} entry
+     * @param {{changes: Array<{element: HTMLElement, before: Object, after: Object}>}} entry
      */
     function pushHistory(entry) {
         STATE.history = STATE.history.slice(0, STATE.historyIndex + 1);
@@ -656,6 +1249,29 @@
             STATE.history.shift();
             STATE.historyIndex--;
         }
+    }
+
+    /**
+     * Restore one side of a history entry.
+     * @param {{changes: Array<{element: HTMLElement, before: Object, after: Object}>}} entry
+     * @param {'before'|'after'} side
+     * @returns {number} Number of targets that were still on the page
+     */
+    function applyHistoryEntry(entry, side) {
+        let applied = 0;
+
+        for (const change of entry.changes) {
+            // Pages that re-render can detach an element a change was applied
+            // to. Restoring it would silently do nothing, so skip it.
+            if (!change.element.isConnected) {
+                continue;
+            }
+
+            restoreElementState(change.element, change[side]);
+            applied++;
+        }
+
+        return applied;
     }
 
     /**
@@ -670,17 +1286,16 @@
         const entry = STATE.history[STATE.historyIndex];
         STATE.historyIndex--;
 
-        // Pages that re-render can detach the element a change was applied to.
-        // Restoring it would silently do nothing, so say so instead.
-        if (!entry.element.isConnected) {
-            updateToolbarState();
-            showToast('That change is no longer on the page');
-            return;
-        }
-
-        restoreElementState(entry.element, entry.before);
+        const applied = applyHistoryEntry(entry, 'before');
         updateToolbarState();
-        showToast('Undone');
+
+        if (applied === 0) {
+            showToast('That change is no longer on the page');
+        } else if (applied < entry.changes.length) {
+            showToast('Undone (some targets were no longer on the page)');
+        } else {
+            showToast('Undone');
+        }
     }
 
     /**
@@ -695,15 +1310,16 @@
         STATE.historyIndex++;
         const entry = STATE.history[STATE.historyIndex];
 
-        if (!entry.element.isConnected) {
-            updateToolbarState();
-            showToast('That change is no longer on the page');
-            return;
-        }
-
-        restoreElementState(entry.element, entry.after);
+        const applied = applyHistoryEntry(entry, 'after');
         updateToolbarState();
-        showToast('Redone');
+
+        if (applied === 0) {
+            showToast('That change is no longer on the page');
+        } else if (applied < entry.changes.length) {
+            showToast('Redone (some targets were no longer on the page)');
+        } else {
+            showToast('Redone');
+        }
     }
 
     /**
@@ -972,10 +1588,29 @@
     }
 
     /**
+     * Whether two ranges cover the same boundary points.
+     * @param {Range} a
+     * @param {Range} b
+     * @returns {boolean}
+     */
+    function rangesMatch(a, b) {
+        return a.startContainer === b.startContainer &&
+               a.startOffset === b.startOffset &&
+               a.endContainer === b.endContainer &&
+               a.endOffset === b.endOffset;
+    }
+
+    /**
      * Handle selection changes.
      */
     function handleSelectionChange() {
         if (!STATE.isExtensionEnabled) {
+            return;
+        }
+
+        // Wrapping a selection splits text nodes and temporarily collapses the
+        // live selection. Ignore those changes until the range is restored.
+        if (STATE.isApplyingCommand) {
             return;
         }
 
@@ -985,20 +1620,24 @@
             return;
         }
 
+        const selection = window.getSelection();
+        const range = selection && selection.rangeCount > 0 && !selection.isCollapsed
+            ? selection.getRangeAt(0)
+            : null;
+
+        // Ignore the echo from restoring the selection after wrapping, so the
+        // toolbar is not torn down and re-animated on every command. This runs
+        // before the pending-toolbar timer is cleared.
+        if (range && STATE.savedRange && rangesMatch(range, STATE.savedRange)) {
+            return;
+        }
+
         if (STATE.toolbarTimeout) {
             clearTimeout(STATE.toolbarTimeout);
             STATE.toolbarTimeout = null;
         }
 
-        const selection = window.getSelection();
-        if (!selection || selection.rangeCount === 0 || selection.isCollapsed) {
-            STATE.savedRange = null;
-            removeToolbar();
-            return;
-        }
-
-        const range = selection.getRangeAt(0);
-        if (!range.toString().trim()) {
+        if (!range || !range.toString().trim()) {
             STATE.savedRange = null;
             removeToolbar();
             return;

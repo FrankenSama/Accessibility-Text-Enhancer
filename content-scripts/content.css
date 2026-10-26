@@ -1,3 +1,9 @@
+/* Inline wrappers created for exact-selection commands. Some page styles turn
+   spans into blocks, which would break the surrounding text flow. */
+span[data-atx-selection] {
+    display: inline !important;
+}
+
 /* Toolbar container styling */
 #accessibility-toolbar {
     position: fixed;
