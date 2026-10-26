@@ -1,19 +1,21 @@
-# Contributing to AI Accessibility Enhancer
+# Contributing to Accessibility Text Enhancer
 
-First off, thank you for considering contributing to AI Accessibility Enhancer! It's people like you that make the web more accessible for everyone.
+This is a personal project maintained by Octavio Silva. Forks are welcome under the MIT License, and bug reports or focused pull requests are appreciated. Reviews and merges happen at the maintainer's discretion, so there is no guaranteed response time.
 
 ## Table of Contents
 
 - [Code of Conduct](#code-of-conduct)
 - [How Can I Contribute?](#how-can-i-contribute)
+- [Forking & Attribution](#forking--attribution)
 - [Development Setup](#development-setup)
 - [Coding Standards](#coding-standards)
 - [Commit Guidelines](#commit-guidelines)
 - [Pull Request Process](#pull-request-process)
+- [License](#license)
 
 ## Code of Conduct
 
-This project and everyone participating in it is governed by our commitment to accessibility and inclusivity. By participating, you are expected to uphold this code. Please report unacceptable behavior to [your-email@example.com].
+This project and everyone participating in it is governed by our commitment to accessibility and inclusivity. By participating, you are expected to uphold this code. Please report unacceptable behavior by opening an issue or contacting the maintainer through GitHub.
 
 ### Our Standards
 
@@ -67,20 +69,15 @@ Enhancement suggestions are tracked as GitHub issues. When creating an enhanceme
 - **List some examples** of how this enhancement would be used
 - **Specify which version** you're using
 
-### Your First Code Contribution
-
-Unsure where to begin? You can start by looking through these beginner and help-wanted issues:
-
-- `good-first-issue` - issues which should only require a few lines of code
-- `help-wanted` - issues which should be a bit more involved than beginner issues
-
 ### Pull Requests
 
 1. Fork the repo and create your branch from `main`
 2. If you've added code that should be tested, add tests
 3. Ensure your code follows the existing style
 4. Update the README.md with details of changes if needed
-5. The PR will be merged once you have the sign-off of the maintainer
+5. The PR will be merged once the maintainer has reviewed it
+
+Pull requests are optional. If you would rather maintain your own version, fork the repository and follow the attribution guidance below.
 
 ## Development Setup
 
@@ -112,8 +109,8 @@ Unsure where to begin? You can start by looking through these beginner and help-
 
 4. **Make Changes**
    - Edit files in your preferred editor
-   - The extension will auto-reload on content script changes
-   - For other changes, click the reload icon in `chrome://extensions/`
+   - After changing the content script or manifest, click the reload icon in `chrome://extensions/`
+   - Then refresh the page you are testing
 
 5. **Test Thoroughly**
    - Test on multiple websites
@@ -190,14 +187,14 @@ var handleClick = function(event) {
 
 ```css
 /* ✅ Good: Clear, organized, commented */
-.accessibility-toolbar {
+#accessibility-toolbar {
     /* Layout */
     display: flex;
     gap: 8px;
     
     /* Positioning */
     position: fixed;
-    z-index: 2147483647;
+    z-index: 2147483645;
     
     /* Visual */
     background: linear-gradient(135deg, #2c2c2c 0%, #1a1a1a 100%);
@@ -205,8 +202,8 @@ var handleClick = function(event) {
 }
 
 /* ❌ Bad: Unorganized, no comments */
-.accessibility-toolbar {
-    z-index: 2147483647;
+#accessibility-toolbar {
+    z-index: 2147483645;
     display: flex;
     background: linear-gradient(135deg, #2c2c2c 0%, #1a1a1a 100%);
     position: fixed;
@@ -227,7 +224,11 @@ project/
 ├── content-scripts/
 │   ├── content.js        # Main enhancement engine
 │   └── content.css       # Toolbar styling
-└── icons/                # Extension icons
+├── icons/                # Extension icons
+├── docs/                 # Documentation and research
+├── index.html            # GitHub Pages landing page
+├── privacy-policy.md     # Privacy policy
+└── LICENSE               # MIT License
 ```
 
 ## Commit Guidelines
@@ -321,26 +322,31 @@ Add screenshots showing the changes
 
 ### Review Process
 
-1. A maintainer will review your PR within 7 days
+1. The maintainer will review the PR when time allows
 2. Address any requested changes
-3. Once approved, a maintainer will merge your PR
-4. Your contribution will be included in the next release!
+3. Once approved, the PR will be merged and included in a future release
+
+## Forking & Attribution
+
+Forking is welcome. If you publish a modified version:
+
+- Keep the `LICENSE` file and copyright notice (required by the MIT License).
+- Credit Octavio Silva and link back to this repository in your README or about page (requested).
+- Make it clear that your fork is not the official extension, and don't use the project name or icon in a way that suggests it is.
+
+GitHub's **Fork** button preserves the license and shows a "forked from" link automatically.
 
 ## Recognition
 
-Contributors will be:
-- Listed in the project README
-- Credited in release notes
-- Given our heartfelt thanks for making the web more accessible! 🎉
+Accepted contributions are credited in release notes. Thank you for helping make the web more accessible! 🎉
 
 ## Questions?
 
-Feel free to open an issue with the `question` label, or reach out via:
-- GitHub Discussions
+Open an issue on GitHub if you have a question about the project.
 
 ## License
 
-By contributing, you agree that your contributions will be licensed under the MIT License.
+By contributing, you agree that your contributions will be licensed under the MIT License. You retain copyright to your own contributions.
 
 ---
 

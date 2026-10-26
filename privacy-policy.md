@@ -1,6 +1,6 @@
 # Privacy Policy for Accessibility Text Enhancer
 
-**Last updated:** February 18, 2026
+**Last updated:** October 26, 2026
 
 Thank you for using the Accessibility Text Enhancer extension ("the Extension"). This privacy policy explains what information we collect and how it is used.
 
@@ -8,7 +8,7 @@ Thank you for using the Accessibility Text Enhancer extension ("the Extension").
 The Accessibility Text Enhancer is committed to protecting your privacy. We collect only the minimum information necessary to provide core functionality.
 
 ### 1. User Preferences (Local Storage)
-The Extension uses Chrome's `storage.local` API to save your accessibility settings (e.g., font size preferences, bold toggles, contrast settings) on a per-website basis. This data is stored **locally on your device** and is never transmitted to our servers or any third party. This allows the Extension to remember your preferences when you revisit websites.
+The Extension uses Chrome's `storage.local` API to remember whether it is enabled and your dark/light toolbar theme preference. This data is stored **locally on your device** and is never transmitted to our servers or any third party.
 
 ### 2. No Collection of Personal Information
 The Extension **does not** collect, store, or transmit:
@@ -22,8 +22,8 @@ The Extension **does not** collect, store, or transmit:
 ### 3. Text-to-Speech Processing
 The "Read Aloud" feature uses your browser's built-in Web Speech API. All text-to-speech processing occurs **locally on your device**. No text content from web pages is sent to external servers for this feature.
 
-### 4. Performance Metrics
-Aggregate, non-identifiable performance data (such as success rates of toolbar injection and memory usage) may be collected **locally** for research purposes as part of ongoing academic study. This data is anonymized and cannot be traced back to individual users.
+### 4. No Performance Metrics
+The Extension does not collect or transmit performance metrics. Any measurements reported in the project's research were gathered separately during testing, not through the Extension.
 
 ## Data Sharing
 We do not sell, trade, or transfer your information to any third party. We do not use analytics services or tracking pixels.

@@ -1,38 +1,31 @@
 // content-scripts/content.js
 (function() {
     'use strict';
-    
-    // Reset the initialization flag on page load
-    // This ensures the script can run again after refresh
-    window.__accessibilityEnhancerInitialized = false;
-    
-    // Prevent multiple initializations in the same page session
+
+    // Content scripts can be executed more than once in the same document
+    // (for example, when the extension is reloaded). Only initialize once.
     if (window.__accessibilityEnhancerInitialized) {
-        console.log('Accessibility Enhancer already initialized');
         return;
     }
     window.__accessibilityEnhancerInitialized = true;
-    
-    console.log('Accessibility Enhancer initializing... (Page load: ' + new Date().toLocaleTimeString() + ')');
 
     // ==================== STATE MANAGEMENT ====================
-    
+
     const STATE = {
-        currentSelection: null,
+        savedRange: null,
         isExtensionEnabled: true,
-        currentFontStyle: 'sans-serif',
         isDarkMode: true,
         history: [],
         historyIndex: -1,
-        currentDomain: window.location.hostname,
-        siteSettings: {},
-        toolbarTimeout: null
+        toolbarTimeout: null,
+        positionFrame: null
     };
 
     const CONFIG = {
         toolbarId: 'accessibility-toolbar',
         settingsPanelId: 'accessibility-settings-panel',
         settingsOverlayId: 'accessibility-settings-overlay',
+        highlightAttr: 'data-accessibility-highlight',
         selectionDelay: 150,
         toastDuration: 2000,
         maxHistorySize: 50,
@@ -40,201 +33,220 @@
         fontSizeMax: 50
     };
 
+    // Yellow used by the highlight feature. Highlight only paints a background
+    // when the current text colour stays readable against it.
+    const HIGHLIGHT_COLOR = { r: 255, g: 235, b: 59 };
+
+    let settingsReturnFocus = null;
+
+    /**
+     * Promise wrapper around chrome.storage.local.get for older Chrome versions.
+     * @param {string[]} keys
+     * @returns {Promise<Object>}
+     */
+    function getStorage(keys) {
+        return new Promise((resolve) => {
+            chrome.storage.local.get(keys, resolve);
+        });
+    }
+
     // ==================== INITIALIZATION ====================
 
     /**
-     * Initialize extension on page load
+     * Initialize extension on page load.
      */
     async function initialize() {
         try {
-            console.log('Initializing Accessibility Enhancer...');
             await loadExtensionState();
-            await loadSiteSettings();
             setupEventListeners();
             setupKeyboardShortcuts();
-            
-            // Add active indicator
-            addActiveIndicator();
-            
-            // Check if there's already text selected when page loads
-            const selection = window.getSelection();
-            if (selection && selection.toString().trim().length > 0) {
-                STATE.currentSelection = selection;
-                const range = selection.getRangeAt(0);
-                setTimeout(() => {
-                    const toolbar = createToolbar();
-                    if (toolbar) {
-                        positionToolbar(toolbar, range);
-                    }
-                }, CONFIG.selectionDelay);
+
+            if (!STATE.isExtensionEnabled) {
+                return;
             }
-            
-            console.log('Accessibility Text Enhancer initialized successfully');
+
+            // Show the toolbar if text was already selected when the page loaded.
+            const selection = window.getSelection();
+            if (selection && selection.rangeCount > 0 && !selection.isCollapsed) {
+                const range = selection.getRangeAt(0);
+                if (range.toString().trim()) {
+                    STATE.savedRange = range.cloneRange();
+                    setTimeout(() => {
+                        if (!STATE.isExtensionEnabled || !STATE.savedRange) {
+                            return;
+                        }
+                        const toolbar = createToolbar();
+                        if (toolbar) {
+                            positionToolbar(toolbar, STATE.savedRange);
+                        }
+                    }, CONFIG.selectionDelay);
+                }
+            }
         } catch (error) {
             console.error('Initialization error:', error);
         }
     }
 
     /**
-     * Add visual indicator that extension is active
-     */
-    function addActiveIndicator() {
-        if (!document.getElementById('accessibility-enhancer-active-indicator')) {
-            const indicator = document.createElement('div');
-            indicator.id = 'accessibility-enhancer-active-indicator';
-            document.body.appendChild(indicator);
-        }
-    }
-
-    /**
-     * Load saved extension state from storage
+     * Load saved extension state from storage.
      */
     async function loadExtensionState() {
-        return new Promise((resolve) => {
-            chrome.storage.local.get(['extensionEnabled', 'darkMode', 'siteSettings'], (result) => {
-                STATE.isExtensionEnabled = result.extensionEnabled !== undefined ? result.extensionEnabled : true;
-                STATE.isDarkMode = result.darkMode !== undefined ? result.darkMode : true;
-                STATE.siteSettings = result.siteSettings || {};
-                
-                if (!STATE.isExtensionEnabled) {
+        const result = await getStorage(['extensionEnabled', 'darkMode']);
+        STATE.isExtensionEnabled = result.extensionEnabled !== false;
+        STATE.isDarkMode = result.darkMode !== false;
+    }
+
+    // ==================== STORAGE SYNC ====================
+
+    chrome.storage.onChanged.addListener((changes, areaName) => {
+        if (areaName !== 'local') {
+            return;
+        }
+
+        if (changes.extensionEnabled) {
+            const isEnabled = changes.extensionEnabled.newValue !== false;
+            if (isEnabled !== STATE.isExtensionEnabled) {
+                STATE.isExtensionEnabled = isEnabled;
+
+                if (!isEnabled) {
+                    STATE.savedRange = null;
                     removeToolbar();
+                    removeSettingsPanel();
                 }
-                resolve();
-            });
-        });
-    }
 
-    /**
-     * Load site-specific settings
-     */
-    async function loadSiteSettings() {
-        const settings = STATE.siteSettings[STATE.currentDomain];
-        if (settings) {
-            console.log('Loaded settings for', STATE.currentDomain, settings);
-            // Apply saved settings if auto-apply is enabled
-        }
-    }
-
-    /**
-     * Save current settings for this domain
-     */
-    function saveSiteSettings(settings) {
-        STATE.siteSettings[STATE.currentDomain] = {
-            ...STATE.siteSettings[STATE.currentDomain],
-            ...settings,
-            lastUpdated: Date.now()
-        };
-        
-        chrome.storage.local.set({ siteSettings: STATE.siteSettings });
-        showToast('Settings saved for this website');
-    }
-
-    // ==================== MESSAGE HANDLERS ====================
-
-    chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-        if (request.action === "setEnabled") {
-            STATE.isExtensionEnabled = request.value;
-            chrome.storage.local.set({ extensionEnabled: STATE.isExtensionEnabled });
-            if (!STATE.isExtensionEnabled) {
-                removeToolbar();
-                showToast('Extension disabled');
-            } else {
-                showToast('Extension enabled');
+                showToast(isEnabled ? 'Extension enabled' : 'Extension disabled');
             }
-            sendResponse({ status: "success" });
         }
-        else if (request.action === "executeCommand") {
-            handleCommand(request.command);
-            sendResponse({ status: "success" });
+
+        if (changes.darkMode) {
+            STATE.isDarkMode = changes.darkMode.newValue !== false;
+            applyTheme();
         }
-        return true;
     });
 
     // ==================== TOOLBAR MANAGEMENT ====================
 
     /**
-     * Creates and returns the enhanced toolbar element
+     * Creates and returns the enhanced toolbar element.
      * @returns {HTMLElement|null} The created toolbar element
      */
     function createToolbar() {
-        if (!STATE.isExtensionEnabled) return null;
+        if (!STATE.isExtensionEnabled) {
+            return null;
+        }
         removeToolbar();
 
         const toolbar = document.createElement('div');
         toolbar.id = CONFIG.toolbarId;
-        toolbar.className = STATE.isDarkMode ? '' : 'light-mode';
-        
+        toolbar.setAttribute('role', 'toolbar');
+        toolbar.setAttribute('aria-label', 'Accessibility text enhancement');
+
+        if (!STATE.isDarkMode) {
+            toolbar.classList.add('light-mode');
+        }
+
         toolbar.innerHTML = `
             <div class="button-group">
-                <button data-command="undo" class="history-btn" data-tooltip="Undo (Ctrl+Z)" ${STATE.historyIndex < 0 ? 'disabled' : ''}>↶</button>
-                <button data-command="redo" class="history-btn" data-tooltip="Redo (Ctrl+Y)" ${STATE.historyIndex >= STATE.history.length - 1 ? 'disabled' : ''}>↷</button>
+                <button type="button" data-command="undo" class="history-btn" data-tooltip="Undo (Ctrl+Z)" ${STATE.historyIndex < 0 ? 'disabled' : ''}>↶</button>
+                <button type="button" data-command="redo" class="history-btn" data-tooltip="Redo (Ctrl+Y)" ${STATE.historyIndex >= STATE.history.length - 1 ? 'disabled' : ''}>↷</button>
             </div>
-            
+
             <div class="button-group">
-                <button data-command="bold" data-tooltip="Bold (Ctrl+Shift+B)">Bold</button>
-                <button data-command="highlight" data-tooltip="Highlight">Highlight</button>
+                <button type="button" data-command="bold" data-tooltip="Bold (Ctrl+Shift+B)">Bold</button>
+                <button type="button" data-command="highlight" data-tooltip="Highlight (Ctrl+Shift+H)">Highlight</button>
             </div>
-            
+
             <div class="button-group">
-                <button data-command="sizeDown" class="size-btn" data-tooltip="Decrease Size (Ctrl+Shift+-)">A-</button>
-                <button data-command="sizeUp" class="size-btn" data-tooltip="Increase Size (Ctrl+Shift++)">A+</button>
+                <button type="button" data-command="sizeDown" class="size-btn" data-tooltip="Decrease Size">A-</button>
+                <button type="button" data-command="sizeUp" class="size-btn" data-tooltip="Increase Size">A+</button>
             </div>
-            
+
             <div class="button-group">
-                <button data-command="fontStyle" class="icon-btn" data-tooltip="Toggle Font Style">A</button>
-                <button data-command="spacing" class="icon-btn" data-tooltip="Text Spacing">↔️</button>
-                <button data-command="contrast" class="icon-btn" data-tooltip="Fix Contrast">🎨</button>
-                <button data-command="readAloud" class="icon-btn" data-tooltip="Read Aloud">🔊</button>
+                <button type="button" data-command="fontStyle" class="icon-btn" data-tooltip="Toggle Font Style">A</button>
+                <button type="button" data-command="spacing" class="icon-btn" data-tooltip="Text Spacing">↔️</button>
+                <button type="button" data-command="contrast" class="icon-btn" data-tooltip="Fix Contrast">🎨</button>
+                <button type="button" data-command="readAloud" class="icon-btn" data-tooltip="Read Aloud">🔊</button>
             </div>
-            
+
             <div class="button-group">
-                <button data-command="settings" class="settings-btn" data-tooltip="Settings">⚙️</button>
-                <button data-command="toggleTheme" class="settings-btn" data-tooltip="Toggle Theme">${STATE.isDarkMode ? '☀️' : '🌙'}</button>
+                <button type="button" data-command="settings" class="settings-btn" data-tooltip="Settings">⚙️</button>
+                <button type="button" data-command="toggleTheme" class="settings-btn" data-tooltip="Toggle Theme">${STATE.isDarkMode ? '☀️' : '🌙'}</button>
             </div>
         `;
 
-        // Add event listeners to all buttons
-        toolbar.querySelectorAll('button').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const command = e.target.getAttribute('data-command');
-                handleCommand(command);
+        // Add accessible names and event listeners to all buttons.
+        toolbar.querySelectorAll('button').forEach((btn) => {
+            const label = btn.dataset.tooltip;
+            if (label) {
+                btn.setAttribute('aria-label', label);
+            }
+
+            // Prevent the page selection from being cleared when a button is
+            // pressed, and stop page-level click handlers from seeing the click.
+            btn.addEventListener('mousedown', (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+            });
+
+            btn.addEventListener('click', (event) => {
+                event.stopPropagation();
+                handleCommand(btn.dataset.command);
             });
         });
 
         document.body.appendChild(toolbar);
-        
-        // Trigger animation
+        applyTheme();
+
+        // Trigger animation.
         requestAnimationFrame(() => {
             toolbar.classList.add('show');
         });
-        
+
         return toolbar;
     }
 
     /**
-     * Positions the toolbar at the top of the viewport
+     * Positions the toolbar at the top of the viewport.
      * @param {HTMLElement} toolbar - The toolbar element
      * @param {Range} range - The selection range
      */
     function positionToolbar(toolbar, range) {
-        if (!range) return;
+        if (!toolbar || !range) {
+            return;
+        }
 
         const rect = range.getBoundingClientRect();
         const viewportWidth = window.innerWidth;
-        
-        const top = 15;
-        let left = rect.left + (rect.width / 2);
-        
-        const toolbarWidth = 380;
-        left = Math.max(toolbarWidth / 2 + 15, Math.min(left, viewportWidth - toolbarWidth / 2 - 15));
-        
-        toolbar.style.top = top + 'px';
-        toolbar.style.left = left + 'px';
+        const toolbarWidth = Math.min(toolbar.offsetWidth || 380, viewportWidth - 30);
+        const center = rect.width > 0 ? rect.left + (rect.width / 2) : viewportWidth / 2;
+        const left = Math.max(
+            toolbarWidth / 2 + 15,
+            Math.min(center, viewportWidth - toolbarWidth / 2 - 15)
+        );
+
+        toolbar.style.top = '15px';
+        toolbar.style.left = `${left}px`;
     }
 
     /**
-     * Removes the toolbar from the document
+     * Reposition the toolbar on the next animation frame.
+     */
+    function scheduleToolbarPosition() {
+        if (STATE.positionFrame !== null) {
+            return;
+        }
+
+        STATE.positionFrame = requestAnimationFrame(() => {
+            STATE.positionFrame = null;
+            const toolbar = document.getElementById(CONFIG.toolbarId);
+            if (toolbar && STATE.savedRange) {
+                positionToolbar(toolbar, STATE.savedRange);
+            }
+        });
+    }
+
+    /**
+     * Removes the toolbar from the document.
      */
     function removeToolbar() {
         const existingToolbar = document.getElementById(CONFIG.toolbarId);
@@ -244,70 +256,82 @@
     }
 
     /**
-     * Checks if a click is outside the toolbar
+     * Checks if a click is outside the toolbar, settings panel, and overlay.
      * @param {Event} event - The mouse event
-     * @returns {boolean} True if outside toolbar
+     * @returns {boolean} True if outside the extension UI
      */
-    function isClickOutsideToolbar(event) {
+    function isClickOutsideExtensionUi(event) {
         const toolbar = document.getElementById(CONFIG.toolbarId);
         const panel = document.getElementById(CONFIG.settingsPanelId);
-        return !(toolbar && toolbar.contains(event.target)) && 
-               !(panel && panel.contains(event.target));
+        const overlay = document.getElementById(CONFIG.settingsOverlayId);
+
+        return !(toolbar && toolbar.contains(event.target)) &&
+               !(panel && panel.contains(event.target)) &&
+               !(overlay && overlay.contains(event.target));
     }
 
     // ==================== COMMAND HANDLING ====================
 
     /**
-     * Handle toolbar command execution
+     * Handle toolbar command execution.
      * @param {string} command - The command to execute
      */
     function handleCommand(command) {
-        // Handle special commands
-        if (command === 'settings') {
-            showSettingsPanel();
-            return;
+        switch (command) {
+            case 'settings':
+                showSettingsPanel();
+                return;
+            case 'toggleTheme':
+                toggleToolbarTheme();
+                return;
+            case 'undo':
+                undo();
+                return;
+            case 'redo':
+                redo();
+                return;
+            default:
+                enhanceSelection(command);
         }
-        
-        if (command === 'toggleTheme') {
-            toggleToolbarTheme();
-            return;
-        }
-        
-        if (command === 'undo') {
-            undo();
-            return;
-        }
-        
-        if (command === 'redo') {
-            redo();
-            return;
-        }
-        
-        // Handle enhancement commands
-        enhanceSelection(command);
     }
 
     /**
-     * Apply enhancement to selected text
+     * Apply an enhancement to the saved selection.
      * @param {string} command - The enhancement command
      */
     function enhanceSelection(command) {
-        if (!STATE.currentSelection || STATE.currentSelection.rangeCount === 0) return;
-        if (!STATE.isExtensionEnabled) return;
+        if (!STATE.isExtensionEnabled || !STATE.savedRange) {
+            return;
+        }
 
-        const range = STATE.currentSelection.getRangeAt(0);
+        const range = STATE.savedRange;
+        if (range.collapsed || !range.toString().trim()) {
+            return;
+        }
+
         let elementToStyle = range.commonAncestorContainer;
-
-        while (elementToStyle && elementToStyle.nodeType !== 1) {
+        while (elementToStyle && elementToStyle.nodeType !== Node.ELEMENT_NODE) {
             elementToStyle = elementToStyle.parentElement;
         }
 
-        if (!elementToStyle) return;
+        if (!elementToStyle) {
+            return;
+        }
 
-        // Save state for undo
-        saveState(elementToStyle, command);
+        // Never style the extension's own UI.
+        if (elementToStyle.closest(`#${CONFIG.toolbarId}, #${CONFIG.settingsPanelId}`)) {
+            return;
+        }
 
-        // Execute enhancement
+        // Reading aloud does not change styles, so it should not create a
+        // history entry.
+        if (command === 'readAloud') {
+            readTextAloud(elementToStyle);
+            return;
+        }
+
+        const before = captureElementState(elementToStyle);
+
         switch (command) {
             case 'bold':
                 toggleBold(elementToStyle);
@@ -330,13 +354,14 @@
             case 'contrast':
                 fixTextContrast(elementToStyle);
                 break;
-            case 'readAloud':
-                readTextAloud(elementToStyle);
-                break;
+            default:
+                return;
         }
 
-        // Increment stats
-        chrome.runtime.sendMessage({ action: "incrementStats" });
+        const after = captureElementState(elementToStyle);
+        if (before.style !== after.style || before.highlight !== after.highlight) {
+            pushHistory({ element: elementToStyle, before, after });
+        }
 
         updateToolbarState();
     }
@@ -344,43 +369,70 @@
     // ==================== ENHANCEMENT FUNCTIONS ====================
 
     /**
-     * Toggle bold styling
-     * @param {HTMLElement} el - Element to modify
+     * Toggle bold styling.
+     * @param {HTMLElement} element - Element to modify
      */
-    function toggleBold(el) {
-        const currentWeight = getComputedStyle(el).fontWeight;
-        const newWeight = (currentWeight === 'bold' || parseInt(currentWeight) >= 700) ? 'normal' : 'bold';
-        el.style.setProperty('font-weight', newWeight, 'important');
-        showToast(`Text ${newWeight === 'bold' ? 'bolded' : 'unbolded'}`);
+    function toggleBold(element) {
+        const currentWeight = getComputedStyle(element).fontWeight;
+        const isBold = currentWeight === 'bold' || parseInt(currentWeight, 10) >= 700;
+        element.style.setProperty('font-weight', isBold ? 'normal' : 'bold', 'important');
+        showToast(isBold ? 'Text unbolded' : 'Text bolded');
     }
 
     /**
-     * Toggle highlight background
-     * @param {HTMLElement} el - Element to modify
+     * Toggle highlight background or outline.
+     * @param {HTMLElement} element - Element to modify
      */
-    function toggleHighlight(el) {
-        const currentBg = getComputedStyle(el).backgroundColor;
-        if (currentBg === 'rgba(0, 0, 0, 0)' || currentBg === 'transparent' || currentBg === 'rgb(255, 255, 0)') {
-            const newBg = currentBg === 'rgb(255, 255, 0)' ? 'transparent' : 'rgb(255, 255, 0)';
-            el.style.setProperty('background-color', newBg, 'important');
-            showToast(newBg === 'transparent' ? 'Highlight removed' : 'Text highlighted');
-        } else {
-            el.style.setProperty('outline', '2px solid yellow', 'important');
+    function toggleHighlight(element) {
+        const mode = element.getAttribute(CONFIG.highlightAttr);
+
+        if (mode === 'background') {
+            element.style.removeProperty('background-color');
+            element.removeAttribute(CONFIG.highlightAttr);
+            showToast('Highlight removed');
+            return;
+        }
+
+        if (mode === 'outline') {
+            element.style.removeProperty('outline');
+            element.removeAttribute(CONFIG.highlightAttr);
+            showToast('Outline removed');
+            return;
+        }
+
+        const style = getComputedStyle(element);
+        const background = parseColor(style.backgroundColor);
+        const clipsBackgroundToText = style.backgroundClip === 'text' ||
+            style.webkitBackgroundClip === 'text';
+        const textColor = parseColor(style.color) || { r: 0, g: 0, b: 0 };
+
+        // A yellow background only works when the text is dark enough to stay
+        // readable on it. On dark sites (or after a contrast fix made the text
+        // white) outline the element instead of hiding the text behind yellow.
+        const backgroundIsReadable = contrastRatio(textColor, HIGHLIGHT_COLOR) >= 4.5;
+
+        if (background || clipsBackgroundToText || !backgroundIsReadable) {
+            element.style.setProperty('outline', '2px solid #ffeb3b', 'important');
+            element.setAttribute(CONFIG.highlightAttr, 'outline');
             showToast('Outline applied');
+        } else {
+            element.style.setProperty('background-color', '#ffeb3b', 'important');
+            element.setAttribute(CONFIG.highlightAttr, 'background');
+            showToast('Text highlighted');
         }
     }
 
     /**
-     * Adjust font size
-     * @param {HTMLElement} el - Element to modify
+     * Adjust font size.
+     * @param {HTMLElement} element - Element to modify
      * @param {number} change - Size change amount
      */
-    function adjustFontSize(el, change) {
-        const currentSize = parseFloat(getComputedStyle(el).fontSize);
+    function adjustFontSize(element, change) {
+        const currentSize = parseFloat(getComputedStyle(element).fontSize);
         const newSize = currentSize + change;
-        
+
         if (newSize >= CONFIG.fontSizeMin && newSize <= CONFIG.fontSizeMax) {
-            el.style.setProperty('font-size', newSize + 'px', 'important');
+            element.style.setProperty('font-size', `${newSize}px`, 'important');
             showToast(`Font size: ${newSize}px`);
         } else {
             showToast(`Size limit reached (${CONFIG.fontSizeMin}-${CONFIG.fontSizeMax}px)`);
@@ -388,108 +440,211 @@
     }
 
     /**
-     * Toggle font family
-     * @param {HTMLElement} el - Element to modify
+     * Toggle font family.
+     * @param {HTMLElement} element - Element to modify
      */
-    function toggleFontStyle(el) {
-        if (STATE.currentFontStyle === 'sans-serif') {
-            el.style.setProperty('font-family', 'Georgia, serif', 'important');
-            STATE.currentFontStyle = 'serif';
-            showToast('Font: Serif');
-        } else {
-            el.style.setProperty('font-family', 'Arial, sans-serif', 'important');
-            STATE.currentFontStyle = 'sans-serif';
+    function toggleFontStyle(element) {
+        const current = getComputedStyle(element).fontFamily.toLowerCase();
+
+        if (current.includes('georgia') || (current.includes('serif') && !current.includes('sans-serif'))) {
+            element.style.setProperty('font-family', 'Arial, sans-serif', 'important');
             showToast('Font: Sans-serif');
+        } else {
+            element.style.setProperty('font-family', 'Georgia, serif', 'important');
+            showToast('Font: Serif');
         }
     }
 
     /**
-     * Adjust text spacing
-     * @param {HTMLElement} el - Element to modify
+     * Toggle text spacing.
+     * @param {HTMLElement} element - Element to modify
      */
-    function adjustTextSpacing(el) {
-        const currentLetterSpacing = getComputedStyle(el).letterSpacing;
-        
-        if (currentLetterSpacing === 'normal' || parseFloat(currentLetterSpacing) < 2) {
-            el.style.setProperty('letter-spacing', '2px', 'important');
-            el.style.setProperty('word-spacing', '4px', 'important');
-            showToast('Spacing increased');
-        } else {
-            el.style.setProperty('letter-spacing', 'normal', 'important');
-            el.style.setProperty('word-spacing', 'normal', 'important');
+    function adjustTextSpacing(element) {
+        const isSpaced = element.style.getPropertyValue('letter-spacing') === '2px' &&
+                         element.style.getPropertyValue('word-spacing') === '4px';
+
+        if (isSpaced) {
+            element.style.removeProperty('letter-spacing');
+            element.style.removeProperty('word-spacing');
             showToast('Spacing reset');
-        }
-    }
-
-    /**
-     * Fix text contrast
-     * @param {HTMLElement} el - Element to modify
-     */
-    function fixTextContrast(el) {
-        const textColor = getComputedStyle(el).color;
-        const bgColor = getComputedStyle(el).backgroundColor;
-        const rgbMatch = textColor.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
-        
-        if (rgbMatch) {
-            const r = parseInt(rgbMatch[1]);
-            const g = parseInt(rgbMatch[2]);
-            const b = parseInt(rgbMatch[3]);
-            const brightness = (r * 299 + g * 587 + b * 114) / 1000;
-            const newColor = brightness > 128 ? '#000000' : '#ffffff';
-            el.style.setProperty('color', newColor, 'important');
-            showToast(`Contrast fixed: ${newColor === '#000000' ? 'Black' : 'White'} text`);
-        }
-    }
-
-    /**
-     * Read text aloud using speech synthesis
-     * @param {HTMLElement} el - Element to read
-     */
-    function readTextAloud(el) {
-        if ('speechSynthesis' in window) {
-            window.speechSynthesis.cancel(); // Stop any ongoing speech
-            const speech = new SpeechSynthesisUtterance(el.textContent);
-            speech.rate = 0.9;
-            speech.pitch = 1;
-            window.speechSynthesis.speak(speech);
-            showToast('Reading text...');
         } else {
-            showToast('Speech synthesis not supported');
+            element.style.setProperty('letter-spacing', '2px', 'important');
+            element.style.setProperty('word-spacing', '4px', 'important');
+            showToast('Spacing increased');
         }
+    }
+
+    /**
+     * Parse an rgb()/rgba() colour string into channel values.
+     * @param {string} color
+     * @returns {{r: number, g: number, b: number, a: number}|null} Null when the
+     *     colour is unparseable or fully transparent.
+     */
+    function parseColor(color) {
+        const match = color && color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
+        if (!match) {
+            return null;
+        }
+
+        const alpha = match[4] === undefined ? 1 : parseFloat(match[4]);
+        if (alpha === 0) {
+            return null;
+        }
+
+        return {
+            r: parseInt(match[1], 10),
+            g: parseInt(match[2], 10),
+            b: parseInt(match[3], 10),
+            a: alpha
+        };
+    }
+
+    /**
+     * Relative luminance as defined by WCAG 2.x.
+     * @param {{r: number, g: number, b: number}} color
+     * @returns {number}
+     */
+    function relativeLuminance({ r, g, b }) {
+        const channel = (value) => {
+            const normalized = value / 255;
+            return normalized <= 0.03928
+                ? normalized / 12.92
+                : Math.pow((normalized + 0.055) / 1.055, 2.4);
+        };
+
+        return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
+    }
+
+    /**
+     * WCAG contrast ratio between two colours.
+     * @param {{r: number, g: number, b: number}} colorA
+     * @param {{r: number, g: number, b: number}} colorB
+     * @returns {number} Ratio between 1 and 21.
+     */
+    function contrastRatio(colorA, colorB) {
+        const luminanceA = relativeLuminance(colorA);
+        const luminanceB = relativeLuminance(colorB);
+
+        return (Math.max(luminanceA, luminanceB) + 0.05) /
+               (Math.min(luminanceA, luminanceB) + 0.05);
+    }
+
+    /**
+     * Find the effective (non-transparent) background colour of an element.
+     * @param {HTMLElement} element
+     * @returns {{r: number, g: number, b: number}}
+     */
+    function getEffectiveBackgroundColor(element) {
+        const layers = [];
+        let node = element;
+
+        while (node && node.nodeType === Node.ELEMENT_NODE) {
+            const background = parseColor(getComputedStyle(node).backgroundColor);
+            if (background) {
+                layers.push(background);
+                if (background.a >= 1) {
+                    break;
+                }
+            }
+
+            node = node.parentElement;
+        }
+
+        // Composite translucent layers over the page background, working from
+        // the outermost layer inwards.
+        let result = { r: 255, g: 255, b: 255 };
+        for (let i = layers.length - 1; i >= 0; i--) {
+            const layer = layers[i];
+            result = {
+                r: layer.r * layer.a + result.r * (1 - layer.a),
+                g: layer.g * layer.a + result.g * (1 - layer.a),
+                b: layer.b * layer.a + result.b * (1 - layer.a)
+            };
+        }
+
+        return result;
+    }
+
+    /**
+     * Force high-contrast text based on the effective background colour.
+     * @param {HTMLElement} element - Element to modify
+     */
+    function fixTextContrast(element) {
+        const background = getEffectiveBackgroundColor(element);
+        const black = { r: 0, g: 0, b: 0 };
+        const white = { r: 255, g: 255, b: 255 };
+        const useBlack = contrastRatio(background, black) >= contrastRatio(background, white);
+        const newColor = useBlack ? '#000000' : '#ffffff';
+
+        element.style.setProperty('color', newColor, 'important');
+        showToast(`Contrast fixed: ${useBlack ? 'Black' : 'White'} text`);
+    }
+
+    /**
+     * Read the selected text aloud using speech synthesis.
+     * @param {HTMLElement} element - Fallback element to read
+     */
+    function readTextAloud(element) {
+        if (!('speechSynthesis' in window)) {
+            showToast('Speech synthesis not supported');
+            return;
+        }
+
+        const text = STATE.savedRange?.toString().trim() || element.textContent.trim();
+        if (!text) {
+            return;
+        }
+
+        window.speechSynthesis.cancel();
+        const speech = new SpeechSynthesisUtterance(text);
+        speech.rate = 0.9;
+        speech.pitch = 1;
+        window.speechSynthesis.speak(speech);
+        showToast('Reading text...');
     }
 
     // ==================== HISTORY MANAGEMENT ====================
 
     /**
-     * Save current state to history for undo/redo
-     * @param {HTMLElement} element - The modified element
-     * @param {string} command - The command executed
+     * Capture the inline style and extension marker for an element.
+     * @param {HTMLElement} element
+     * @returns {{style: string|null, highlight: string|null}}
      */
-    function saveState(element, command) {
-        const state = {
-            element: element,
-            command: command,
-            styles: {
-                fontWeight: element.style.fontWeight,
-                backgroundColor: element.style.backgroundColor,
-                fontSize: element.style.fontSize,
-                fontFamily: element.style.fontFamily,
-                letterSpacing: element.style.letterSpacing,
-                wordSpacing: element.style.wordSpacing,
-                color: element.style.color,
-                outline: element.style.outline
-            },
-            timestamp: Date.now()
+    function captureElementState(element) {
+        return {
+            style: element.getAttribute('style'),
+            highlight: element.getAttribute(CONFIG.highlightAttr)
         };
+    }
 
-        // Remove any states after current index (for redo)
+    /**
+     * Restore a previously captured element state.
+     * @param {HTMLElement} element
+     * @param {{style: string|null, highlight: string|null}} state
+     */
+    function restoreElementState(element, state) {
+        if (state.style === null) {
+            element.removeAttribute('style');
+        } else {
+            element.setAttribute('style', state.style);
+        }
+
+        if (state.highlight === null) {
+            element.removeAttribute(CONFIG.highlightAttr);
+        } else {
+            element.setAttribute(CONFIG.highlightAttr, state.highlight);
+        }
+    }
+
+    /**
+     * Add an entry to the undo history.
+     * @param {{element: HTMLElement, before: Object, after: Object}} entry
+     */
+    function pushHistory(entry) {
         STATE.history = STATE.history.slice(0, STATE.historyIndex + 1);
-        
-        // Add new state
-        STATE.history.push(state);
+        STATE.history.push(entry);
         STATE.historyIndex++;
 
-        // Limit history size
         if (STATE.history.length > CONFIG.maxHistorySize) {
             STATE.history.shift();
             STATE.historyIndex--;
@@ -497,7 +652,7 @@
     }
 
     /**
-     * Undo last action
+     * Undo the last action.
      */
     function undo() {
         if (STATE.historyIndex < 0) {
@@ -505,15 +660,15 @@
             return;
         }
 
-        const state = STATE.history[STATE.historyIndex];
-        applyState(state);
+        const entry = STATE.history[STATE.historyIndex];
+        restoreElementState(entry.element, entry.before);
         STATE.historyIndex--;
         updateToolbarState();
         showToast('Undone');
     }
 
     /**
-     * Redo last undone action
+     * Redo the last undone action.
      */
     function redo() {
         if (STATE.historyIndex >= STATE.history.length - 1) {
@@ -522,36 +677,20 @@
         }
 
         STATE.historyIndex++;
-        const state = STATE.history[STATE.historyIndex];
-        applyState(state);
+        const entry = STATE.history[STATE.historyIndex];
+        restoreElementState(entry.element, entry.after);
         updateToolbarState();
         showToast('Redone');
     }
 
     /**
-     * Apply a saved state to an element
-     * @param {Object} state - The state to apply
-     */
-    function applyState(state) {
-        if (!state.element) return;
-        
-        Object.entries(state.styles).forEach(([prop, value]) => {
-            if (value) {
-                state.element.style.setProperty(
-                    prop.replace(/([A-Z])/g, '-$1').toLowerCase(),
-                    value,
-                    'important'
-                );
-            }
-        });
-    }
-
-    /**
-     * Update toolbar button states
+     * Update toolbar undo/redo button states.
      */
     function updateToolbarState() {
         const toolbar = document.getElementById(CONFIG.toolbarId);
-        if (!toolbar) return;
+        if (!toolbar) {
+            return;
+        }
 
         const undoBtn = toolbar.querySelector('[data-command="undo"]');
         const redoBtn = toolbar.querySelector('[data-command="redo"]');
@@ -567,91 +706,112 @@
     // ==================== SETTINGS PANEL ====================
 
     /**
-     * Show settings panel
+     * Show the settings panel.
      */
     function showSettingsPanel() {
-        // Remove existing panel
         removeSettingsPanel();
+        settingsReturnFocus = document.querySelector(
+            `#${CONFIG.toolbarId} [data-command="settings"]`
+        ) || document.activeElement;
 
-        // Create overlay
         const overlay = document.createElement('div');
         overlay.id = CONFIG.settingsOverlayId;
+        overlay.setAttribute('aria-hidden', 'true');
+        overlay.addEventListener('mousedown', (event) => event.preventDefault());
         overlay.addEventListener('click', removeSettingsPanel);
         document.body.appendChild(overlay);
 
-        // Create panel
         const panel = document.createElement('div');
         panel.id = CONFIG.settingsPanelId;
-        panel.className = STATE.isDarkMode ? '' : 'light-mode';
-        
+        panel.setAttribute('role', 'dialog');
+        panel.setAttribute('aria-modal', 'true');
+        panel.setAttribute('aria-labelledby', 'accessibility-settings-title');
+
+        if (!STATE.isDarkMode) {
+            panel.classList.add('light-mode');
+        }
+
         panel.innerHTML = `
-            <h3>Accessibility Settings</h3>
-            
+            <h3 id="accessibility-settings-title">Accessibility Settings</h3>
+
             <div class="setting-item">
-                <label>
-                    <input type="checkbox" id="auto-save-settings" ${STATE.siteSettings[STATE.currentDomain]?.autoSave ? 'checked' : ''}>
-                    Auto-save settings for this website
-                </label>
-            </div>
-            
-            <div class="setting-item">
-                <label>
-                    <input type="checkbox" id="show-tooltips" checked>
-                    Show button tooltips
-                </label>
-            </div>
-            
-            <div class="setting-item">
-                <label>
-                    <input type="checkbox" id="enable-shortcuts" checked>
-                    Enable keyboard shortcuts
-                </label>
-            </div>
-            
-            <div class="setting-item">
-                <button id="export-settings" style="width: 100%; padding: 10px; background: #4CAF50; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                <button type="button" id="export-settings" style="width: 100%; padding: 10px; background: #4CAF50; color: white; border: none; border-radius: 6px; cursor: pointer;">
                     Export Settings
                 </button>
             </div>
-            
+
             <div class="setting-item">
-                <button id="import-settings" style="width: 100%; padding: 10px; background: #2196F3; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                <button type="button" id="import-settings" style="width: 100%; padding: 10px; background: #2196F3; color: white; border: none; border-radius: 6px; cursor: pointer;">
                     Import Settings
                 </button>
             </div>
-            
-            <button class="close-btn">Close</button>
+
+            <button type="button" class="close-btn">Close</button>
         `;
 
         document.body.appendChild(panel);
 
-        // Add event listeners
-        panel.querySelector('.close-btn').addEventListener('click', removeSettingsPanel);
-        panel.querySelector('#auto-save-settings').addEventListener('change', (e) => {
-            saveSiteSettings({ autoSave: e.target.checked });
-        });
+        const closeBtn = panel.querySelector('.close-btn');
+        closeBtn.addEventListener('click', removeSettingsPanel);
         panel.querySelector('#export-settings').addEventListener('click', exportSettings);
         panel.querySelector('#import-settings').addEventListener('click', importSettings);
+
+        // Keep keyboard focus inside the dialog while it is open.
+        panel.addEventListener('keydown', (event) => {
+            if (event.key !== 'Tab') {
+                return;
+            }
+
+            const focusable = Array.from(
+                panel.querySelectorAll('button, input, [href], select, textarea, [tabindex]:not([tabindex="-1"])')
+            ).filter((element) => !element.disabled);
+
+            if (focusable.length === 0) {
+                return;
+            }
+
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+
+            if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault();
+                last.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault();
+                first.focus();
+            }
+        });
+
+        closeBtn.focus();
     }
 
     /**
-     * Remove settings panel
+     * Remove the settings panel and restore focus.
      */
     function removeSettingsPanel() {
         const panel = document.getElementById(CONFIG.settingsPanelId);
         const overlay = document.getElementById(CONFIG.settingsOverlayId);
-        if (panel) panel.remove();
-        if (overlay) overlay.remove();
+
+        if (panel) {
+            panel.remove();
+        }
+        if (overlay) {
+            overlay.remove();
+        }
+
+        if (settingsReturnFocus && settingsReturnFocus.isConnected) {
+            settingsReturnFocus.focus();
+        }
+        settingsReturnFocus = null;
     }
 
     /**
-     * Export settings to JSON file
+     * Export settings to a JSON file.
      */
     function exportSettings() {
         const settings = {
             version: '1.0.0',
             exportDate: new Date().toISOString(),
-            siteSettings: STATE.siteSettings,
             preferences: {
                 darkMode: STATE.isDarkMode
             }
@@ -659,39 +819,44 @@
 
         const blob = new Blob([JSON.stringify(settings, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `accessibility-settings-${Date.now()}.json`;
-        a.click();
-        URL.revokeObjectURL(url);
-        
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `accessibility-settings-${Date.now()}.json`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 0);
+
         showToast('Settings exported');
     }
 
     /**
-     * Import settings from JSON file
+     * Import settings from a JSON file.
      */
     function importSettings() {
         const input = document.createElement('input');
         input.type = 'file';
         input.accept = 'application/json';
-        
-        input.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
+
+        input.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (!file) {
+                return;
+            }
 
             const reader = new FileReader();
-            reader.onload = (event) => {
+            reader.onload = (loadEvent) => {
                 try {
-                    const settings = JSON.parse(event.target.result);
-                    STATE.siteSettings = settings.siteSettings || {};
-                    STATE.isDarkMode = settings.preferences?.darkMode ?? true;
-                    
-                    chrome.storage.local.set({
-                        siteSettings: STATE.siteSettings,
-                        darkMode: STATE.isDarkMode
-                    });
-                    
+                    const settings = JSON.parse(loadEvent.target.result);
+
+                    if (typeof settings.preferences?.darkMode !== 'boolean') {
+                        showToast('No settings found in file');
+                        return;
+                    }
+
+                    STATE.isDarkMode = settings.preferences.darkMode;
+                    chrome.storage.local.set({ darkMode: STATE.isDarkMode });
+                    applyTheme();
                     showToast('Settings imported successfully');
                     removeSettingsPanel();
                 } catch (error) {
@@ -701,43 +866,58 @@
             };
             reader.readAsText(file);
         });
-        
+
         input.click();
     }
 
     /**
-     * Toggle toolbar theme
+     * Apply the current theme to the toolbar and settings panel.
+     */
+    function applyTheme() {
+        const toolbar = document.getElementById(CONFIG.toolbarId);
+        if (toolbar) {
+            toolbar.classList.toggle('light-mode', !STATE.isDarkMode);
+
+            const themeBtn = toolbar.querySelector('[data-command="toggleTheme"]');
+            if (themeBtn) {
+                themeBtn.textContent = STATE.isDarkMode ? '☀️' : '🌙';
+                themeBtn.setAttribute(
+                    'aria-label',
+                    STATE.isDarkMode ? 'Switch to light theme' : 'Switch to dark theme'
+                );
+            }
+        }
+
+        const panel = document.getElementById(CONFIG.settingsPanelId);
+        if (panel) {
+            panel.classList.toggle('light-mode', !STATE.isDarkMode);
+        }
+    }
+
+    /**
+     * Toggle toolbar theme.
      */
     function toggleToolbarTheme() {
         STATE.isDarkMode = !STATE.isDarkMode;
         chrome.storage.local.set({ darkMode: STATE.isDarkMode });
-        
-        const toolbar = document.getElementById(CONFIG.toolbarId);
-        if (toolbar) {
-            toolbar.className = STATE.isDarkMode ? '' : 'light-mode';
-            
-            // Update theme button
-            const themeBtn = toolbar.querySelector('[data-command="toggleTheme"]');
-            if (themeBtn) {
-                themeBtn.textContent = STATE.isDarkMode ? '☀️' : '🌙';
-            }
-        }
-        
+        applyTheme();
         showToast(`${STATE.isDarkMode ? 'Dark' : 'Light'} mode activated`);
     }
 
     // ==================== UI HELPERS ====================
 
     /**
-     * Show a temporary notification toast
+     * Show a temporary notification toast.
      * @param {string} message - Message to display
      */
     function showToast(message) {
-        // Remove existing toasts
-        document.querySelectorAll('.accessibility-toast').forEach(t => t.remove());
+        document.querySelectorAll('.accessibility-toast').forEach((toast) => toast.remove());
 
         const toast = document.createElement('div');
         toast.className = 'accessibility-toast';
+        toast.setAttribute('role', 'status');
+        toast.setAttribute('aria-live', 'polite');
+        toast.setAttribute('aria-atomic', 'true');
         toast.textContent = message;
         document.body.appendChild(toast);
 
@@ -750,126 +930,146 @@
     // ==================== EVENT LISTENERS ====================
 
     /**
-     * Setup all event listeners
+     * Set up selection, click, scroll, and resize listeners.
      */
     function setupEventListeners() {
-        // Selection change handler
         document.addEventListener('selectionchange', handleSelectionChange);
 
-        // Click outside toolbar
-        document.addEventListener('mousedown', (e) => {
-            if (isClickOutsideToolbar(e)) {
+        // Dismiss the toolbar when clicking outside the extension UI.
+        document.addEventListener('mousedown', (event) => {
+            if (isClickOutsideExtensionUi(event)) {
+                STATE.savedRange = null;
                 removeToolbar();
             }
         });
 
-        // Escape key
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                removeToolbar();
-                removeSettingsPanel();
-            }
-        });
-
-        // Window scroll
-        window.addEventListener('scroll', () => {
-            const toolbar = document.getElementById(CONFIG.toolbarId);
-            if (toolbar && STATE.currentSelection && STATE.currentSelection.rangeCount > 0) {
-                const range = STATE.currentSelection.getRangeAt(0);
-                positionToolbar(toolbar, range);
-            }
-        });
-
-        // Window resize
-        window.addEventListener('resize', () => {
-            const toolbar = document.getElementById(CONFIG.toolbarId);
-            if (toolbar && STATE.currentSelection && STATE.currentSelection.rangeCount > 0) {
-                const range = STATE.currentSelection.getRangeAt(0);
-                positionToolbar(toolbar, range);
-            }
-        });
+        window.addEventListener('scroll', scheduleToolbarPosition, { passive: true });
+        window.addEventListener('resize', scheduleToolbarPosition);
     }
 
     /**
-     * Handle selection changes
+     * Handle selection changes.
      */
     function handleSelectionChange() {
-        if (!STATE.isExtensionEnabled) return;
+        if (!STATE.isExtensionEnabled) {
+            return;
+        }
 
-        STATE.currentSelection = window.getSelection();
-        
+        // Ignore selection changes caused by interacting with the extension UI.
+        const activeElement = document.activeElement;
+        if (activeElement && activeElement.closest(`#${CONFIG.toolbarId}, #${CONFIG.settingsPanelId}`)) {
+            return;
+        }
+
         if (STATE.toolbarTimeout) {
             clearTimeout(STATE.toolbarTimeout);
+            STATE.toolbarTimeout = null;
         }
-        
-        if (!STATE.currentSelection || STATE.currentSelection.toString().trim().length === 0) {
+
+        const selection = window.getSelection();
+        if (!selection || selection.rangeCount === 0 || selection.isCollapsed) {
+            STATE.savedRange = null;
             removeToolbar();
             return;
         }
 
-        if (STATE.currentSelection.toString().trim().length > 0 && STATE.currentSelection.rangeCount > 0) {
-            const range = STATE.currentSelection.getRangeAt(0);
-            
-            if (range && range.toString().trim().length > 0) {
-                STATE.toolbarTimeout = setTimeout(() => {
-                    if (STATE.currentSelection && STATE.currentSelection.toString().trim().length > 0) {
-                        const toolbar = createToolbar();
-                        if (toolbar) {
-                            positionToolbar(toolbar, range);
-                        }
-                    }
-                }, CONFIG.selectionDelay);
-            }
+        const range = selection.getRangeAt(0);
+        if (!range.toString().trim()) {
+            STATE.savedRange = null;
+            removeToolbar();
+            return;
         }
+
+        // Keep a snapshot because the live Selection can collapse when the
+        // user interacts with the toolbar.
+        STATE.savedRange = range.cloneRange();
+        const savedRange = STATE.savedRange;
+
+        STATE.toolbarTimeout = setTimeout(() => {
+            STATE.toolbarTimeout = null;
+
+            if (!STATE.isExtensionEnabled || !STATE.savedRange) {
+                return;
+            }
+
+            const toolbar = createToolbar();
+            if (toolbar) {
+                positionToolbar(toolbar, savedRange);
+            }
+        }, CONFIG.selectionDelay);
     }
 
     /**
-     * Setup keyboard shortcuts
+     * Set up keyboard shortcuts.
      */
     function setupKeyboardShortcuts() {
-        document.addEventListener('keydown', (e) => {
-            // Check if shortcuts are enabled (could be a setting)
-            if (!STATE.isExtensionEnabled) return;
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                // Close the dialog first and leave the toolbar in place.
+                if (document.getElementById(CONFIG.settingsPanelId)) {
+                    removeSettingsPanel();
+                    event.preventDefault();
+                    return;
+                }
 
-            // Ctrl/Cmd + Z = Undo
-            if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
-                const toolbar = document.getElementById(CONFIG.toolbarId);
-                if (toolbar) {
-                    e.preventDefault();
+                if (document.getElementById(CONFIG.toolbarId)) {
+                    STATE.savedRange = null;
+                    removeToolbar();
+                    event.preventDefault();
+                }
+                return;
+            }
+
+            // While the settings dialog is open, only Escape should affect the
+            // extension.
+            if (document.getElementById(CONFIG.settingsPanelId)) {
+                return;
+            }
+
+            if (!STATE.isExtensionEnabled) {
+                return;
+            }
+
+            const key = event.key.toLowerCase();
+            const modifier = event.ctrlKey || event.metaKey;
+
+            // Ctrl/Cmd + Z = Undo (only while the toolbar is visible, so the
+            // page's native undo is not hijacked).
+            if (modifier && !event.shiftKey && key === 'z') {
+                if (document.getElementById(CONFIG.toolbarId)) {
+                    event.preventDefault();
                     undo();
                 }
+                return;
             }
 
-            // Ctrl/Cmd + Y or Ctrl/Cmd + Shift + Z = Redo
-            if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.shiftKey && e.key === 'Z'))) {
-                const toolbar = document.getElementById(CONFIG.toolbarId);
-                if (toolbar) {
-                    e.preventDefault();
+            // Ctrl/Cmd + Y or Ctrl/Cmd + Shift + Z = Redo.
+            if (modifier && (key === 'y' || (event.shiftKey && key === 'z'))) {
+                if (document.getElementById(CONFIG.toolbarId)) {
+                    event.preventDefault();
                     redo();
                 }
+                return;
             }
 
-            // Ctrl/Cmd + Shift + B = Bold
-            if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'B') {
-                e.preventDefault();
-                if (STATE.currentSelection && STATE.currentSelection.toString().trim().length > 0) {
-                    enhanceSelection('bold');
-                }
+            // Ctrl/Cmd + Shift + B = Bold.
+            if (modifier && event.shiftKey && key === 'b' && STATE.savedRange) {
+                event.preventDefault();
+                enhanceSelection('bold');
+                return;
             }
 
-            // Ctrl/Cmd + Shift + H = Highlight
-            if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'H') {
-                e.preventDefault();
-                if (STATE.currentSelection && STATE.currentSelection.toString().trim().length > 0) {
-                    enhanceSelection('highlight');
-                }
+            // Ctrl/Cmd + Shift + H = Highlight.
+            if (modifier && event.shiftKey && key === 'h' && STATE.savedRange) {
+                event.preventDefault();
+                enhanceSelection('highlight');
             }
         });
     }
 
     // ==================== INITIALIZATION ====================
 
-    // Initialize when DOM is ready
+    // Initialize when the DOM is ready.
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initialize);
     } else {

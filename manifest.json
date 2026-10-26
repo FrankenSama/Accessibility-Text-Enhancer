@@ -3,15 +3,31 @@
   "name": "Accessibility Text Enhancer",
   "version": "1.0.0",
   "description": "Real-time, user-driven web accessibility enhancement tool with intelligent text modifications and personalization.",
+  "minimum_chrome_version": "88",
   "icons": {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
   },
   "permissions": [
-    "activeTab",
-    "storage",
-    "scripting"
+    "storage"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "content-scripts/content.js"
+      ],
+      "css": [
+        "content-scripts/content.css"
+      ],
+      "run_at": "document_idle"
+    }
   ],
   "action": {
     "default_popup": "popup/popup.html",
@@ -33,20 +49,6 @@
         "mac": "Command+Shift+E"
       },
       "description": "Toggle extension on/off"
-    },
-    "undo-change": {
-      "suggested_key": {
-        "default": "Ctrl+Z",
-        "mac": "Command+Z"
-      },
-      "description": "Undo last change"
-    },
-    "redo-change": {
-      "suggested_key": {
-        "default": "Ctrl+Y",
-        "mac": "Command+Y"
-      },
-      "description": "Redo last change"
     }
   }
 }

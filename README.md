@@ -9,6 +9,8 @@
 
 **A real-time, user-driven browser extension for web accessibility enhancement**
 
+*A personal project by [Octavio Silva](https://github.com/FrankenSama)*
+
 
 ![Demo Screenshot](docs/images/demo-screenshot.png)
 
@@ -20,13 +22,13 @@
 
 Accessibility Text Enhancer is a browser extension that empowers users to take control of web accessibility in real-time. Unlike traditional tools that only identify problems, this extension provides immediate, client-side remediation of common accessibility barriers—putting solutions directly in users' hands.
 
-Developed as part of an MSc Computer Engineering dissertation at Solent University, this tool bridges the critical gap between **identifying** accessibility issues and **fixing** them.
+Originally developed as part of an MSc Computer Engineering dissertation at Solent University, it is now maintained as a personal project by Octavio Silva. It bridges the critical gap between **identifying** accessibility issues and **fixing** them.
 
 ### The Problem
 
 Despite established WCAG guidelines, **96% of websites fail basic accessibility compliance** (WebAIM, 2023). Existing tools like Lighthouse and axe-core excel at diagnostics but leave users waiting for developers to implement fixes—a process that can take weeks, months, or may never happen.
 
-### Our Solution
+### What It Does
 
 A user-centric, real-time accessibility enhancement tool that:
 - ✅ Provides **instant fixes** without requiring developer intervention
@@ -43,28 +45,27 @@ A user-centric, real-time accessibility enhancement tool that:
 | Feature | Description |
 |---------|-------------|
 | **Bold Toggle** | Increase text weight for better readability |
-| **Highlight** | Add yellow background or outline to text |
+| **Highlight** | Add a yellow background, or an outline when the text is too light for one |
 | **Font Size** | Increase/decrease text size (8-50px) |
 | **Font Style** | Toggle between sans-serif and serif fonts |
 | **Text Spacing** | Adjust letter and word spacing |
-| **Contrast Fix** | Force high-contrast black/white text |
+| **Contrast Fix** | Choose black or white text based on the background |
 | **Read Aloud** | Text-to-speech for selected content |
 
 ### 🚀 Advanced Capabilities
 
-- **Undo/Redo System**: Full history tracking with `Ctrl+Z` / `Ctrl+Y`
-- **Persistent Settings**: Auto-save preferences per website
+- **Undo/Redo System**: Full history tracking with `Ctrl+Z` / `Ctrl+Y` while the toolbar is open
+- **Persistent Theme**: Remember your dark/light toolbar preference
 - **Dark/Light Mode**: Toggle toolbar theme to match your preference
-- **Export/Import**: Backup and restore your settings
-- **Keyboard Shortcuts**: Full keyboard navigation support
+- **Export/Import**: Back up or restore your toolbar theme as JSON
+- **Keyboard Shortcuts**: Shortcuts for the most common actions
 - **Real-time Performance**: < 5ms enhancement execution time
 
-### 💾 Smart Personalization
+### 💾 Personalization
 
-- Site-specific settings that remember your preferences
-- Auto-apply saved enhancements when revisiting websites
-- Export settings as JSON for backup or sharing
-- Import settings across devices
+- Remember your toolbar theme between sessions
+- Export the theme preference as JSON for backup
+- Import it on another device
 
 ---
 
@@ -104,26 +105,25 @@ A user-centric, real-time accessibility enhancement tool that:
 
 ### Keyboard Shortcuts
 
-The extension supports full keyboard navigation:
+Keyboard shortcuts are available for the most common actions:
 
 | Action | Windows/Linux | macOS |
 |--------|---------------|-------|
 | Open Extension | `Ctrl+Shift+A` | `Cmd+Shift+A` |
 | Toggle Extension | `Ctrl+Shift+E` | `Cmd+Shift+E` |
 | Bold Text | `Ctrl+Shift+B` | `Cmd+Shift+B` |
-| Increase Size | `Ctrl+Shift++` | `Cmd+Shift++` |
-| Decrease Size | `Ctrl+Shift+-` | `Cmd+Shift+-` |
+| Highlight Text | `Ctrl+Shift+H` | `Cmd+Shift+H` |
 | Undo | `Ctrl+Z` | `Cmd+Z` |
 | Redo | `Ctrl+Y` | `Cmd+Y` |
 
+> Undo/redo shortcuts are only captured while the accessibility toolbar is visible, so normal page undo keeps working.
+
 ### Settings Panel
 
-Access advanced settings by clicking the ⚙️ button in the toolbar:
+Open the settings panel with the ⚙️ button in the toolbar:
 
-- **Auto-save Settings**: Automatically save preferences for each website
-- **Show Tooltips**: Toggle button descriptions
-- **Enable Shortcuts**: Turn keyboard shortcuts on/off
-- **Export/Import**: Backup or restore your configuration
+- **Export Settings**: Download your toolbar theme preference as JSON
+- **Import Settings**: Restore a previously exported theme preference
 
 ---
 
@@ -138,7 +138,7 @@ This extension was developed as part of a Master's dissertation titled:
 ### Key Research Findings
 
 **Performance Metrics** (tested on 20 diverse websites):
-- ✅ **100% success rate** for toolbar injection across all sites
+- ✅ **100% toolbar availability** on standard web pages (browser-restricted pages excluded)
 - ✅ **95%+ success rate** for core enhancement features
 - ✅ **< 2.5MB memory** overhead per tab
 - ✅ **< 3% CPU** increase during enhancement
@@ -185,7 +185,7 @@ If you use this tool in research, please cite:
 - **Manifest V3**: Modern Chrome Extension API
 - **Vanilla JavaScript (ES6+)**: Zero dependencies for maximum compatibility
 - **CSS3**: Advanced styling with Flexbox
-- **Chrome Storage API**: Persistent settings management
+- **Chrome Storage API**: Persistent theme and enabled state
 - **Web Speech API**: Text-to-speech functionality
 
 ### Project Structure
@@ -193,7 +193,7 @@ If you use this tool in research, please cite:
 ```
 accessibility-text-enhancer/
 ├── manifest.json              # Extension configuration
-├── background.js              # Service worker for shortcuts & stats
+├── background.js              # Service worker for shortcuts & badge
 ├── popup/
 │   ├── popup.html            # Extension popup interface
 │   └── popup.js              # Popup logic
@@ -202,6 +202,8 @@ accessibility-text-enhancer/
 │   └── content.css           # Toolbar styling
 ├── icons/                    # Extension icons (16, 48, 128px)
 ├── docs/                     # Documentation & research papers
+├── index.html                # GitHub Pages landing page
+├── privacy-policy.md         # Privacy policy
 └── README.md                 # This file
 ```
 
@@ -295,11 +297,11 @@ cd accessibility-text-enhancer
 
 ---
 
-## 🤝 Contributing
+## 🌱 Forks & Contributions
 
-Contributions are welcome! This project aims to make the web more accessible for everyone.
+This is a personal project maintained by Octavio Silva. Forks are welcome under the MIT License. Bug reports and focused pull requests are appreciated, but reviews and merges happen at the maintainer's discretion — there is no guaranteed response time.
 
-### How to Contribute
+### Sending a Pull Request
 
 1. **Fork the repository**
 2. **Create a feature branch** (`git checkout -b feature/AmazingFeature`)
@@ -307,7 +309,7 @@ Contributions are welcome! This project aims to make the web more accessible for
 4. **Push to the branch** (`git push origin feature/AmazingFeature`)
 5. **Open a Pull Request**
 
-### Contribution Guidelines
+### Guidelines
 
 - Follow existing code style and conventions
 - Add comments for complex logic
@@ -315,7 +317,7 @@ Contributions are welcome! This project aims to make the web more accessible for
 - Test on multiple websites before submitting
 - Ensure accessibility of any new UI elements
 
-### Areas Needing Help
+### Ideas for Forks
 
 - 🎨 **UI/UX Design**: Improve toolbar aesthetics
 - 🧪 **Testing**: Cross-browser compatibility testing
@@ -334,21 +336,20 @@ Tested and verified on:
 
 ---
 
-## 📄 License
+## 📄 License & Attribution
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the [MIT License](LICENSE).  
+Copyright (c) 2025-2026 Octavio Silva.
 
-### MIT License Summary
+### Forking & Attribution
 
-```
-Copyright (c) 2025 Octavio Silva
+You are welcome to fork, modify, and publish your own version under the MIT License. If you do, please:
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software...
-```
+1. **Keep the license** — include the `LICENSE` file and copyright notice in your fork. This is required by the MIT License.
+2. **Credit the original** — mention Octavio Silva and link back to this repository in your README or about page. The link-back is a courtesy request; MIT's legal requirement is the copyright and permission notice.
+3. **Don't imply it's official** — make it clear that your fork is not the official Accessibility Text Enhancer, and don't use the project name or icon in a way that suggests it is.
+
+Using GitHub's **Fork** button automatically preserves the license and adds a visible "forked from" link back to this repository.
 
 ---
 
@@ -375,7 +376,7 @@ This project builds upon:
 
 ### Author
 **Octavio Silva**  
-MSc Computer Engineering Candidate  
+MSc Computer Engineering  
 Solent University
 
 ### Links

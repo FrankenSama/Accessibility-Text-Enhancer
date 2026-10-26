@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -229,11 +229,11 @@
         <div class="toggle-container">
             <span class="toggle-label">Extension Status</span>
             <label class="switch">
-                <input type="checkbox" id="toggle">
-                <span class="slider"></span>
+                <input type="checkbox" id="toggle" aria-label="Enable Accessibility Text Enhancer">
+                <span class="slider" aria-hidden="true"></span>
             </label>
         </div>
-        <div id="status">Loading...</div>
+        <div id="status" role="status" aria-live="polite">Loading...</div>
     </div>
 
     <div class="stats">
@@ -273,7 +273,7 @@
     </div>
 
     <div class="footer">
-        <a href="https://github.com/FrankenSama/accessibility-text-enhancer" target="_blank">
+        <a href="https://github.com/FrankenSama/accessibility-text-enhancer" target="_blank" rel="noopener noreferrer">
             View on GitHub
         </a>
         <div class="version">v1.0.0</div>
