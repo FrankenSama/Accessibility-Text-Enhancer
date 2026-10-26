@@ -32,8 +32,8 @@ Despite established WCAG guidelines, **96% of websites fail basic accessibility 
 
 A user-centric, real-time accessibility enhancement tool that:
 - ✅ Provides **instant fixes** without requiring developer intervention
-- ✅ Works **universally** across all websites
-- ✅ Operates **client-side** with zero latency and full privacy
+- ✅ Works on standard web pages (browser-internal pages such as `chrome://` and the Chrome Web Store are excluded)
+- ✅ Operates **client-side** with no network round-trips, so page content stays in your browser
 - ✅ Empowers users with **immediate agency** over their browsing experience
 
 ---
@@ -54,7 +54,7 @@ A user-centric, real-time accessibility enhancement tool that:
 
 ### 🚀 Advanced Capabilities
 
-- **Undo/Redo System**: Full history tracking with `Ctrl+Z` / `Ctrl+Y` while the toolbar is open
+- **Undo/Redo System**: Undo history for the last 50 changes with `Ctrl+Z` / `Ctrl+Y` while the toolbar is open
 - **Persistent Theme**: Remember your dark/light toolbar preference
 - **Dark/Light Mode**: Toggle toolbar theme to match your preference
 - **Export/Import**: Back up or restore your toolbar theme as JSON
@@ -98,7 +98,7 @@ A user-centric, real-time accessibility enhancement tool that:
 
 ### Basic Usage
 
-1. **Select Text**: Highlight any text on any webpage
+1. **Select Text**: Highlight text on most webpages
 2. **Toolbar Appears**: The accessibility toolbar will appear at the top of your screen
 3. **Apply Enhancements**: Click any button to enhance the selected text
 4. **Undo if Needed**: Use the undo button or `Ctrl+Z` to revert changes
@@ -109,14 +109,14 @@ Keyboard shortcuts are available for the most common actions:
 
 | Action | Windows/Linux | macOS |
 |--------|---------------|-------|
-| Open Extension | `Ctrl+Shift+A` | `Cmd+Shift+A` |
+| Open Extension | `Ctrl+Shift+Y` | `Cmd+Shift+Y` |
 | Toggle Extension | `Ctrl+Shift+E` | `Cmd+Shift+E` |
-| Bold Text | `Ctrl+Shift+B` | `Cmd+Shift+B` |
-| Highlight Text | `Ctrl+Shift+H` | `Cmd+Shift+H` |
+| Bold Text | `Alt+Shift+B` | `Option+Shift+B` |
+| Highlight Text | `Alt+Shift+H` | `Option+Shift+H` |
 | Undo | `Ctrl+Z` | `Cmd+Z` |
 | Redo | `Ctrl+Y` | `Cmd+Y` |
 
-> Undo/redo shortcuts are only captured while the accessibility toolbar is visible, so normal page undo keeps working.
+> Undo/redo shortcuts are only captured while the accessibility toolbar is visible, so normal page undo keeps working. Chrome reserves `Ctrl+Shift+A` (tab search), `Ctrl+Shift+B` (bookmarks bar), and `Cmd+Shift+H` (home page on macOS), so those combinations never reach web pages. If you installed an earlier build, Chrome may keep the previous shortcut; you can change or reset it at `chrome://extensions/shortcuts`.
 
 ### Settings Panel
 
@@ -155,7 +155,7 @@ This extension was developed as part of a Master's dissertation titled:
 
 **RQ1**: *Can a browser extension provide effective, real-time remediation for perceptual accessibility issues?*
 
-✅ **Answer**: Yes. The extension successfully applies CSS overrides with `!important` flags, achieving universal compatibility across diverse DOM structures with minimal performance impact.
+✅ **Answer**: Yes. The extension successfully applies CSS overrides with `!important` flags, achieving broad compatibility across diverse DOM structures with minimal performance impact.
 
 **RQ2**: *What is the performance impact of real-time, client-side accessibility enhancement?*
 
@@ -262,7 +262,7 @@ accessibility-text-enhancer/
 
 2. **`!important` CSS Flags**: Ensures accessibility enhancements override existing styles regardless of specificity
 
-3. **Client-Side Processing**: All operations occur in-browser—no server calls, ensuring privacy and zero latency
+3. **Client-Side Processing**: All operations occur in-browser—no server calls or network round-trips
 
 4. **Fixed Toolbar Position**: Positioned at viewport top to prevent interference with text selection
 

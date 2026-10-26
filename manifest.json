@@ -39,8 +39,8 @@
   "commands": {
     "_execute_action": {
       "suggested_key": {
-        "default": "Ctrl+Shift+A",
-        "mac": "Command+Shift+A"
+        "default": "Ctrl+Shift+Y",
+        "mac": "Command+Shift+Y"
       }
     },
     "toggle-extension": {

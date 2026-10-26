@@ -50,6 +50,15 @@
         });
     }
 
+    /**
+     * Return the node extension UI should be attached to. Documents without a
+     * <body> (for example XML or SVG documents) still have a document element.
+     * @returns {HTMLElement}
+     */
+    function getMountNode() {
+        return document.body || document.documentElement;
+    }
+
     // ==================== INITIALIZATION ====================
 
     /**
@@ -152,8 +161,8 @@
             </div>
 
             <div class="button-group">
-                <button type="button" data-command="bold" data-tooltip="Bold (Ctrl+Shift+B)">Bold</button>
-                <button type="button" data-command="highlight" data-tooltip="Highlight (Ctrl+Shift+H)">Highlight</button>
+                <button type="button" data-command="bold" data-tooltip="Bold (Alt+Shift+B)">Bold</button>
+                <button type="button" data-command="highlight" data-tooltip="Highlight (Alt+Shift+H)">Highlight</button>
             </div>
 
             <div class="button-group">
@@ -194,13 +203,11 @@
             });
         });
 
-        document.body.appendChild(toolbar);
+        // Add the animation class before insertion so the toolbar does not
+        // flash at full opacity for one frame before sliding in.
+        toolbar.classList.add('show');
+        getMountNode().appendChild(toolbar);
         applyTheme();
-
-        // Trigger animation.
-        requestAnimationFrame(() => {
-            toolbar.classList.add('show');
-        });
 
         return toolbar;
     }
@@ -661,8 +668,17 @@
         }
 
         const entry = STATE.history[STATE.historyIndex];
-        restoreElementState(entry.element, entry.before);
         STATE.historyIndex--;
+
+        // Pages that re-render can detach the element a change was applied to.
+        // Restoring it would silently do nothing, so say so instead.
+        if (!entry.element.isConnected) {
+            updateToolbarState();
+            showToast('That change is no longer on the page');
+            return;
+        }
+
+        restoreElementState(entry.element, entry.before);
         updateToolbarState();
         showToast('Undone');
     }
@@ -678,6 +694,13 @@
 
         STATE.historyIndex++;
         const entry = STATE.history[STATE.historyIndex];
+
+        if (!entry.element.isConnected) {
+            updateToolbarState();
+            showToast('That change is no longer on the page');
+            return;
+        }
+
         restoreElementState(entry.element, entry.after);
         updateToolbarState();
         showToast('Redone');
@@ -719,7 +742,7 @@
         overlay.setAttribute('aria-hidden', 'true');
         overlay.addEventListener('mousedown', (event) => event.preventDefault());
         overlay.addEventListener('click', removeSettingsPanel);
-        document.body.appendChild(overlay);
+        getMountNode().appendChild(overlay);
 
         const panel = document.createElement('div');
         panel.id = CONFIG.settingsPanelId;
@@ -735,13 +758,13 @@
             <h3 id="accessibility-settings-title">Accessibility Settings</h3>
 
             <div class="setting-item">
-                <button type="button" id="export-settings" style="width: 100%; padding: 10px; background: #4CAF50; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                <button type="button" id="export-settings" class="action-btn export-btn">
                     Export Settings
                 </button>
             </div>
 
             <div class="setting-item">
-                <button type="button" id="import-settings" style="width: 100%; padding: 10px; background: #2196F3; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                <button type="button" id="import-settings" class="action-btn import-btn">
                     Import Settings
                 </button>
             </div>
@@ -749,7 +772,7 @@
             <button type="button" class="close-btn">Close</button>
         `;
 
-        document.body.appendChild(panel);
+        getMountNode().appendChild(panel);
 
         const closeBtn = panel.querySelector('.close-btn');
         closeBtn.addEventListener('click', removeSettingsPanel);
@@ -822,10 +845,11 @@
         const link = document.createElement('a');
         link.href = url;
         link.download = `accessibility-settings-${Date.now()}.json`;
-        document.body.appendChild(link);
+        getMountNode().appendChild(link);
         link.click();
         link.remove();
-        setTimeout(() => URL.revokeObjectURL(url), 0);
+        // Give the download a moment to start before releasing the blob URL.
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
 
         showToast('Settings exported');
     }
@@ -919,7 +943,7 @@
         toast.setAttribute('aria-live', 'polite');
         toast.setAttribute('aria-atomic', 'true');
         toast.textContent = message;
-        document.body.appendChild(toast);
+        getMountNode().appendChild(toast);
 
         setTimeout(() => {
             toast.style.opacity = '0';
@@ -1052,15 +1076,23 @@
                 return;
             }
 
-            // Ctrl/Cmd + Shift + B = Bold.
-            if (modifier && event.shiftKey && key === 'b' && STATE.savedRange) {
+            // Ctrl/Cmd + Shift + B is Chrome's bookmarks bar and Ctrl/Cmd +
+            // Shift + H opens the home page on macOS, so those combinations
+            // never reach the page. Use Alt/Option + Shift instead and match
+            // the physical key so Option-modified characters on macOS still
+            // work.
+            const altShift = event.altKey && event.shiftKey &&
+                !event.ctrlKey && !event.metaKey;
+
+            // Alt/Option + Shift + B = Bold.
+            if (altShift && (event.code === 'KeyB' || key === 'b') && STATE.savedRange) {
                 event.preventDefault();
                 enhanceSelection('bold');
                 return;
             }
 
-            // Ctrl/Cmd + Shift + H = Highlight.
-            if (modifier && event.shiftKey && key === 'h' && STATE.savedRange) {
+            // Alt/Option + Shift + H = Highlight.
+            if (altShift && (event.code === 'KeyH' || key === 'h') && STATE.savedRange) {
                 event.preventDefault();
                 enhanceSelection('highlight');
             }

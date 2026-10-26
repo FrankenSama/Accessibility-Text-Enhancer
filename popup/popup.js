@@ -4,6 +4,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const statusDiv = document.getElementById('status');
     const currentDomain = document.getElementById('currentDomain');
 
+    // Show macOS modifier names in the shortcut list.
+    const platform = navigator.userAgentData?.platform || navigator.platform || '';
+    if (/mac/i.test(platform)) {
+        document.querySelectorAll('.shortcut-key').forEach((key) => {
+            key.textContent = key.textContent
+                .replace('Ctrl', 'Cmd')
+                .replace('Alt', 'Option');
+        });
+    }
+
     // Show the active tab's hostname (when available).
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
         if (!tabs[0]) {

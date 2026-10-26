@@ -216,6 +216,33 @@
     font-weight: 500;
 }
 
+#accessibility-settings-panel .action-btn {
+    width: 100%;
+    padding: 10px;
+    border: none;
+    border-radius: 6px;
+    color: white;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+#accessibility-settings-panel .export-btn {
+    background: #4CAF50;
+}
+
+#accessibility-settings-panel .export-btn:hover {
+    background: #43a047;
+}
+
+#accessibility-settings-panel .import-btn {
+    background: #2196F3;
+}
+
+#accessibility-settings-panel .import-btn:hover {
+    background: #1e88e5;
+}
+
 #accessibility-settings-panel button:focus-visible {
     outline: 2px solid #4CAF50;
     outline-offset: 2px;
