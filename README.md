@@ -9,8 +9,6 @@
 
 **A real-time, user-driven browser extension for web accessibility enhancement**
 
-*A personal project by [Octavio Silva](https://github.com/FrankenSama)*
-
 
 ![Demo Screenshot](docs/images/demo-screenshot.webp)
 
