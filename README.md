@@ -12,7 +12,7 @@
 *A personal project by [Octavio Silva](https://github.com/FrankenSama)*
 
 
-![Demo Screenshot](docs/images/demo-screenshot.png)
+![Demo Screenshot](docs/images/demo-screenshot.webp)
 
 </div>
 
@@ -204,6 +204,7 @@ accessibility-text-enhancer/
 ├── background.js              # Service worker for shortcuts & badge
 ├── popup/
 │   ├── popup.html            # Extension popup interface
+│   ├── popup.css             # Popup styling
 │   └── popup.js              # Popup logic
 ├── content-scripts/
 │   ├── content.js            # Main enhancement engine
@@ -211,6 +212,8 @@ accessibility-text-enhancer/
 ├── icons/                    # Extension icons (16, 48, 128px)
 ├── docs/                     # Documentation & research papers
 ├── index.html                # GitHub Pages landing page
+├── styles.css                # Landing page styling
+├── script.js                 # Landing page interactions
 ├── privacy-policy.md         # Privacy policy
 └── README.md                 # This file
 ```

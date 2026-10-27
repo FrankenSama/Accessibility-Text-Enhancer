@@ -220,6 +220,7 @@ project/
 ├── background.js          # Service worker
 ├── popup/
 │   ├── popup.html        # Popup UI
+│   ├── popup.css         # Popup styling
 │   └── popup.js          # Popup logic
 ├── content-scripts/
 │   ├── content.js        # Main enhancement engine
@@ -227,6 +228,8 @@ project/
 ├── icons/                # Extension icons
 ├── docs/                 # Documentation and research
 ├── index.html            # GitHub Pages landing page
+├── styles.css            # Landing page styling
+├── script.js             # Landing page interactions
 ├── privacy-policy.md     # Privacy policy
 └── LICENSE               # MIT License
 ```

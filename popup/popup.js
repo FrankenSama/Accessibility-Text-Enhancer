@@ -60,8 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
      */
     function updateStatus(isEnabled) {
         statusDiv.textContent = isEnabled ? '✓ Active' : '✗ Disabled';
-        statusDiv.style.background = isEnabled
-            ? 'rgba(76, 175, 80, 0.3)'
-            : 'rgba(244, 67, 54, 0.3)';
+        statusDiv.classList.toggle('active', isEnabled);
+        statusDiv.classList.toggle('disabled', !isEnabled);
     }
 });
