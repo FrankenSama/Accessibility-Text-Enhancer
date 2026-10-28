@@ -6,13 +6,60 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Show macOS modifier names in the shortcut list.
     const platform = navigator.userAgentData?.platform || navigator.platform || '';
-    if (/mac/i.test(platform)) {
+    const isMac = /mac/i.test(platform);
+    if (isMac) {
         document.querySelectorAll('.shortcut-key').forEach((key) => {
             key.textContent = key.textContent
                 .replace('Ctrl', 'Cmd')
                 .replace('Alt', 'Option');
         });
     }
+
+    /**
+     * Turn a Chrome command shortcut into the label shown in the popup.
+     * @param {string} shortcut
+     * @returns {string}
+     */
+    function formatShortcut(shortcut) {
+        if (!shortcut) {
+            return 'Not set';
+        }
+
+        if (isMac) {
+            return shortcut
+                .replace(/Command/g, 'Cmd')
+                .replace(/MacCtrl/g, 'Ctrl')
+                .replace(/Alt/g, 'Option');
+        }
+
+        return shortcut.replace(/Command/g, 'Ctrl');
+    }
+
+    // Manifest commands can be rebound at chrome://extensions/shortcuts, so
+    // show the binding the user actually has instead of the suggested one.
+    chrome.commands.getAll((commands) => {
+        if (chrome.runtime.lastError || !commands) {
+            return;
+        }
+
+        commands.forEach((command) => {
+            const key = document.querySelector(
+                `.shortcut-key[data-command="${command.name}"]`
+            );
+
+            if (key) {
+                key.textContent = formatShortcut(command.shortcut);
+            }
+        });
+    });
+
+    // Chrome blocks chrome:// links in extension pages, so open the shortcut
+    // manager through the tabs API.
+    document.getElementById('manageShortcuts').addEventListener('click', () => {
+        chrome.tabs.create({ url: 'chrome://extensions/shortcuts' }, () => {
+            window.close();
+        });
+    });
 
     // Show the active tab's hostname (when available).
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {

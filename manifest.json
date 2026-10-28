@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Accessibility Text Enhancer",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Real-time, user-driven web accessibility enhancement tool with intelligent text modifications and personalization.",
   "minimum_chrome_version": "88",
   "icons": {
@@ -49,6 +49,13 @@
         "mac": "Command+Shift+E"
       },
       "description": "Toggle extension on/off"
+    },
+    "focus-toolbar": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+F",
+        "mac": "Command+Shift+F"
+      },
+      "description": "Focus the accessibility toolbar for the selected text"
     }
   }
 }

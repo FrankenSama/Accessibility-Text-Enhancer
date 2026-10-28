@@ -35,22 +35,21 @@
     </div>
 
     <div class="shortcuts">
-        <h3>⌨️ Keyboard Shortcuts</h3>
+        <div class="shortcuts-header">
+            <h3>⌨️ Keyboard Shortcuts</h3>
+            <button type="button" class="manage-shortcuts" id="manageShortcuts">Manage shortcuts</button>
+        </div>
         <div class="shortcut-item">
             <span>Open Extension</span>
-            <span class="shortcut-key">Ctrl+Shift+Y</span>
+            <span class="shortcut-key" data-command="_execute_action">Ctrl+Shift+Y</span>
         </div>
         <div class="shortcut-item">
             <span>Toggle Extension</span>
-            <span class="shortcut-key">Ctrl+Shift+E</span>
+            <span class="shortcut-key" data-command="toggle-extension">Ctrl+Shift+E</span>
         </div>
         <div class="shortcut-item">
-            <span>Undo</span>
-            <span class="shortcut-key">Ctrl+Z</span>
-        </div>
-        <div class="shortcut-item">
-            <span>Redo</span>
-            <span class="shortcut-key">Ctrl+Y</span>
+            <span>Focus Toolbar</span>
+            <span class="shortcut-key" data-command="focus-toolbar">Ctrl+Shift+F</span>
         </div>
         <div class="shortcut-item">
             <span>Bold</span>
@@ -60,13 +59,21 @@
             <span>Highlight</span>
             <span class="shortcut-key">Alt+Shift+H</span>
         </div>
+        <div class="shortcut-item">
+            <span>Undo</span>
+            <span class="shortcut-key">Ctrl+Z</span>
+        </div>
+        <div class="shortcut-item">
+            <span>Redo</span>
+            <span class="shortcut-key">Ctrl+Y</span>
+        </div>
     </div>
 
     <div class="footer">
         <a href="https://github.com/FrankenSama/accessibility-text-enhancer" target="_blank" rel="noopener noreferrer">
             View on GitHub
         </a>
-        <div class="version">v1.1.0</div>
+        <div class="version">v1.2.0</div>
     </div>
 
     <script src="popup.js"></script>

@@ -230,6 +230,7 @@ project/
 ├── index.html            # GitHub Pages landing page
 ├── styles.css            # Landing page styling
 ├── script.js             # Landing page interactions
+├── ROADMAP.md            # Planned accessibility work
 ├── privacy-policy.md     # Privacy policy
 └── LICENSE               # MIT License
 ```

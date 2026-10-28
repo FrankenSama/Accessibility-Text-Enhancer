@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-1.1.0-blue.svg)
+![Version](https://img.shields.io/badge/version-1.2.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Chrome](https://img.shields.io/badge/Chrome-Extension-yellow.svg)
 ![Accessibility](https://img.shields.io/badge/WCAG-2.2-purple.svg)
@@ -58,7 +58,8 @@ A user-centric, real-time accessibility enhancement tool that:
 - **Persistent Theme**: Remember your dark/light toolbar preference
 - **Dark/Light Mode**: Toggle toolbar theme to match your preference
 - **Export/Import**: Back up or restore your toolbar theme as JSON
-- **Keyboard Shortcuts**: Shortcuts for the most common actions
+- **Keyboard Shortcuts**: Shortcuts for the most common actions, plus a single-tab-stop toolbar with arrow-key navigation
+- **Screen Reader Support**: Toggle state is announced with `aria-pressed`, including mixed selections
 - **Real-time Performance**: < 5ms enhancement execution time
 
 ### 💾 Personalization
@@ -119,12 +120,19 @@ Keyboard shortcuts are available for the most common actions:
 |--------|---------------|-------|
 | Open Extension | `Ctrl+Shift+Y` | `Cmd+Shift+Y` |
 | Toggle Extension | `Ctrl+Shift+E` | `Cmd+Shift+E` |
+| Focus Toolbar | `Ctrl+Shift+F` | `Cmd+Shift+F` |
 | Bold Text | `Alt+Shift+B` | `Option+Shift+B` |
 | Highlight Text | `Alt+Shift+H` | `Option+Shift+H` |
 | Undo | `Ctrl+Z` | `Cmd+Z` |
 | Redo | `Ctrl+Y` | `Cmd+Y` |
 
-> Undo/redo shortcuts are only captured while the accessibility toolbar is visible, so normal page undo keeps working. Chrome reserves `Ctrl+Shift+A` (tab search), `Ctrl+Shift+B` (bookmarks bar), and `Cmd+Shift+H` (home page on macOS), so those combinations never reach web pages. If you installed an earlier build, Chrome may keep the previous shortcut; you can change or reset it at `chrome://extensions/shortcuts`.
+> With the toolbar focused, `ArrowLeft`/`ArrowRight` move between commands and `Home`/`End` jump to the first or last one. Undo/redo shortcuts are only captured while the accessibility toolbar is visible and the extension has a step to undo or redo, so native text editing and page-level undo keep working. `Alt+Shift+B/H` are ignored inside text fields and editable regions.
+>
+> Focus Toolbar is a Chrome command, so you can rebind it at `chrome://extensions/shortcuts` (also linked from the popup). Chrome handles it before the page, so it takes precedence over any site shortcut with the same combination; rebind it if that is a problem. Bold and Highlight only act on a text selection and are ignored inside inputs, text areas, selects, and editable regions.
+>
+> On Windows, `Alt+Shift` is also the default keyboard-layout switch. If that interferes, use the rebindable Focus Toolbar command and the toolbar buttons instead.
+>
+> Chrome reserves `Alt+Shift+A` (focus inactive dialogs), `Ctrl+Shift+A` (tab search), `Ctrl+Shift+B` (bookmarks bar), `Alt+Shift+T` (focus browser toolbar), and `Cmd+Shift+H` (home page on macOS). `Ctrl+Shift+Y`, `Ctrl+Shift+E`, and `Ctrl+Shift+F` are not Chrome defaults, but another extension may already own one; Chrome then leaves ours unassigned, and you can rebind or reset it at `chrome://extensions/shortcuts`. If you installed an earlier build, Chrome may keep the previous shortcut there too.
 
 ### Settings Panel
 
@@ -214,6 +222,7 @@ accessibility-text-enhancer/
 ├── index.html                # GitHub Pages landing page
 ├── styles.css                # Landing page styling
 ├── script.js                 # Landing page interactions
+├── ROADMAP.md                # Planned accessibility work
 ├── privacy-policy.md         # Privacy policy
 └── README.md                 # This file
 ```
@@ -307,6 +316,10 @@ cd accessibility-text-enhancer
 3. **Background Script**: chrome://extensions/ → Details → Inspect views
 
 ---
+
+## 🗺️ Roadmap
+
+Planned accessibility work is tracked in [ROADMAP.md](ROADMAP.md). Phase 1 (v1.2.0) covers toolbar semantics and keyboard access; later phases cover the reading assistant, per-site preferences, reading aids, and platform support.
 
 ## 🌱 Forks & Contributions
 

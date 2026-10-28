@@ -11,6 +11,10 @@
 
     // ==================== STATE MANAGEMENT ====================
 
+    const IS_MAC = /mac/i.test(
+        navigator.userAgentData?.platform || navigator.platform || ''
+    );
+
     const STATE = {
         savedRange: null,
         isExtensionEnabled: true,
@@ -19,7 +23,11 @@
         historyIndex: -1,
         toolbarTimeout: null,
         positionFrame: null,
-        isApplyingCommand: false
+        isApplyingCommand: false,
+        // Focus Toolbar is a manifest command. These defaults are replaced with
+        // the user's actual binding once the background worker responds.
+        focusToolbarShortcut: IS_MAC ? 'Cmd+Shift+F' : 'Ctrl+Shift+F',
+        focusToolbarAriaShortcut: IS_MAC ? 'Meta+Shift+F' : 'Control+Shift+F'
     };
 
     const CONFIG = {
@@ -116,6 +124,8 @@
             await loadExtensionState();
             setupEventListeners();
             setupKeyboardShortcuts();
+            setupMessageListener();
+            syncShortcutLabels();
 
             if (!STATE.isExtensionEnabled) {
                 return;
@@ -196,6 +206,10 @@
         toolbar.id = CONFIG.toolbarId;
         toolbar.setAttribute('role', 'toolbar');
         toolbar.setAttribute('aria-label', 'Accessibility text enhancement');
+        toolbar.setAttribute('aria-orientation', 'horizontal');
+        if (STATE.focusToolbarAriaShortcut) {
+            toolbar.setAttribute('aria-keyshortcuts', STATE.focusToolbarAriaShortcut);
+        }
 
         if (!STATE.isDarkMode) {
             toolbar.classList.add('light-mode');
@@ -257,8 +271,156 @@
         toolbar.classList.add('show');
         getMountNode().appendChild(toolbar);
         applyTheme();
+        setupToolbarKeyboardNavigation(toolbar);
+        updateToolbarState();
 
         return toolbar;
+    }
+
+    /**
+     * Buttons in a toolbar that can currently receive focus.
+     * @param {HTMLElement} toolbar
+     * @param {boolean} [includeDisabled]
+     * @returns {HTMLButtonElement[]}
+     */
+    function getToolbarButtons(toolbar, includeDisabled = false) {
+        return Array.from(toolbar.querySelectorAll('button'))
+            .filter((button) => includeDisabled || !button.disabled);
+    }
+
+    /**
+     * Make one button the toolbar's single tab stop.
+     * @param {HTMLButtonElement} button
+     * @param {HTMLElement} toolbar
+     */
+    function setToolbarTabStop(button, toolbar) {
+        getToolbarButtons(toolbar, true).forEach((item) => {
+            item.setAttribute('tabindex', item === button ? '0' : '-1');
+        });
+    }
+
+    /**
+     * Keep exactly one enabled button in the tab order, and move focus off a
+     * button that just became disabled.
+     * @param {HTMLElement} toolbar
+     */
+    function syncToolbarTabStops(toolbar) {
+        const enabled = getToolbarButtons(toolbar);
+
+        if (enabled.length === 0) {
+            getToolbarButtons(toolbar, true).forEach((button) => {
+                button.setAttribute('tabindex', '-1');
+            });
+            return;
+        }
+
+        const active = document.activeElement;
+        let target = enabled.find((button) => button.getAttribute('tabindex') === '0');
+
+        if (active && toolbar.contains(active) && active.tagName === 'BUTTON' && !active.disabled) {
+            target = active;
+        }
+
+        if (!target) {
+            target = enabled[0];
+        }
+
+        setToolbarTabStop(target, toolbar);
+
+        // A keyboard user can disable undo/redo with the button they are on.
+        if (active && toolbar.contains(active) && active.disabled) {
+            target.focus({ preventScroll: true });
+        }
+    }
+
+    /**
+     * Arrow-key navigation for the toolbar's single tab stop.
+     * @param {HTMLElement} toolbar
+     */
+    function setupToolbarKeyboardNavigation(toolbar) {
+        toolbar.addEventListener('keydown', (event) => {
+            if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) {
+                return;
+            }
+
+            const buttons = getToolbarButtons(toolbar);
+            if (buttons.length === 0) {
+                return;
+            }
+
+            const currentIndex = buttons.indexOf(document.activeElement);
+            let nextIndex;
+
+            if (event.key === 'Home') {
+                nextIndex = 0;
+            } else if (event.key === 'End') {
+                nextIndex = buttons.length - 1;
+            } else if (currentIndex === -1) {
+                nextIndex = 0;
+            } else {
+                const step = event.key === 'ArrowRight' ? 1 : -1;
+                nextIndex = (currentIndex + step + buttons.length) % buttons.length;
+            }
+
+            event.preventDefault();
+            event.stopPropagation();
+
+            const next = buttons[nextIndex];
+            setToolbarTabStop(next, toolbar);
+            next.focus({ preventScroll: true });
+        });
+    }
+
+    /**
+     * Focus the toolbar for the current selection, creating it immediately if
+     * the selection delay has not fired yet.
+     */
+    function focusToolbarForSelection() {
+        const isPending = Boolean(STATE.toolbarTimeout);
+        if (STATE.toolbarTimeout) {
+            clearTimeout(STATE.toolbarTimeout);
+            STATE.toolbarTimeout = null;
+        }
+
+        const existing = document.getElementById(CONFIG.toolbarId);
+        if (existing && !isPending) {
+            // Already focused inside the toolbar: keep the current button.
+            if (existing.contains(document.activeElement)) {
+                return;
+            }
+
+            const buttons = getToolbarButtons(existing);
+            if (buttons.length > 0) {
+                setToolbarTabStop(buttons[0], existing);
+                buttons[0].focus({ preventScroll: true });
+            }
+            return;
+        }
+
+        if (!STATE.savedRange) {
+            const hint = STATE.focusToolbarShortcut
+                ? `press ${STATE.focusToolbarShortcut}`
+                : 'use the Focus Toolbar shortcut';
+            showToast(`Select text first, then ${hint}`);
+            return;
+        }
+
+        // createToolbar() replaces any stale toolbar left over from the
+        // previous selection.
+        const toolbar = createToolbar();
+        if (!toolbar) {
+            return;
+        }
+
+        positionToolbar(toolbar, STATE.savedRange);
+
+        const buttons = getToolbarButtons(toolbar);
+        if (buttons.length > 0) {
+            setToolbarTabStop(buttons[0], toolbar);
+            buttons[0].focus({ preventScroll: true });
+        }
+
+        showToast('Toolbar focused — use arrow keys');
     }
 
     /**
@@ -1323,7 +1485,8 @@
     }
 
     /**
-     * Update toolbar undo/redo button states.
+     * Update toolbar button states, the roving tab stop, and the announced
+     * toggle state of every toggle command.
      */
     function updateToolbarState() {
         const toolbar = document.getElementById(CONFIG.toolbarId);
@@ -1333,6 +1496,8 @@
 
         const undoBtn = toolbar.querySelector('[data-command="undo"]');
         const redoBtn = toolbar.querySelector('[data-command="redo"]');
+        const active = document.activeElement;
+        const hadToolbarFocus = Boolean(active && toolbar.contains(active));
 
         if (undoBtn) {
             undoBtn.disabled = STATE.historyIndex < 0;
@@ -1340,6 +1505,103 @@
         if (redoBtn) {
             redoBtn.disabled = STATE.historyIndex >= STATE.history.length - 1;
         }
+
+        const states = getToggleStates();
+
+        TOGGLE_COMMANDS.forEach((command) => {
+            const button = toolbar.querySelector(`[data-command="${command}"]`);
+            if (!button) {
+                return;
+            }
+
+            const state = states[command];
+            if (state === undefined) {
+                button.removeAttribute('aria-pressed');
+            } else {
+                button.setAttribute('aria-pressed', String(state));
+            }
+        });
+
+        syncToolbarTabStops(toolbar);
+
+        // Disabling the focused button can drop focus to the page. Put it back
+        // on a usable button so the keyboard user does not lose their place.
+        if (hadToolbarFocus && !toolbar.contains(document.activeElement)) {
+            const fallback = getToolbarButtons(toolbar)[0];
+            if (fallback) {
+                fallback.focus({ preventScroll: true });
+            }
+        }
+    }
+
+    /**
+     * Read the current on/off state of every toggle command for the saved
+     * selection. "mixed" means the selected text disagrees.
+     * @returns {Record<string, boolean|'mixed'>}
+     */
+    function getToggleStates() {
+        const range = STATE.savedRange;
+        if (!range || !range.commonAncestorContainer.isConnected) {
+            return {};
+        }
+
+        const textNodes = getSelectedTextNodes(range).filter(
+            (node) => selectedSlice(range, node).trim()
+        );
+        const blocks = getBlocksForRange(range);
+        const states = {};
+
+        for (const command of TOGGLE_COMMANDS) {
+            if (command === 'bold') {
+                const selected = textNodes.map((node) => {
+                    const element = node.parentElement;
+                    if (!element) {
+                        return false;
+                    }
+                    const weight = getComputedStyle(element).fontWeight;
+                    return weight === 'bold' || parseInt(weight, 10) >= 700;
+                });
+                states.bold = combineStates(
+                    selected.length > 0
+                        ? selected
+                        : blocks.map((block) => isCommandApplied(block, command))
+                );
+            } else if (command === 'highlight') {
+                const selected = textNodes.map((node) => Boolean(
+                    node.parentElement &&
+                    node.parentElement.closest(`[${CONFIG.highlightAttr}]`)
+                ));
+                states.highlight = combineStates(
+                    selected.length > 0
+                        ? selected
+                        : blocks.map((block) => isCommandApplied(block, command))
+                );
+            } else {
+                states[command] = combineStates(
+                    blocks.map((block) => isCommandApplied(block, command))
+                );
+            }
+        }
+
+        return states;
+    }
+
+    /**
+     * Collapse per-target toggle states into one aria-pressed value.
+     * @param {boolean[]} states
+     * @returns {boolean|'mixed'|undefined}
+     */
+    function combineStates(states) {
+        if (states.length === 0) {
+            return undefined;
+        }
+        if (states.every(Boolean)) {
+            return true;
+        }
+        if (states.every((state) => !state)) {
+            return false;
+        }
+        return 'mixed';
     }
 
     // ==================== SETTINGS PANEL ====================
@@ -1449,7 +1711,7 @@
      */
     function exportSettings() {
         const settings = {
-            version: '1.0.0',
+            version: chrome.runtime.getManifest().version,
             exportDate: new Date().toISOString(),
             preferences: {
                 darkMode: STATE.isDarkMode
@@ -1588,6 +1850,70 @@
     }
 
     /**
+     * Handle commands relayed from the background worker. Manifest commands
+     * cannot run inside a content script, so Focus Toolbar arrives as a
+     * message.
+     */
+    function setupMessageListener() {
+        chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+            if (!message || message.type !== 'focus-toolbar') {
+                return false;
+            }
+
+            // Leave text entry alone: a global command should not pull focus
+            // out of a field the user is typing in.
+            if (!STATE.isExtensionEnabled ||
+                isEditableTarget(document.activeElement)) {
+                sendResponse({ handled: false });
+                return false;
+            }
+
+            focusToolbarForSelection();
+            sendResponse({ handled: true });
+            return false;
+        });
+    }
+
+    /**
+     * Ask the background worker for the user's actual command bindings and
+     * mirror the Focus Toolbar shortcut into the toolbar's ARIA hint.
+     */
+    function syncShortcutLabels() {
+        try {
+            chrome.runtime.sendMessage({ type: 'get-shortcuts' }, (response) => {
+                if (chrome.runtime.lastError || !response || !response.shortcuts) {
+                    return;
+                }
+
+                const focus = response.shortcuts['focus-toolbar'];
+                if (!focus) {
+                    return;
+                }
+
+                STATE.focusToolbarShortcut = focus.shortcut || '';
+                STATE.focusToolbarAriaShortcut = focus.aria || '';
+
+                const toolbar = document.getElementById(CONFIG.toolbarId);
+                if (!toolbar) {
+                    return;
+                }
+
+                if (STATE.focusToolbarAriaShortcut) {
+                    toolbar.setAttribute(
+                        'aria-keyshortcuts',
+                        STATE.focusToolbarAriaShortcut
+                    );
+                } else {
+                    toolbar.removeAttribute('aria-keyshortcuts');
+                }
+            });
+        } catch (error) {
+            // The extension was reloaded while this page kept the old content
+            // script. The default shortcut hint is still usable.
+        }
+    }
+
+    /**
      * Whether two ranges cover the same boundary points.
      * @param {Range} a
      * @param {Range} b
@@ -1663,6 +1989,19 @@
     }
 
     /**
+     * Whether an event target is a text-entry region where Alt+Shift+letter
+     * should keep its native behaviour.
+     * @param {EventTarget|null} target
+     * @returns {boolean}
+     */
+    function isEditableTarget(target) {
+        const element = target instanceof Element ? target : null;
+        return Boolean(element && element.closest(
+            'input, textarea, select, [contenteditable]:not([contenteditable="false"])'
+        ));
+    }
+
+    /**
      * Set up keyboard shortcuts.
      */
     function setupKeyboardShortcuts() {
@@ -1675,7 +2014,9 @@
                     return;
                 }
 
-                if (document.getElementById(CONFIG.toolbarId)) {
+                // Let Escape reach the page while the user is editing text.
+                if (document.getElementById(CONFIG.toolbarId) &&
+                    !isEditableTarget(event.target)) {
                     STATE.savedRange = null;
                     removeToolbar();
                     event.preventDefault();
@@ -1695,11 +2036,14 @@
 
             const key = event.key.toLowerCase();
             const modifier = event.ctrlKey || event.metaKey;
+            const editable = isEditableTarget(event.target);
 
-            // Ctrl/Cmd + Z = Undo (only while the toolbar is visible, so the
-            // page's native undo is not hijacked).
+            // Ctrl/Cmd + Z = Undo (only while the toolbar is visible, and only
+            // when the extension has something to undo). This leaves native
+            // text editing and page-level undo alone.
             if (modifier && !event.shiftKey && key === 'z') {
-                if (document.getElementById(CONFIG.toolbarId)) {
+                if (!editable && STATE.historyIndex >= 0 &&
+                    document.getElementById(CONFIG.toolbarId)) {
                     event.preventDefault();
                     undo();
                 }
@@ -1708,7 +2052,10 @@
 
             // Ctrl/Cmd + Y or Ctrl/Cmd + Shift + Z = Redo.
             if (modifier && (key === 'y' || (event.shiftKey && key === 'z'))) {
-                if (document.getElementById(CONFIG.toolbarId)) {
+                const canRedo = STATE.historyIndex < STATE.history.length - 1;
+
+                if (!editable && canRedo &&
+                    document.getElementById(CONFIG.toolbarId)) {
                     event.preventDefault();
                     redo();
                 }
@@ -1719,19 +2066,22 @@
             // Shift + H opens the home page on macOS, so those combinations
             // never reach the page. Use Alt/Option + Shift instead and match
             // the physical key so Option-modified characters on macOS still
-            // work.
+            // work. Focus Toolbar is a manifest command handled by the
+            // background worker, so it is not part of this handler.
             const altShift = event.altKey && event.shiftKey &&
                 !event.ctrlKey && !event.metaKey;
 
             // Alt/Option + Shift + B = Bold.
-            if (altShift && (event.code === 'KeyB' || key === 'b') && STATE.savedRange) {
+            if (altShift && !editable &&
+                (event.code === 'KeyB' || key === 'b') && STATE.savedRange) {
                 event.preventDefault();
                 enhanceSelection('bold');
                 return;
             }
 
             // Alt/Option + Shift + H = Highlight.
-            if (altShift && (event.code === 'KeyH' || key === 'h') && STATE.savedRange) {
+            if (altShift && !editable &&
+                (event.code === 'KeyH' || key === 'h') && STATE.savedRange) {
                 event.preventDefault();
                 enhanceSelection('highlight');
             }

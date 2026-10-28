@@ -79,6 +79,37 @@ span[data-atx-selection] {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
+/* Toggle state, mirrored from aria-pressed so keyboard users can see it too.
+   State changes are immediate rather than fading in with the hover transition. */
+#accessibility-toolbar button[aria-pressed] {
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#accessibility-toolbar button[aria-pressed="true"] {
+    background: #2e7d32;
+    color: #ffffff;
+}
+
+#accessibility-toolbar button[aria-pressed="mixed"] {
+    box-shadow: inset 0 0 0 2px #81c784;
+}
+
+#accessibility-toolbar.light-mode button[aria-pressed="mixed"] {
+    box-shadow: inset 0 0 0 2px #2e7d32;
+}
+
+#accessibility-toolbar button[aria-pressed="true"]:hover {
+    background: #1b5e20;
+}
+
+#accessibility-toolbar button[aria-pressed="mixed"]:hover {
+    box-shadow: inset 0 0 0 3px #81c784;
+}
+
+#accessibility-toolbar.light-mode button[aria-pressed="mixed"]:hover {
+    box-shadow: inset 0 0 0 3px #2e7d32;
+}
+
 /* Active button state */
 #accessibility-toolbar button:active {
     transform: translateY(0);
@@ -106,6 +137,14 @@ span[data-atx-selection] {
 
 #accessibility-toolbar.light-mode .settings-btn {
     background: rgba(200, 200, 200, 0.7);
+}
+
+/* A hovered or focused button lifts with transform, which creates a stacking
+   context. Without an explicit z-index, later rows paint over its tooltip.
+   Raise the button itself so the tooltip stays above every sibling. */
+#accessibility-toolbar button:hover,
+#accessibility-toolbar button:focus-visible {
+    z-index: 1;
 }
 
 /* Tooltip styling (below the toolbar, since the toolbar sits at the top) */
