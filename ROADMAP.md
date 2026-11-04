@@ -2,7 +2,7 @@
 
 This roadmap tracks the accessibility work planned for Accessibility Text Enhancer. It is a living document: items move between phases as the project learns from real use, and nothing here is a commitment to a date.
 
-**Current build:** v1.2.0 (Phase 1 implemented, pending release) · **Last updated:** 2026-10-27
+**Current build:** v1.2.0 (released) · **Last updated:** 2026-11-04
 
 ## Guiding principles
 
@@ -17,8 +17,8 @@ This roadmap tracks the accessibility work planned for Accessibility Text Enhanc
 
 | Phase | Theme | Target | Status |
 |-------|-------|--------|--------|
-| 1 | Accessibility correctness | v1.2.0 | ✅ Done |
-| 2 | Reading assistant | v1.3.0 | 📋 Planned |
+| 1 | Accessibility correctness | v1.2.0 | ✅ Released |
+| 2 | Reading assistant | v1.3.0 | 🚧 In progress |
 | 3 | Personalization and persistence | v1.4.0 | 📋 Planned |
 | 4 | Reading aids | v1.5.0 | 📋 Planned |
 | 5 | Platform and reach | v2.0.0 | 💡 Exploring |
@@ -94,7 +94,7 @@ The toolbar already declares `role="toolbar"`, but it was not operable or unders
 
 ---
 
-## Phase 2 — Reading assistant (v1.3.0) 📋
+## Phase 2 — Reading assistant (v1.3.0) 🚧
 
 **Problem:** `readTextAloud()` is a single fixed-rate utterance. It is the only feature aimed at blind and low-vision users, and it is the least developed one.
 
@@ -188,12 +188,12 @@ These are worth investigating but are not scheduled:
 ## Release checklist
 
 - [x] Browser harness green (75 page checks; command relay, shortcut conflicts, popup, and tooltip stacking verified separately)
-- [ ] Keyboard-only pass: select, open toolbar, traverse, apply, undo
+- [x] Keyboard-only pass: select, open toolbar, traverse, apply, undo
 - [ ] Screen-reader smoke test (NVDA on Windows, VoiceOver on macOS)
 - [x] Dark and light toolbar themes
 - [x] Version bumped in `manifest.json`, `popup/popup.html`, and the README badge
 - [x] `README.md` and `CONTRIBUTING.md` updated
-- [ ] `vX.Y.Z` tag created after the release commit
+- [x] `v1.2.0` tag created after the release commit
 
 ## How to contribute
 
