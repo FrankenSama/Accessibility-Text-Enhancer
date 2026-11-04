@@ -1,32 +1,36 @@
 # Privacy Policy for Accessibility Text Enhancer
 
-**Last updated:** October 26, 2026
+**Last updated:** November 4, 2026
 
-Thank you for using the Accessibility Text Enhancer extension ("the Extension"). This privacy policy explains what information we collect and how it is used.
+Thank you for using the Accessibility Text Enhancer extension ("the Extension"). This privacy policy explains what information the Extension handles and how it is used.
 
 ## Data Collection
-The Accessibility Text Enhancer is committed to protecting your privacy. We collect only the minimum information necessary to provide core functionality.
+The Accessibility Text Enhancer is committed to protecting your privacy. We handle only the minimum information necessary to provide core functionality.
 
 ### 1. User Preferences (Local Storage)
 The Extension uses Chrome's `storage.local` API to remember whether it is enabled and your dark/light toolbar theme preference. This data is stored **locally on your device** and is never transmitted to our servers or any third party.
 
-### 2. Website Access
-To enhance pages, the Extension runs on the websites you visit and reads the text you select and the styles of the element containing it. This processing happens **in your browser**. Page content is never sent to the developer or any third party, and the Extension does not run on browser-internal pages such as `chrome://` or the Chrome Web Store.
+### 2. Website Access and User Interactions
+To enhance pages, the Extension runs on the websites you visit and reads the text you select and the styles of the element containing it. It also responds to text selection, toolbar clicks, and keyboard shortcuts so it can show the toolbar and apply the enhancement you request. This processing happens **in your browser**. Page content and interaction data are never sent to the developer or any third party, and the Extension does not run on browser-internal pages such as `chrome://` or the Chrome Web Store.
 
-### 3. No Collection of Personal Information
+### 3. No Collection or Transmission of Personal Information
 The Extension **does not** collect, store, or transmit:
 - Your name, email address, or any personal identifiers
 - Browsing history
 - Passwords or form data
 - Financial information
 - Cookies or tracking data
-- The content of the web pages you visit
+- Page content beyond the transient local processing described in Section 2
+- Logs of clicks, keystrokes, mouse movements, scrolling, or other interaction data
 
 ### 4. Text-to-Speech Processing
 The "Read Aloud" feature uses your browser's built-in Web Speech API. The Extension does not send page text to its own servers. Depending on the voices installed on your system, your browser or operating system may synthesize speech locally or through the voice provider's service; the Extension does not receive or store that data.
 
 ### 5. No Performance Metrics
 The Extension does not collect or transmit performance metrics. Any measurements reported in the project's research were gathered separately during testing, not through the Extension.
+
+## Limited Use
+The Extension's use of information received from Google APIs adheres to the [Chrome Web Store User Data Policy](https://developer.chrome.com/docs/webstore/program-policies/limited-use/), including the Limited Use requirements.
 
 ## Data Sharing
 We do not sell, trade, or transfer your information to any third party. We do not use analytics services or tracking pixels.
