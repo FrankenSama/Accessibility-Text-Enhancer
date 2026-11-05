@@ -31,7 +31,6 @@
         ttsPitch: 1,
         voices: [],
         speech: null,
-        speechCounter: 0,
         // Focus Toolbar is a manifest command. These defaults are replaced with
         // the user's actual binding once the background worker responds.
         focusToolbarShortcut: IS_MAC ? 'Cmd+Shift+F' : 'Ctrl+Shift+F',
@@ -262,9 +261,10 @@
             ? previous
             : '';
 
-        if (previous && select.value === '') {
+        if (previous && voices.length > 0 && select.value === '') {
             // The saved voice is gone (another browser profile or an OS voice
-            // update). Fall back to the language-based pick.
+            // update). Fall back to the language-based pick. An empty voice
+            // list means the browser has not loaded voices yet, so keep it.
             STATE.ttsVoice = '';
         }
     }
@@ -336,28 +336,35 @@
             applyTheme();
         }
 
-        if (changes.ttsVoice || changes.ttsRate || changes.ttsPitch) {
-            if (changes.ttsVoice) {
-                STATE.ttsVoice = typeof changes.ttsVoice.newValue === 'string'
-                    ? changes.ttsVoice.newValue
-                    : '';
+        if (changes.ttsVoice) {
+            const nextVoice = typeof changes.ttsVoice.newValue === 'string'
+                ? changes.ttsVoice.newValue
+                : '';
+
+            // The voice dropdown is the only writer, so this is normally the
+            // same value and the list does not need rebuilding.
+            if (nextVoice !== STATE.ttsVoice) {
+                STATE.ttsVoice = nextVoice;
+                populateVoiceSelect();
             }
-            if (changes.ttsRate) {
-                STATE.ttsRate = clampNumber(
-                    changes.ttsRate.newValue,
-                    CONFIG.minTtsRate,
-                    CONFIG.maxTtsRate,
-                    CONFIG.defaultTtsRate
-                );
-            }
-            if (changes.ttsPitch) {
-                STATE.ttsPitch = clampNumber(
-                    changes.ttsPitch.newValue,
-                    CONFIG.minTtsPitch,
-                    CONFIG.maxTtsPitch,
-                    CONFIG.defaultTtsPitch
-                );
-            }
+        }
+        if (changes.ttsRate) {
+            STATE.ttsRate = clampNumber(
+                changes.ttsRate.newValue,
+                CONFIG.minTtsRate,
+                CONFIG.maxTtsRate,
+                CONFIG.defaultTtsRate
+            );
+        }
+        if (changes.ttsPitch) {
+            STATE.ttsPitch = clampNumber(
+                changes.ttsPitch.newValue,
+                CONFIG.minTtsPitch,
+                CONFIG.maxTtsPitch,
+                CONFIG.defaultTtsPitch
+            );
+        }
+        if (changes.ttsRate || changes.ttsPitch) {
             syncReadingSettingsControls();
         }
     });
@@ -1550,11 +1557,11 @@
     /**
      * Resolve what to read: the saved selection, the live selection, or the
      * paragraph containing the caret.
-     * @param {Node} [preferredNode] - Element to fall back to
      * @returns {Range|null}
      */
-    function getReadingTarget(preferredNode) {
+    function getReadingTarget() {
         if (STATE.savedRange &&
+            STATE.savedRange.commonAncestorContainer.isConnected &&
             !STATE.savedRange.collapsed &&
             STATE.savedRange.toString().trim()) {
             return STATE.savedRange.cloneRange();
@@ -1569,18 +1576,10 @@
             }
 
             const block = closestBlock(live.startContainer);
-            if (block && !block.closest(SKIP_SELECTOR)) {
-                const range = document.createRange();
-                range.selectNodeContents(block);
-                if (range.toString().trim()) {
-                    return range;
-                }
-            }
-        }
-
-        if (preferredNode) {
-            const block = closestBlock(preferredNode);
-            if (block && !block.closest(SKIP_SELECTOR)) {
+            if (block &&
+                block !== document.body &&
+                block !== document.documentElement &&
+                !block.closest(SKIP_SELECTOR)) {
                 const range = document.createRange();
                 range.selectNodeContents(block);
                 if (range.toString().trim()) {
@@ -1612,7 +1611,6 @@
         }
 
         const session = {
-            id: ++STATE.speechCounter,
             map,
             chunks,
             index: 0,
@@ -1625,7 +1623,6 @@
         ensureReadingToolbar(range);
         speakChunk(session);
         showToast('Reading aloud');
-        updateToolbarReadingState();
     }
 
     /**
@@ -1882,10 +1879,14 @@
         const startEntry = entries.find((entry) =>
             start >= entry.textStart && start < entry.textEnd
         );
-        const endEntry = entries
-            .slice()
-            .reverse()
-            .find((entry) => end > entry.textStart && end <= entry.textEnd);
+        let endEntry = null;
+        for (let index = entries.length - 1; index >= 0; index--) {
+            const entry = entries[index];
+            if (end > entry.textStart && end <= entry.textEnd) {
+                endEntry = entry;
+                break;
+            }
+        }
 
         if (!startEntry || !endEntry) {
             return null;
@@ -2213,7 +2214,6 @@
         });
 
         updateToolbarReadingState();
-        syncToolbarTabStops(toolbar);
 
         // Disabling the focused button can drop focus to the page. Put it back
         // on a usable button so the keyboard user does not lose their place.
@@ -2456,11 +2456,6 @@
      * Refresh the reading controls if the settings dialog is open.
      */
     function syncReadingSettingsControls() {
-        const voiceSelect = document.getElementById('tts-voice');
-        if (voiceSelect) {
-            populateVoiceSelect();
-        }
-
         const rateInput = document.getElementById('tts-rate');
         if (rateInput) {
             rateInput.value = String(STATE.ttsRate);
