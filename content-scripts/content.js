@@ -24,6 +24,14 @@
         toolbarTimeout: null,
         positionFrame: null,
         isApplyingCommand: false,
+        // Reading preferences. Speech itself lives outside the undo history
+        // because it never changes the page.
+        ttsVoice: '',
+        ttsRate: 0.9,
+        ttsPitch: 1,
+        voices: [],
+        speech: null,
+        speechCounter: 0,
         // Focus Toolbar is a manifest command. These defaults are replaced with
         // the user's actual binding once the background worker responds.
         focusToolbarShortcut: IS_MAC ? 'Cmd+Shift+F' : 'Ctrl+Shift+F',
@@ -41,7 +49,16 @@
         maxHistorySize: 50,
         maxWrapNodes: 200,
         fontSizeMin: 8,
-        fontSizeMax: 50
+        fontSizeMax: 50,
+        // Keep every utterance short enough that Chrome does not truncate it.
+        maxSpeechChunkLength: 220,
+        readingHighlightName: 'atx-reading',
+        defaultTtsRate: 0.9,
+        defaultTtsPitch: 1,
+        minTtsRate: 0.5,
+        maxTtsRate: 2,
+        minTtsPitch: 0.5,
+        maxTtsPitch: 2
     };
 
     // Commands that change readability, so they apply to the nearest block
@@ -122,6 +139,7 @@
     async function initialize() {
         try {
             await loadExtensionState();
+            setupVoiceListener();
             setupEventListeners();
             setupKeyboardShortcuts();
             setupMessageListener();
@@ -157,9 +175,137 @@
      * Load saved extension state from storage.
      */
     async function loadExtensionState() {
-        const result = await getStorage(['extensionEnabled', 'darkMode']);
+        const result = await getStorage([
+            'extensionEnabled',
+            'darkMode',
+            'ttsVoice',
+            'ttsRate',
+            'ttsPitch'
+        ]);
         STATE.isExtensionEnabled = result.extensionEnabled !== false;
         STATE.isDarkMode = result.darkMode !== false;
+        STATE.ttsVoice = typeof result.ttsVoice === 'string' ? result.ttsVoice : '';
+        STATE.ttsRate = clampNumber(
+            result.ttsRate,
+            CONFIG.minTtsRate,
+            CONFIG.maxTtsRate,
+            CONFIG.defaultTtsRate
+        );
+        STATE.ttsPitch = clampNumber(
+            result.ttsPitch,
+            CONFIG.minTtsPitch,
+            CONFIG.maxTtsPitch,
+            CONFIG.defaultTtsPitch
+        );
+        loadVoices();
+    }
+
+    /**
+     * Clamp a stored numeric preference to a valid range.
+     * @param {*} value
+     * @param {number} min
+     * @param {number} max
+     * @param {number} fallback
+     * @returns {number}
+     */
+    function clampNumber(value, min, max, fallback) {
+        const number = typeof value === 'number' ? value : parseFloat(value);
+        if (!Number.isFinite(number)) {
+            return fallback;
+        }
+        return Math.min(max, Math.max(min, number));
+    }
+
+    /**
+     * Cache the browser's voices. getVoices() is asynchronous on most
+     * platforms, so this runs again whenever the browser reports a change.
+     */
+    function loadVoices() {
+        if (!('speechSynthesis' in window)) {
+            return;
+        }
+
+        STATE.voices = window.speechSynthesis.getVoices();
+        populateVoiceSelect();
+    }
+
+    /**
+     * Keep the settings panel's voice list in sync when voices finish loading.
+     */
+    function populateVoiceSelect() {
+        const select = document.getElementById('tts-voice');
+        if (!select) {
+            return;
+        }
+
+        const voices = getAvailableVoices();
+        const previous = STATE.ttsVoice;
+        select.innerHTML = '';
+
+        const automatic = document.createElement('option');
+        automatic.value = '';
+        automatic.textContent = `Automatic (${getPageLanguage()})`;
+        select.appendChild(automatic);
+
+        voices
+            .slice()
+            .sort((a, b) => a.lang.localeCompare(b.lang) || a.name.localeCompare(b.name))
+            .forEach((voice) => {
+                const option = document.createElement('option');
+                option.value = voice.voiceURI;
+                option.textContent = `${voice.name} (${voice.lang})` +
+                    (voice.default ? ' — default' : '');
+                select.appendChild(option);
+            });
+
+        select.value = voices.some((voice) => voice.voiceURI === previous)
+            ? previous
+            : '';
+
+        if (previous && select.value === '') {
+            // The saved voice is gone (another browser profile or an OS voice
+            // update). Fall back to the language-based pick.
+            STATE.ttsVoice = '';
+        }
+    }
+
+    /**
+     * Voices currently exposed by the browser.
+     * @returns {SpeechSynthesisVoice[]}
+     */
+    function getAvailableVoices() {
+        if (!('speechSynthesis' in window)) {
+            return [];
+        }
+        if (STATE.voices.length === 0) {
+            STATE.voices = window.speechSynthesis.getVoices();
+        }
+        return STATE.voices;
+    }
+
+    /**
+     * The language the page declares, used to pick a sensible default voice.
+     * @returns {string}
+     */
+    function getPageLanguage() {
+        const declared = (document.documentElement.lang || '').trim();
+        return declared || navigator.language || 'en';
+    }
+
+    /**
+     * Refresh the voice list when the browser finishes loading it.
+     */
+    function setupVoiceListener() {
+        if (!('speechSynthesis' in window)) {
+            return;
+        }
+
+        const refresh = () => loadVoices();
+        if (typeof window.speechSynthesis.addEventListener === 'function') {
+            window.speechSynthesis.addEventListener('voiceschanged', refresh);
+        } else {
+            window.speechSynthesis.onvoiceschanged = refresh;
+        }
     }
 
     // ==================== STORAGE SYNC ====================
@@ -176,6 +322,7 @@
 
                 if (!isEnabled) {
                     STATE.savedRange = null;
+                    stopReading({ silent: true });
                     removeToolbar();
                     removeSettingsPanel();
                 }
@@ -187,6 +334,31 @@
         if (changes.darkMode) {
             STATE.isDarkMode = changes.darkMode.newValue !== false;
             applyTheme();
+        }
+
+        if (changes.ttsVoice || changes.ttsRate || changes.ttsPitch) {
+            if (changes.ttsVoice) {
+                STATE.ttsVoice = typeof changes.ttsVoice.newValue === 'string'
+                    ? changes.ttsVoice.newValue
+                    : '';
+            }
+            if (changes.ttsRate) {
+                STATE.ttsRate = clampNumber(
+                    changes.ttsRate.newValue,
+                    CONFIG.minTtsRate,
+                    CONFIG.maxTtsRate,
+                    CONFIG.defaultTtsRate
+                );
+            }
+            if (changes.ttsPitch) {
+                STATE.ttsPitch = clampNumber(
+                    changes.ttsPitch.newValue,
+                    CONFIG.minTtsPitch,
+                    CONFIG.maxTtsPitch,
+                    CONFIG.defaultTtsPitch
+                );
+            }
+            syncReadingSettingsControls();
         }
     });
 
@@ -235,7 +407,8 @@
                 <button type="button" data-command="fontStyle" class="icon-btn" data-tooltip="Toggle Font Style · Shift: selection">A</button>
                 <button type="button" data-command="spacing" class="icon-btn" data-tooltip="Text Spacing · Shift: selection">↔️</button>
                 <button type="button" data-command="contrast" class="icon-btn" data-tooltip="Fix Contrast · Shift: selection">🎨</button>
-                <button type="button" data-command="readAloud" class="icon-btn" data-tooltip="Read Aloud">🔊</button>
+                <button type="button" data-command="readAloud" class="icon-btn" data-tooltip="Read Aloud (Alt+Shift+R)">🔊</button>
+                <button type="button" data-command="stopReading" class="icon-btn" data-tooltip="Stop Reading" tabindex="-1" hidden>⏹️</button>
             </div>
 
             <div class="button-group">
@@ -285,7 +458,7 @@
      */
     function getToolbarButtons(toolbar, includeDisabled = false) {
         return Array.from(toolbar.querySelectorAll('button'))
-            .filter((button) => includeDisabled || !button.disabled);
+            .filter((button) => !button.hidden && (includeDisabled || !button.disabled));
     }
 
     /**
@@ -328,7 +501,8 @@
         setToolbarTabStop(target, toolbar);
 
         // A keyboard user can disable undo/redo with the button they are on.
-        if (active && toolbar.contains(active) && active.disabled) {
+        // A reading control can also become hidden when reading stops.
+        if (active && toolbar.contains(active) && (active.disabled || active.hidden)) {
             target.focus({ preventScroll: true });
         }
     }
@@ -950,6 +1124,12 @@
             case 'redo':
                 redo();
                 return;
+            case 'readAloud':
+                toggleReadAloud();
+                return;
+            case 'stopReading':
+                stopReading();
+                return;
             default:
                 enhanceSelection(command, options);
         }
@@ -975,13 +1155,6 @@
             : range.commonAncestorContainer.parentElement;
 
         if (!anchor || anchor.closest(`#${CONFIG.toolbarId}, #${CONFIG.settingsPanelId}`)) {
-            return;
-        }
-
-        // Reading aloud does not change styles, so it should not create a
-        // history entry.
-        if (command === 'readAloud') {
-            readTextAloud(anchor);
             return;
         }
 
@@ -1343,26 +1516,510 @@
     }
 
     /**
-     * Read the selected text aloud using speech synthesis.
-     * @param {HTMLElement} element - Fallback element to read
+     * Read the selected text aloud, or pause/resume a reading that is already
+     * in progress.
      */
-    function readTextAloud(element) {
+    function toggleReadAloud() {
         if (!('speechSynthesis' in window)) {
             showToast('Speech synthesis not supported');
             return;
         }
 
-        const text = STATE.savedRange?.toString().trim() || element.textContent.trim();
-        if (!text) {
+        if (!STATE.isExtensionEnabled) {
             return;
         }
 
-        window.speechSynthesis.cancel();
-        const speech = new SpeechSynthesisUtterance(text);
-        speech.rate = 0.9;
-        speech.pitch = 1;
-        window.speechSynthesis.speak(speech);
-        showToast('Reading text...');
+        if (STATE.speech) {
+            if (STATE.speech.paused) {
+                resumeReading();
+            } else {
+                pauseReading();
+            }
+            return;
+        }
+
+        const range = getReadingTarget();
+        if (!range) {
+            showToast('Select text or place the cursor in a paragraph');
+            return;
+        }
+
+        startReading(range);
+    }
+
+    /**
+     * Resolve what to read: the saved selection, the live selection, or the
+     * paragraph containing the caret.
+     * @param {Node} [preferredNode] - Element to fall back to
+     * @returns {Range|null}
+     */
+    function getReadingTarget(preferredNode) {
+        if (STATE.savedRange &&
+            !STATE.savedRange.collapsed &&
+            STATE.savedRange.toString().trim()) {
+            return STATE.savedRange.cloneRange();
+        }
+
+        const selection = window.getSelection();
+        if (selection && selection.rangeCount > 0) {
+            const live = selection.getRangeAt(0);
+
+            if (!live.collapsed && live.toString().trim()) {
+                return live.cloneRange();
+            }
+
+            const block = closestBlock(live.startContainer);
+            if (block && !block.closest(SKIP_SELECTOR)) {
+                const range = document.createRange();
+                range.selectNodeContents(block);
+                if (range.toString().trim()) {
+                    return range;
+                }
+            }
+        }
+
+        if (preferredNode) {
+            const block = closestBlock(preferredNode);
+            if (block && !block.closest(SKIP_SELECTOR)) {
+                const range = document.createRange();
+                range.selectNodeContents(block);
+                if (range.toString().trim()) {
+                    return range;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Start a new reading from a range.
+     * @param {Range} range
+     */
+    function startReading(range) {
+        const map = buildTextMap(range);
+        const chunks = buildSpeechChunks(map.text);
+
+        if (chunks.length === 0) {
+            showToast('Nothing to read');
+            return;
+        }
+
+        // Cancel anything left over from a previous reading before replacing
+        // the session, so stale callbacks cannot continue the old queue.
+        if (STATE.speech) {
+            stopReading({ silent: true });
+        }
+
+        const session = {
+            id: ++STATE.speechCounter,
+            map,
+            chunks,
+            index: 0,
+            paused: false,
+            utterance: null,
+            voice: pickReadingVoice()
+        };
+
+        STATE.speech = session;
+        ensureReadingToolbar(range);
+        speakChunk(session);
+        showToast('Reading aloud');
+        updateToolbarReadingState();
+    }
+
+    /**
+     * Make sure transport controls are reachable. Reading from the caret may
+     * start without a selection, so no toolbar exists yet.
+     * @param {Range} range
+     */
+    function ensureReadingToolbar(range) {
+        if (document.getElementById(CONFIG.toolbarId)) {
+            updateToolbarReadingState();
+            return;
+        }
+
+        const toolbar = createToolbar();
+        if (toolbar) {
+            positionToolbar(toolbar, STATE.savedRange || range);
+        }
+    }
+
+    /**
+     * Pick the saved voice, or the best match for the page language.
+     * @returns {SpeechSynthesisVoice|null}
+     */
+    function pickReadingVoice() {
+        const voices = getAvailableVoices();
+        if (voices.length === 0) {
+            return null;
+        }
+
+        if (STATE.ttsVoice) {
+            const saved = voices.find((voice) =>
+                voice.voiceURI === STATE.ttsVoice || voice.name === STATE.ttsVoice
+            );
+            if (saved) {
+                return saved;
+            }
+        }
+
+        const pageLanguage = getPageLanguage().toLowerCase();
+        const primaryLanguage = pageLanguage.split('-')[0];
+        const matching = voices.filter((voice) => {
+            const voiceLanguage = voice.lang.toLowerCase();
+            return voiceLanguage === pageLanguage ||
+                voiceLanguage === primaryLanguage ||
+                voiceLanguage.startsWith(`${primaryLanguage}-`);
+        });
+
+        return matching.find((voice) => voice.default) ||
+            matching.find((voice) => voice.localService) ||
+            matching[0] ||
+            voices.find((voice) => voice.default) ||
+            voices[0];
+    }
+
+    /**
+     * Speak the next sentence in a session.
+     * @param {object} session
+     */
+    function speakChunk(session) {
+        if (session !== STATE.speech) {
+            return;
+        }
+
+        if (session.index >= session.chunks.length) {
+            finishReading();
+            return;
+        }
+
+        const chunk = session.chunks[session.index];
+        const utterance = new SpeechSynthesisUtterance(chunk.text);
+        utterance.rate = STATE.ttsRate;
+        utterance.pitch = STATE.ttsPitch;
+
+        if (session.voice) {
+            utterance.voice = session.voice;
+        }
+        utterance.lang = session.voice?.lang || getPageLanguage();
+
+        utterance.onstart = () => {
+            if (session !== STATE.speech) {
+                return;
+            }
+            const range = rangeFromOffsets(session.map, chunk.start, chunk.end);
+            if (range) {
+                highlightReadingRange(range);
+            }
+        };
+
+        utterance.onend = () => {
+            if (session !== STATE.speech) {
+                return;
+            }
+            session.index++;
+            speakChunk(session);
+        };
+
+        utterance.onerror = (event) => {
+            if (session !== STATE.speech) {
+                return;
+            }
+
+            // cancel() reports an interrupted error for the utterance it
+            // aborts. That is expected when the user stops or restarts.
+            if (event.error === 'interrupted' || event.error === 'canceled') {
+                return;
+            }
+
+            console.warn('Speech synthesis error:', event.error);
+            stopReading({ silent: true });
+            showToast('Reading stopped — the voice could not speak this text');
+        };
+
+        session.utterance = utterance;
+        try {
+            window.speechSynthesis.speak(utterance);
+        } catch (error) {
+            console.warn('Speech synthesis threw:', error);
+            stopReading({ silent: true });
+            showToast('Reading could not start');
+        }
+    }
+
+    /**
+     * Pause the current reading.
+     */
+    function pauseReading() {
+        if (!STATE.speech || STATE.speech.paused) {
+            return;
+        }
+
+        window.speechSynthesis.pause();
+        STATE.speech.paused = true;
+        showToast('Reading paused');
+        updateToolbarReadingState();
+    }
+
+    /**
+     * Resume a paused reading.
+     */
+    function resumeReading() {
+        if (!STATE.speech || !STATE.speech.paused) {
+            return;
+        }
+
+        window.speechSynthesis.resume();
+        STATE.speech.paused = false;
+        showToast('Reading resumed');
+        updateToolbarReadingState();
+    }
+
+    /**
+     * Stop the current reading.
+     * @param {{silent?: boolean}} [options]
+     */
+    function stopReading(options = {}) {
+        const wasReading = Boolean(STATE.speech);
+        STATE.speech = null;
+
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+        }
+
+        clearReadingHighlight();
+        updateToolbarReadingState();
+
+        if (wasReading && !options.silent) {
+            showToast('Reading stopped');
+        }
+    }
+
+    /**
+     * Finish the current reading normally.
+     */
+    function finishReading() {
+        const wasReading = Boolean(STATE.speech);
+        STATE.speech = null;
+        clearReadingHighlight();
+        updateToolbarReadingState();
+
+        if (wasReading) {
+            showToast('Finished reading');
+        }
+    }
+
+    /**
+     * Paint the sentence that is currently being spoken. Uses the CSS Custom
+     * Highlight API, which does not mutate the page. Browsers without it still
+     * read the text; only the visual follow-along is skipped.
+     * @param {Range} range
+     */
+    function highlightReadingRange(range) {
+        if (!window.CSS || !CSS.highlights || typeof Highlight !== 'function') {
+            return;
+        }
+
+        CSS.highlights.set(CONFIG.readingHighlightName, new Highlight(range));
+    }
+
+    /**
+     * Remove the follow-along highlight.
+     */
+    function clearReadingHighlight() {
+        if (window.CSS && CSS.highlights) {
+            CSS.highlights.delete(CONFIG.readingHighlightName);
+        }
+    }
+
+    /**
+     * Build a text map that keeps DOM offsets alongside the plain text. This
+     * lets sentence chunks be converted back into ranges for highlighting.
+     * @param {Range} range
+     * @returns {{text: string, entries: Array<{node: Text, startOffset: number, textStart: number, textEnd: number}>}}
+     */
+    function buildTextMap(range) {
+        const entries = [];
+        let text = '';
+
+        getSelectedTextNodes(range).forEach((node) => {
+            const start = node === range.startContainer ? range.startOffset : 0;
+            const end = node === range.endContainer ? range.endOffset : node.nodeValue.length;
+            const from = Math.min(start, end);
+            const to = Math.max(start, end);
+
+            if (to <= from) {
+                return;
+            }
+
+            const value = node.nodeValue.slice(from, to);
+            entries.push({
+                node,
+                startOffset: from,
+                textStart: text.length,
+                textEnd: text.length + value.length
+            });
+            text += value;
+        });
+
+        return { text, entries };
+    }
+
+    /**
+     * Convert a start/end offset in a text map back into a DOM range.
+     * @param {{entries: Array<Object>}} map
+     * @param {number} start
+     * @param {number} end
+     * @returns {Range|null}
+     */
+    function rangeFromOffsets(map, start, end) {
+        const entries = map.entries;
+        if (entries.length === 0 || end <= start) {
+            return null;
+        }
+
+        const startEntry = entries.find((entry) =>
+            start >= entry.textStart && start < entry.textEnd
+        );
+        const endEntry = entries
+            .slice()
+            .reverse()
+            .find((entry) => end > entry.textStart && end <= entry.textEnd);
+
+        if (!startEntry || !endEntry) {
+            return null;
+        }
+
+        const range = document.createRange();
+        range.setStart(
+            startEntry.node,
+            startEntry.startOffset + (start - startEntry.textStart)
+        );
+        range.setEnd(
+            endEntry.node,
+            endEntry.startOffset + (end - endEntry.textStart)
+        );
+        return range;
+    }
+
+    /**
+     * Split text into sentence-sized speech chunks. Sentences longer than the
+     * safe limit are broken at word boundaries so Chrome does not truncate or
+     * stall on them.
+     * @param {string} text
+     * @returns {Array<{text: string, start: number, end: number}>}
+     */
+    function buildSpeechChunks(text) {
+        const chunks = [];
+        const max = CONFIG.maxSpeechChunkLength;
+
+        for (const segment of splitIntoSentences(text)) {
+            let start = segment.start;
+            let end = segment.end;
+
+            while (start < end && /\s/.test(text[start])) {
+                start++;
+            }
+            while (end > start && /\s/.test(text[end - 1])) {
+                end--;
+            }
+
+            while (start < end) {
+                let chunkEnd = Math.min(start + max, end);
+
+                if (chunkEnd < end) {
+                    let breakAt = -1;
+                    const minimum = start + Math.floor(max * 0.6);
+
+                    for (let index = chunkEnd; index > minimum; index--) {
+                        if (/\s/.test(text[index])) {
+                            breakAt = index;
+                            break;
+                        }
+                    }
+
+                    if (breakAt > start) {
+                        chunkEnd = breakAt;
+                    }
+                }
+
+                let trimmedStart = start;
+                let trimmedEnd = chunkEnd;
+
+                while (trimmedStart < trimmedEnd && /\s/.test(text[trimmedStart])) {
+                    trimmedStart++;
+                }
+                while (trimmedEnd > trimmedStart && /\s/.test(text[trimmedEnd - 1])) {
+                    trimmedEnd--;
+                }
+
+                if (trimmedEnd > trimmedStart) {
+                    chunks.push({
+                        text: text.slice(trimmedStart, trimmedEnd),
+                        start: trimmedStart,
+                        end: trimmedEnd
+                    });
+                }
+
+                // Always make progress, even if no whitespace was found.
+                start = Math.max(chunkEnd, start + 1);
+                while (start < end && /\s/.test(text[start])) {
+                    start++;
+                }
+            }
+        }
+
+        return chunks;
+    }
+
+    /**
+     * Sentence boundaries, using Intl.Segmenter when available.
+     * @param {string} text
+     * @returns {Array<{start: number, end: number}>}
+     */
+    function splitIntoSentences(text) {
+        const segments = [];
+
+        if (typeof Intl !== 'undefined' && typeof Intl.Segmenter === 'function') {
+            try {
+                const segmenter = new Intl.Segmenter(getPageLanguage(), {
+                    granularity: 'sentence'
+                });
+
+                for (const part of segmenter.segment(text)) {
+                    if (part.segment.trim()) {
+                        segments.push({
+                            start: part.index,
+                            end: part.index + part.segment.length
+                        });
+                    }
+                }
+            } catch (error) {
+                // An invalid or unsupported page-language tag falls through to
+                // the punctuation-based splitter.
+            }
+        }
+
+        if (segments.length === 0) {
+            const pattern = /[^.!?…\n]+(?:[.!?…]+["'”’)\]]*)?/g;
+            let match;
+
+            while ((match = pattern.exec(text)) !== null) {
+                if (match[0].trim()) {
+                    segments.push({
+                        start: match.index,
+                        end: match.index + match[0].length
+                    });
+                }
+            }
+        }
+
+        if (segments.length === 0 && text.trim()) {
+            segments.push({ start: 0, end: text.length });
+        }
+
+        return segments;
     }
 
     // ==================== HISTORY MANAGEMENT ====================
@@ -1485,6 +2142,39 @@
     }
 
     /**
+     * Mirror the current reading state into the toolbar: the read button
+     * becomes play/pause, and a stop button appears while reading.
+     */
+    function updateToolbarReadingState() {
+        const toolbar = document.getElementById(CONFIG.toolbarId);
+        if (!toolbar) {
+            return;
+        }
+
+        const readButton = toolbar.querySelector('[data-command="readAloud"]');
+        const stopButton = toolbar.querySelector('[data-command="stopReading"]');
+        const reading = STATE.speech;
+        const paused = Boolean(reading && reading.paused);
+
+        if (readButton) {
+            const label = reading
+                ? (paused ? 'Resume Reading' : 'Pause Reading')
+                : 'Read Aloud (Alt+Shift+R)';
+
+            readButton.textContent = reading ? (paused ? '▶️' : '⏸️') : '🔊';
+            readButton.dataset.tooltip = label;
+            readButton.setAttribute('aria-label', label);
+            readButton.setAttribute('aria-pressed', reading ? 'true' : 'false');
+        }
+
+        if (stopButton) {
+            stopButton.hidden = !reading;
+        }
+
+        syncToolbarTabStops(toolbar);
+    }
+
+    /**
      * Update toolbar button states, the roving tab stop, and the announced
      * toggle state of every toggle command.
      */
@@ -1522,6 +2212,7 @@
             }
         });
 
+        updateToolbarReadingState();
         syncToolbarTabStops(toolbar);
 
         // Disabling the focused button can drop focus to the page. Put it back
@@ -1635,6 +2326,35 @@
         panel.innerHTML = `
             <h3 id="accessibility-settings-title">Accessibility Settings</h3>
 
+            <div class="setting-item reading-settings">
+                <h4>Reading aloud</h4>
+
+                <div class="setting-field">
+                    <label for="tts-voice">Voice</label>
+                    <select id="tts-voice" class="setting-select"></select>
+                </div>
+
+                <div class="setting-field">
+                    <label for="tts-rate">
+                        Speed
+                        <output id="tts-rate-value" for="tts-rate">${STATE.ttsRate.toFixed(1)}</output>
+                    </label>
+                    <input type="range" id="tts-rate"
+                        min="${CONFIG.minTtsRate}" max="${CONFIG.maxTtsRate}"
+                        step="0.1" value="${STATE.ttsRate}">
+                </div>
+
+                <div class="setting-field">
+                    <label for="tts-pitch">
+                        Pitch
+                        <output id="tts-pitch-value" for="tts-pitch">${STATE.ttsPitch.toFixed(1)}</output>
+                    </label>
+                    <input type="range" id="tts-pitch"
+                        min="${CONFIG.minTtsPitch}" max="${CONFIG.maxTtsPitch}"
+                        step="0.1" value="${STATE.ttsPitch}">
+                </div>
+            </div>
+
             <div class="setting-item">
                 <button type="button" id="export-settings" class="action-btn export-btn">
                     Export Settings
@@ -1656,6 +2376,7 @@
         closeBtn.addEventListener('click', removeSettingsPanel);
         panel.querySelector('#export-settings').addEventListener('click', exportSettings);
         panel.querySelector('#import-settings').addEventListener('click', importSettings);
+        setupReadingSettings(panel);
 
         // Keep keyboard focus inside the dialog while it is open.
         panel.addEventListener('keydown', (event) => {
@@ -1687,6 +2408,79 @@
     }
 
     /**
+     * Wire the reading controls in the settings dialog to storage.
+     * @param {HTMLElement} panel
+     */
+    function setupReadingSettings(panel) {
+        populateVoiceSelect();
+        syncReadingSettingsControls();
+
+        const voiceSelect = panel.querySelector('#tts-voice');
+        const rateInput = panel.querySelector('#tts-rate');
+        const pitchInput = panel.querySelector('#tts-pitch');
+
+        voiceSelect.addEventListener('change', () => {
+            STATE.ttsVoice = voiceSelect.value;
+            chrome.storage.local.set({ ttsVoice: STATE.ttsVoice });
+
+            // Apply the new voice from the next sentence onward.
+            if (STATE.speech) {
+                STATE.speech.voice = pickReadingVoice();
+            }
+        });
+
+        const bindRange = (input, outputId, stateKey) => {
+            const output = panel.querySelector(`#${outputId}`);
+            const defaultKey = stateKey === 'ttsRate' ? 'defaultTtsRate' : 'defaultTtsPitch';
+
+            input.addEventListener('input', () => {
+                STATE[stateKey] = clampNumber(
+                    parseFloat(input.value),
+                    parseFloat(input.min),
+                    parseFloat(input.max),
+                    CONFIG[defaultKey]
+                );
+                output.textContent = STATE[stateKey].toFixed(1);
+            });
+
+            input.addEventListener('change', () => {
+                chrome.storage.local.set({ [stateKey]: STATE[stateKey] });
+            });
+        };
+
+        bindRange(rateInput, 'tts-rate-value', 'ttsRate');
+        bindRange(pitchInput, 'tts-pitch-value', 'ttsPitch');
+    }
+
+    /**
+     * Refresh the reading controls if the settings dialog is open.
+     */
+    function syncReadingSettingsControls() {
+        const voiceSelect = document.getElementById('tts-voice');
+        if (voiceSelect) {
+            populateVoiceSelect();
+        }
+
+        const rateInput = document.getElementById('tts-rate');
+        if (rateInput) {
+            rateInput.value = String(STATE.ttsRate);
+        }
+        const rateValue = document.getElementById('tts-rate-value');
+        if (rateValue) {
+            rateValue.textContent = STATE.ttsRate.toFixed(1);
+        }
+
+        const pitchInput = document.getElementById('tts-pitch');
+        if (pitchInput) {
+            pitchInput.value = String(STATE.ttsPitch);
+        }
+        const pitchValue = document.getElementById('tts-pitch-value');
+        if (pitchValue) {
+            pitchValue.textContent = STATE.ttsPitch.toFixed(1);
+        }
+    }
+
+    /**
      * Remove the settings panel and restore focus.
      */
     function removeSettingsPanel() {
@@ -1714,7 +2508,10 @@
             version: chrome.runtime.getManifest().version,
             exportDate: new Date().toISOString(),
             preferences: {
-                darkMode: STATE.isDarkMode
+                darkMode: STATE.isDarkMode,
+                ttsVoice: STATE.ttsVoice,
+                ttsRate: STATE.ttsRate,
+                ttsPitch: STATE.ttsPitch
             }
         };
 
@@ -1750,15 +2547,52 @@
             reader.onload = (loadEvent) => {
                 try {
                     const settings = JSON.parse(loadEvent.target.result);
+                    const preferences = settings.preferences;
 
-                    if (typeof settings.preferences?.darkMode !== 'boolean') {
+                    if (!preferences || typeof preferences !== 'object') {
                         showToast('No settings found in file');
                         return;
                     }
 
-                    STATE.isDarkMode = settings.preferences.darkMode;
-                    chrome.storage.local.set({ darkMode: STATE.isDarkMode });
+                    const hasSettings = ['darkMode', 'ttsVoice', 'ttsRate', 'ttsPitch']
+                        .some((key) => preferences[key] !== undefined);
+
+                    if (!hasSettings) {
+                        showToast('No settings found in file');
+                        return;
+                    }
+
+                    if (typeof preferences.darkMode === 'boolean') {
+                        STATE.isDarkMode = preferences.darkMode;
+                    }
+                    if (typeof preferences.ttsVoice === 'string') {
+                        STATE.ttsVoice = preferences.ttsVoice;
+                    }
+                    if (preferences.ttsRate !== undefined) {
+                        STATE.ttsRate = clampNumber(
+                            preferences.ttsRate,
+                            CONFIG.minTtsRate,
+                            CONFIG.maxTtsRate,
+                            CONFIG.defaultTtsRate
+                        );
+                    }
+                    if (preferences.ttsPitch !== undefined) {
+                        STATE.ttsPitch = clampNumber(
+                            preferences.ttsPitch,
+                            CONFIG.minTtsPitch,
+                            CONFIG.maxTtsPitch,
+                            CONFIG.defaultTtsPitch
+                        );
+                    }
+
+                    chrome.storage.local.set({
+                        darkMode: STATE.isDarkMode,
+                        ttsVoice: STATE.ttsVoice,
+                        ttsRate: STATE.ttsRate,
+                        ttsPitch: STATE.ttsPitch
+                    });
                     applyTheme();
+                    syncReadingSettingsControls();
                     showToast('Settings imported successfully');
                     removeSettingsPanel();
                 } catch (error) {
@@ -1837,11 +2671,16 @@
     function setupEventListeners() {
         document.addEventListener('selectionchange', handleSelectionChange);
 
-        // Dismiss the toolbar when clicking outside the extension UI.
+        // Dismiss the toolbar when clicking outside the extension UI. Keep it
+        // visible while reading so pause and stop stay reachable.
         document.addEventListener('mousedown', (event) => {
             if (isClickOutsideExtensionUi(event)) {
                 STATE.savedRange = null;
-                removeToolbar();
+                if (STATE.speech) {
+                    updateToolbarState();
+                } else {
+                    removeToolbar();
+                }
             }
         });
 
@@ -1965,7 +2804,11 @@
 
         if (!range || !range.toString().trim()) {
             STATE.savedRange = null;
-            removeToolbar();
+            if (STATE.speech) {
+                updateToolbarState();
+            } else {
+                removeToolbar();
+            }
             return;
         }
 
@@ -2015,6 +2858,12 @@
                 }
 
                 // Let Escape reach the page while the user is editing text.
+                if (STATE.speech && !isEditableTarget(event.target)) {
+                    stopReading();
+                    event.preventDefault();
+                    return;
+                }
+
                 if (document.getElementById(CONFIG.toolbarId) &&
                     !isEditableTarget(event.target)) {
                     STATE.savedRange = null;
@@ -2084,6 +2933,15 @@
                 (event.code === 'KeyH' || key === 'h') && STATE.savedRange) {
                 event.preventDefault();
                 enhanceSelection('highlight');
+                return;
+            }
+
+            // Alt/Option + Shift + R = read the selection, or the paragraph at
+            // the caret. While reading it pauses or resumes.
+            if (altShift && !editable &&
+                (event.code === 'KeyR' || key === 'r')) {
+                event.preventDefault();
+                toggleReadAloud();
             }
         });
     }

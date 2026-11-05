@@ -4,6 +4,13 @@ span[data-atx-selection] {
     display: inline !important;
 }
 
+/* Sentence currently being read aloud. CSS Custom Highlight paints this
+   without changing the page DOM. */
+::highlight(atx-reading) {
+    background-color: #ffeb3b;
+    color: #000000;
+}
+
 /* Toolbar container styling */
 #accessibility-toolbar {
     position: fixed;
@@ -115,6 +122,12 @@ span[data-atx-selection] {
     transform: translateY(0);
 }
 
+/* Hidden transport controls must not take part in the toolbar layout or the
+   roving tab order. */
+#accessibility-toolbar button[hidden] {
+    display: none;
+}
+
 /* Size control buttons */
 #accessibility-toolbar .size-btn {
     min-width: 40px;
@@ -224,6 +237,8 @@ span[data-atx-selection] {
     box-sizing: border-box;
     width: 480px;
     max-width: calc(100vw - 32px);
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
     color: white;
 }
 
@@ -247,6 +262,53 @@ span[data-atx-selection] {
 
 #accessibility-settings-panel.light-mode .setting-item {
     background: rgba(0, 0, 0, 0.03);
+}
+
+#accessibility-settings-panel .reading-settings h4 {
+    margin: 0 0 12px 0;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+#accessibility-settings-panel .setting-field {
+    margin: 12px 0;
+}
+
+#accessibility-settings-panel .setting-field label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 6px;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+#accessibility-settings-panel .setting-field output {
+    font-variant-numeric: tabular-nums;
+    opacity: 0.8;
+}
+
+#accessibility-settings-panel .setting-select {
+    width: 100%;
+    padding: 9px 10px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    background: #3a3a3a;
+    color: white;
+    font-size: 13px;
+}
+
+#accessibility-settings-panel.light-mode .setting-select {
+    border-color: rgba(0, 0, 0, 0.2);
+    background: white;
+    color: #333;
+}
+
+#accessibility-settings-panel input[type="range"] {
+    width: 100%;
+    margin: 0;
+    accent-color: #4CAF50;
 }
 
 #accessibility-settings-panel .close-btn {

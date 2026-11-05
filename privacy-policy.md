@@ -1,6 +1,6 @@
 # Privacy Policy for Accessibility Text Enhancer
 
-**Last updated:** November 4, 2026
+**Last updated:** November 5, 2026
 
 Thank you for using the Accessibility Text Enhancer extension ("the Extension"). This privacy policy explains what information the Extension handles and how it is used.
 
@@ -8,7 +8,7 @@ Thank you for using the Accessibility Text Enhancer extension ("the Extension").
 The Accessibility Text Enhancer is committed to protecting your privacy. We handle only the minimum information necessary to provide core functionality.
 
 ### 1. User Preferences (Local Storage)
-The Extension uses Chrome's `storage.local` API to remember whether it is enabled and your dark/light toolbar theme preference. This data is stored **locally on your device** and is never transmitted to our servers or any third party.
+The Extension uses Chrome's `storage.local` API to remember whether it is enabled, your dark/light toolbar theme preference, and your reading preferences (voice, speed, and pitch). This data is stored **locally on your device** and is never transmitted to our servers or any third party.
 
 ### 2. Website Access and User Interactions
 To enhance pages, the Extension runs on the websites you visit and reads the text you select and the styles of the element containing it. It also responds to text selection, toolbar clicks, and keyboard shortcuts so it can show the toolbar and apply the enhancement you request. This processing happens **in your browser**. Page content and interaction data are never sent to the developer or any third party, and the Extension does not run on browser-internal pages such as `chrome://` or the Chrome Web Store.

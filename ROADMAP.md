@@ -2,7 +2,7 @@
 
 This roadmap tracks the accessibility work planned for Accessibility Text Enhancer. It is a living document: items move between phases as the project learns from real use, and nothing here is a commitment to a date.
 
-**Current build:** v1.2.0 (released) · **Last updated:** 2026-11-04
+**Current build:** v1.2.0 (released) · **Last updated:** 2026-11-05
 
 ## Guiding principles
 
@@ -100,16 +100,16 @@ The toolbar already declares `role="toolbar"`, but it was not operable or unders
 
 **Work:**
 
-- **Voice selection.** Populate a voice list from `speechSynthesis.getVoices()` and refresh on `voiceschanged`; prefer a voice matching the page language.
-- **Controls.** Rate and pitch in the settings panel, persisted between sessions.
-- **Transport.** Pause, resume, and stop; the toolbar button reflects the current reading state instead of firing a toast.
-- **Follow along.** Highlight the current sentence using the `boundary` event, and let the user resume from a sentence.
-- **Read without selecting.** Read the paragraph at the caret, with a shortcut.
-- **Long text.** Chunk long selections so Chrome does not silently truncate them.
+- [x] **Voice selection.** Populate a voice list from `speechSynthesis.getVoices()` and refresh on `voiceschanged`; prefer a voice matching the page language.
+- [x] **Controls.** Rate and pitch in the settings panel, persisted between sessions.
+- [x] **Transport.** Pause, resume, and stop; the toolbar button reflects the current reading state instead of firing a toast.
+- [x] **Follow along.** Highlight the current sentence while it is spoken, and resume from the paused sentence.
+- [x] **Read without selecting.** Read the paragraph at the caret with `Alt+Shift+R` / `Option+Shift+R`, and show transport controls even without a selection.
+- [x] **Long text.** Chunk long selections into sentence-sized utterances so Chrome does not silently truncate them.
 
-**Acceptance:** a user can start, pause, resume, and stop a reading; the current sentence is visible; rate and voice survive a reload; reading never creates an undo entry.
+**Acceptance:** a user can start, pause, resume, and stop a reading; the current sentence is visible; rate and voice survive a reload; reading never creates an undo entry. *(Implemented in the working tree; release checks pending.)*
 
-**Risks:** the voice list is asynchronous and inconsistent across platforms; sentence detection from `boundary` events needs a fallback; Chrome may cut off very long utterances.
+**Risks:** the voice list is asynchronous and inconsistent across platforms; sentence highlighting needs the CSS Custom Highlight API, so older browsers read without visual follow-along; Chrome may cut off very long utterances.
 
 **Effort:** medium · **Impact:** very high
 
