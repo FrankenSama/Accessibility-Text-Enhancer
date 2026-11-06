@@ -86,7 +86,7 @@ what identifies the defect.
 
 | Build | OS | Chrome | Screen reader | Tester | Date | Toolbar | Settings | Reading | Page | Notes |
 |-------|----|--------|---------------|--------|------|---------|----------|---------|------|-------|
-| v1.3.0 |  |  |  |  |  |  |  |  |  |  |
+| v1.3.0 | Windows 11 Home 26200 | 156.0.8078.47 | NVDA 2026.3 (Portuguese UI) | Maintainer | 2026-11-06 | Pass with notes | Pass | Pass with notes | Not run | NVDA covered T1–T4, S1–S5, and R1–R5. Page integrity was covered by the automated harness, not by NVDA. |
 
 Use **Pass**, **Pass with notes**, or **Fail** for each section.
 
@@ -95,13 +95,38 @@ Use **Pass**, **Pass with notes**, or **Fail** for each section.
 | Check | Date | Environment | Result |
 |-------|------|-------------|--------|
 | Automated accessibility-tree snapshot | 2026-11-06 | Chrome 156 headless, real extension build | 21/21 checks pass |
-| NVDA manual pass | — | Windows | Pending |
+| NVDA manual pass | 2026-11-06 | Windows 11 Home 26200, Chrome for Testing 156.0.8078.47 headed with `--force-renderer-accessibility`, NVDA 2026.3 (Portuguese UI) | Pass with notes |
 | VoiceOver manual pass | — | macOS | Pending |
 
 The automated snapshot verifies that the toolbar, settings dialog, sliders, voice
 combobox, and reading controls expose their roles, names, pressed states, and
 values, and that the hidden stop button is absent from the tree while idle. It
 does not replace hearing the announcements with a real screen reader.
+
+The NVDA pass used the unpacked extension on a local test page with the Speech
+Viewer transcript captured. It confirmed:
+
+- `T1`–`T4`: the toolbar appears on selection without taking focus; its name,
+  the focused button, and arrow-key traversal are announced; Bold reports
+  **not pressed**, then **pressed**, then **not pressed** after Undo.
+- `S1`–`S5`: the dialog is announced as a window, Close receives focus, and
+  Voice, Speed, and Pitch are announced as a combobox and sliders with their
+  values. Changing Speed, Pitch, and Voice announces the new value. `Escape`
+  closes the dialog and returns focus to Settings.
+- `R1`–`R4`: reading start announces **Pause Reading** and exposes **Stop
+  Reading**; pause and resume announce **Resume Reading** and **Pause
+  Reading**; Stop returns the button to **Read Aloud** and removes the stop
+  control; `Escape` stops an active reading.
+- `R5`: caret reading starts and creates the transport controls and sentence
+  highlight. Focus stays on the page, so the label change is not announced
+  automatically; this matches `T1` and is expected.
+
+Not exercised separately with NVDA: `T5`–`T6`, `P1`–`P3`, and `R6`–`R9`.
+Those paths are covered by the browser harness, which also passed 33 reading
+checks, 75 page checks, and the popup, shortcut, tooltip, and layout checks.
+
+VoiceOver remains untested because no macOS environment was available. Run the
+same checklist on macOS before claiming VoiceOver coverage.
 
 ## Reporting failures
 
