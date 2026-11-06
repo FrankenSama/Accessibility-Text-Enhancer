@@ -1,0 +1,114 @@
+# Screen-reader smoke test
+
+A short manual pass with a real screen reader before each release. It checks what
+the browser's accessibility tree and the screen reader actually announce, which
+the automated harness cannot verify.
+
+Run it after any change to the toolbar, the settings dialog, keyboard handling,
+or the reading assistant.
+
+## Setup
+
+1. Load the current build as an unpacked extension:
+   - Open `chrome://extensions`, enable **Developer mode**, choose **Load unpacked**,
+     and select the repository root.
+   - Confirm the popup footer shows the version you are testing.
+2. Open a page with several paragraphs and at least one form control. The
+   repository's `index.html` served locally, or any article page, is enough.
+3. Use a real screen reader:
+   - **Windows:** NVDA with Chrome.
+   - **macOS:** VoiceOver with Chrome (`Cmd+F5` to start).
+4. Start with default settings. Repeat the settings and reading sections after
+   changing voice, speed, and pitch if those changes are part of the release.
+
+The extension's reading feature uses the browser's `speechSynthesis`, which is
+independent of the screen reader. Both can speak at once. Treat overlapping
+speech as a known limitation, but note it in the results if it makes the feature
+unusable.
+
+## Automated pre-checks
+
+These should already be green before the manual pass:
+
+- `node --check content-scripts/content.js`
+- `node --check background.js`
+- `node --check popup/popup.js`
+- The release browser harness and its reading, popup, shortcut, tooltip, and
+  popup-layout checks.
+
+## Toolbar
+
+| # | Step | Expected |
+|---|------|----------|
+| T1 | Select a word. | The toolbar appears. It does not steal focus from the page or interrupt the screen reader. |
+| T2 | Press `Ctrl+Shift+F` (`Cmd+Shift+F` on macOS). | Focus moves to the toolbar. The screen reader announces the toolbar and the focused button. |
+| T3 | Press `Right` / `Left` / `Home` / `End`. | Each button is announced as it receives focus. There is one tab stop; `Tab` leaves the toolbar. |
+| T4 | Activate Bold and Highlight. | Each button announces its pressed state. Repeating the command updates the announcement. |
+| T5 | Activate Undo and Redo. | The announced disabled state matches the button state. Undo is disabled when there is nothing to undo. |
+| T6 | Press `Escape` while the toolbar has focus. | The toolbar closes and focus returns to the page sensibly. |
+
+## Settings dialog
+
+| # | Step | Expected |
+|---|------|----------|
+| S1 | Open Settings from the toolbar. | Focus moves into the dialog. The dialog name is announced. |
+| S2 | Tab through the controls. | Voice is announced as a combobox or popup button with its current value. Speed and Pitch are announced as sliders with their values. |
+| S3 | Change Speed and Pitch. | The new numeric value is announced. |
+| S4 | Change Voice. | The selected voice and language are announced. |
+| S5 | Press `Escape`, or activate Close. | The dialog closes and focus returns to the Settings button. |
+
+## Reading assistant
+
+| # | Step | Expected |
+|---|------|----------|
+| R1 | Select a sentence and press `Alt+Shift+R` (`Option+Shift+R` on macOS). | Reading starts. The read button is now announced as Pause Reading, and a Stop Reading control is available. |
+| R2 | Tab to the read button and activate it. | Reading pauses. The button is announced as Resume Reading. Activate it again to resume. |
+| R3 | Navigate to Stop Reading and activate it. | Reading stops. The read button returns to Read Aloud and the stop control is no longer announced. |
+| R4 | Repeat R1, then press `Escape` on the page. | Reading stops without disturbing the page's own Escape handling when focus is in an editable region. |
+| R5 | Place the caret inside a paragraph with nothing selected and press `Alt+Shift+R`. | The paragraph is read, and the transport controls are reachable without a prior selection. |
+| R6 | While reading, inspect the current sentence. | The sentence is visually highlighted. The screen reader still reads the same page text and the virtual cursor does not move unexpectedly. |
+| R7 | Stop reading, then inspect the page. | The reading highlight is gone. The page DOM is otherwise unchanged. |
+| R8 | Start a reading, then check Undo. | Reading creates no undo entry; Undo remains disabled or unchanged. |
+| R9 | Start a reading in a long section. | Speech continues through the section instead of cutting off after the first sentence. |
+
+## Page integrity
+
+| # | Step | Expected |
+|---|------|----------|
+| P1 | Select text inside an input, textarea, or `contenteditable` region and press the Bold, Highlight, or Read shortcut. | The page's native behaviour is preserved; the extension does not modify the editable content. |
+| P2 | Use the page's own keyboard shortcuts while the toolbar is closed. | They still work. The extension only captures its own shortcuts. |
+| P3 | Toggle the extension off, then select text. | No toolbar appears, and no extension UI remains on the page. |
+
+## Results
+
+Record one row per run. Keep the announced text for any failure; it is usually
+what identifies the defect.
+
+| Build | OS | Chrome | Screen reader | Tester | Date | Toolbar | Settings | Reading | Page | Notes |
+|-------|----|--------|---------------|--------|------|---------|----------|---------|------|-------|
+| v1.3.0 |  |  |  |  |  |  |  |  |  |  |
+
+Use **Pass**, **Pass with notes**, or **Fail** for each section.
+
+## Latest run
+
+| Check | Date | Environment | Result |
+|-------|------|-------------|--------|
+| Automated accessibility-tree snapshot | 2026-11-06 | Chrome 156 headless, real extension build | 21/21 checks pass |
+| NVDA manual pass | — | Windows | Pending |
+| VoiceOver manual pass | — | macOS | Pending |
+
+The automated snapshot verifies that the toolbar, settings dialog, sliders, voice
+combobox, and reading controls expose their roles, names, pressed states, and
+values, and that the hidden stop button is absent from the tree while idle. It
+does not replace hearing the announcements with a real screen reader.
+
+## Reporting failures
+
+Include:
+
+- Extension version, OS, Chrome version, and screen-reader name/version.
+- The checklist ID (for example `R2`).
+- What was announced, and what you expected instead.
+- Whether the page had any console errors.
+- Whether the problem reproduces with the screen reader's browse mode on and off.
