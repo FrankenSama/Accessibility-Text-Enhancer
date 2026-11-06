@@ -2,7 +2,7 @@
 
 This roadmap tracks the accessibility work planned for Accessibility Text Enhancer. It is a living document: items move between phases as the project learns from real use, and nothing here is a commitment to a date.
 
-**Current build:** v1.2.0 (released) · **Last updated:** 2026-11-05
+**Current build:** v1.3.0 (released) · **Last updated:** 2026-11-06
 
 ## Guiding principles
 
@@ -18,7 +18,7 @@ This roadmap tracks the accessibility work planned for Accessibility Text Enhanc
 | Phase | Theme | Target | Status |
 |-------|-------|--------|--------|
 | 1 | Accessibility correctness | v1.2.0 | ✅ Released |
-| 2 | Reading assistant | v1.3.0 | 🚧 In progress |
+| 2 | Reading assistant | v1.3.0 | ✅ Released |
 | 3 | Personalization and persistence | v1.4.0 | 📋 Planned |
 | 4 | Reading aids | v1.5.0 | 📋 Planned |
 | 5 | Platform and reach | v2.0.0 | 💡 Exploring |
@@ -94,7 +94,7 @@ The toolbar already declares `role="toolbar"`, but it was not operable or unders
 
 ---
 
-## Phase 2 — Reading assistant (v1.3.0) 🚧
+## Phase 2 — Reading assistant (v1.3.0) ✅
 
 **Problem:** `readTextAloud()` is a single fixed-rate utterance. It is the only feature aimed at blind and low-vision users, and it is the least developed one.
 
@@ -107,7 +107,7 @@ The toolbar already declares `role="toolbar"`, but it was not operable or unders
 - [x] **Read without selecting.** Read the paragraph at the caret with `Alt+Shift+R` / `Option+Shift+R`, and show transport controls even without a selection.
 - [x] **Long text.** Chunk long selections into sentence-sized utterances so Chrome does not silently truncate them.
 
-**Acceptance:** a user can start, pause, resume, and stop a reading; the current sentence is visible; rate and voice survive a reload; reading never creates an undo entry. *(Implemented in the working tree; release checks pending.)*
+**Acceptance:** a user can start, pause, resume, and stop a reading; the current sentence is visible; rate and voice survive a reload; reading never creates an undo entry.
 
 **Risks:** the voice list is asynchronous and inconsistent across platforms; sentence highlighting needs the CSS Custom Highlight API, so older browsers read without visual follow-along; Chrome may cut off very long utterances.
 
@@ -193,7 +193,7 @@ These are worth investigating but are not scheduled:
 - [x] Dark and light toolbar themes
 - [x] Version bumped in `manifest.json`, `popup/popup.html`, and the README badge
 - [x] `README.md` and `CONTRIBUTING.md` updated
-- [x] `v1.2.0` tag created after the release commit
+- [x] `v1.3.0` tag created after the release commit
 
 ## How to contribute
 
