@@ -60,6 +60,16 @@
         maxTtsPitch: 2
     };
 
+    // Keep shortcut hints in sync with the platform, so macOS users are not
+    // told to press Windows modifiers.
+    const SHORTCUT_LABELS = {
+        undo: IS_MAC ? 'Cmd+Z' : 'Ctrl+Z',
+        redo: IS_MAC ? 'Cmd+Y' : 'Ctrl+Y',
+        bold: IS_MAC ? 'Option+Shift+B' : 'Alt+Shift+B',
+        highlight: IS_MAC ? 'Option+Shift+H' : 'Alt+Shift+H',
+        read: IS_MAC ? 'Option+Shift+R' : 'Alt+Shift+R'
+    };
+
     // Commands that change readability, so they apply to the nearest block
     // rather than only the selected words.
     const BLOCK_COMMANDS = new Set([
@@ -117,7 +127,13 @@
      */
     function getStorage(keys) {
         return new Promise((resolve) => {
-            chrome.storage.local.get(keys, resolve);
+            chrome.storage.local.get(keys, (result) => {
+                if (chrome.runtime.lastError) {
+                    resolve({});
+                    return;
+                }
+                resolve(result || {});
+            });
         });
     }
 
@@ -396,13 +412,13 @@
 
         toolbar.innerHTML = `
             <div class="button-group">
-                <button type="button" data-command="undo" class="history-btn" data-tooltip="Undo (Ctrl+Z)" ${STATE.historyIndex < 0 ? 'disabled' : ''}>↶</button>
-                <button type="button" data-command="redo" class="history-btn" data-tooltip="Redo (Ctrl+Y)" ${STATE.historyIndex >= STATE.history.length - 1 ? 'disabled' : ''}>↷</button>
+                <button type="button" data-command="undo" class="history-btn" data-tooltip="Undo (${SHORTCUT_LABELS.undo})" ${STATE.historyIndex < 0 ? 'disabled' : ''}>↶</button>
+                <button type="button" data-command="redo" class="history-btn" data-tooltip="Redo (${SHORTCUT_LABELS.redo})" ${STATE.historyIndex >= STATE.history.length - 1 ? 'disabled' : ''}>↷</button>
             </div>
 
             <div class="button-group">
-                <button type="button" data-command="bold" data-tooltip="Bold (Alt+Shift+B) · Shift: paragraph">Bold</button>
-                <button type="button" data-command="highlight" data-tooltip="Highlight (Alt+Shift+H) · Shift: paragraph">Highlight</button>
+                <button type="button" data-command="bold" data-tooltip="Bold (${SHORTCUT_LABELS.bold}) · Shift: paragraph">Bold</button>
+                <button type="button" data-command="highlight" data-tooltip="Highlight (${SHORTCUT_LABELS.highlight}) · Shift: paragraph">Highlight</button>
             </div>
 
             <div class="button-group">
@@ -414,7 +430,7 @@
                 <button type="button" data-command="fontStyle" class="icon-btn" data-tooltip="Toggle Font Style · Shift: selection">A</button>
                 <button type="button" data-command="spacing" class="icon-btn" data-tooltip="Text Spacing · Shift: selection">↔️</button>
                 <button type="button" data-command="contrast" class="icon-btn" data-tooltip="Fix Contrast · Shift: selection">🎨</button>
-                <button type="button" data-command="readAloud" class="icon-btn" data-tooltip="Read Aloud (Alt+Shift+R)">🔊</button>
+                <button type="button" data-command="readAloud" class="icon-btn" data-tooltip="Read Aloud (${SHORTCUT_LABELS.read})">🔊</button>
                 <button type="button" data-command="stopReading" class="icon-btn" data-tooltip="Stop Reading" tabindex="-1" hidden>⏹️</button>
             </div>
 
@@ -474,7 +490,9 @@
      * @param {HTMLElement} toolbar
      */
     function setToolbarTabStop(button, toolbar) {
-        getToolbarButtons(toolbar, true).forEach((item) => {
+        // Reset hidden buttons too. Otherwise a hidden reading control can
+        // keep a stale tabindex="0" after it leaves the toolbar.
+        Array.from(toolbar.querySelectorAll('button')).forEach((item) => {
             item.setAttribute('tabindex', item === button ? '0' : '-1');
         });
     }
@@ -497,7 +515,10 @@
         const active = document.activeElement;
         let target = enabled.find((button) => button.getAttribute('tabindex') === '0');
 
-        if (active && toolbar.contains(active) && active.tagName === 'BUTTON' && !active.disabled) {
+        // Only keep focus on the current button if it is still usable. A stop
+        // button becomes hidden when reading ends, and an undo button can
+        // become disabled; neither can own the toolbar's tab stop.
+        if (active && enabled.includes(active)) {
             target = active;
         }
 
@@ -645,9 +666,19 @@
     }
 
     /**
-     * Removes the toolbar from the document.
+     * Removes the toolbar and cancels any pending placement work.
      */
     function removeToolbar() {
+        if (STATE.positionFrame !== null) {
+            cancelAnimationFrame(STATE.positionFrame);
+            STATE.positionFrame = null;
+        }
+
+        if (STATE.toolbarTimeout) {
+            clearTimeout(STATE.toolbarTimeout);
+            STATE.toolbarTimeout = null;
+        }
+
         const existingToolbar = document.getElementById(CONFIG.toolbarId);
         if (existingToolbar) {
             existingToolbar.remove();
@@ -756,13 +787,14 @@
     /**
      * Collect the block-level elements covered by a range.
      * @param {Range} range
+     * @param {Text[]} [textNodes] Precomputed selected text nodes.
      * @returns {HTMLElement[]}
      */
-    function getBlocksForRange(range) {
+    function getBlocksForRange(range, textNodes = getSelectedTextNodes(range)) {
         const blocks = new Set();
         const cache = new Map();
 
-        getSelectedTextNodes(range).forEach((node) => {
+        textNodes.forEach((node) => {
             // Whitespace between blocks (and boundary-touching nodes) is not
             // part of the selection, so it should not pull in the parent of
             // the whole page.
@@ -1299,9 +1331,7 @@
      * @param {{silent?: boolean, scope?: string, toggleOff?: boolean}} options
      */
     function toggleBold(element, options = {}) {
-        const currentWeight = getComputedStyle(element).fontWeight;
-        const isBold = options.toggleOff ??
-            (currentWeight === 'bold' || parseInt(currentWeight, 10) >= 700);
+        const isBold = options.toggleOff ?? isCommandApplied(element, 'bold');
         element.style.setProperty('font-weight', isBold ? 'normal' : 'bold', 'important');
         notify(options, isBold ? 'Text unbolded' : 'Text bolded');
     }
@@ -1381,9 +1411,7 @@
      * @param {{silent?: boolean, scope?: string, toggleOff?: boolean}} options
      */
     function toggleFontStyle(element, options = {}) {
-        const current = getComputedStyle(element).fontFamily.toLowerCase();
-        const isSerif = options.toggleOff ??
-            (current.includes('georgia') || (current.includes('serif') && !current.includes('sans-serif')));
+        const isSerif = options.toggleOff ?? isCommandApplied(element, 'fontStyle');
 
         if (isSerif) {
             element.style.setProperty('font-family', 'Arial, sans-serif', 'important');
@@ -1400,9 +1428,7 @@
      * @param {{silent?: boolean, scope?: string, toggleOff?: boolean}} options
      */
     function adjustTextSpacing(element, options = {}) {
-        const isSpaced = options.toggleOff ??
-            (element.style.getPropertyValue('letter-spacing') === '2px' &&
-             element.style.getPropertyValue('word-spacing') === '4px');
+        const isSpaced = options.toggleOff ?? isCommandApplied(element, 'spacing');
 
         if (isSpaced) {
             element.style.removeProperty('letter-spacing');
@@ -2160,7 +2186,7 @@
         if (readButton) {
             const label = reading
                 ? (paused ? 'Resume Reading' : 'Pause Reading')
-                : 'Read Aloud (Alt+Shift+R)';
+                : `Read Aloud (${SHORTCUT_LABELS.read})`;
 
             readButton.textContent = reading ? (paused ? '▶️' : '⏸️') : '🔊';
             readButton.dataset.tooltip = label;
@@ -2168,11 +2194,26 @@
             readButton.setAttribute('aria-pressed', reading ? 'true' : 'false');
         }
 
+        // Hiding a focused button moves focus to the document body before the
+        // tab-stop sync can observe it. Remember the lost focus so it can be
+        // handed to the toolbar's new tab stop afterwards.
+        const stopHadFocus = Boolean(
+            stopButton && !stopButton.hidden && document.activeElement === stopButton
+        );
+
         if (stopButton) {
             stopButton.hidden = !reading;
         }
 
         syncToolbarTabStops(toolbar);
+
+        if (stopHadFocus) {
+            const next = getToolbarButtons(toolbar)
+                .find((button) => button.getAttribute('tabindex') === '0');
+            if (next) {
+                next.focus({ preventScroll: true });
+            }
+        }
     }
 
     /**
@@ -2239,7 +2280,7 @@
         const textNodes = getSelectedTextNodes(range).filter(
             (node) => selectedSlice(range, node).trim()
         );
-        const blocks = getBlocksForRange(range);
+        const blocks = getBlocksForRange(range, textNodes);
         const states = {};
 
         for (const command of TOGGLE_COMMANDS) {
@@ -2481,6 +2522,7 @@
     function removeSettingsPanel() {
         const panel = document.getElementById(CONFIG.settingsPanelId);
         const overlay = document.getElementById(CONFIG.settingsOverlayId);
+        const hadPanel = Boolean(panel || overlay);
 
         if (panel) {
             panel.remove();
@@ -2489,7 +2531,9 @@
             overlay.remove();
         }
 
-        if (settingsReturnFocus && settingsReturnFocus.isConnected) {
+        // Only move focus back when a dialog was actually open. This keeps a
+        // storage-triggered cleanup from stealing focus on an unrelated page.
+        if (hadPanel && settingsReturnFocus && settingsReturnFocus.isConnected) {
             settingsReturnFocus.focus();
         }
         settingsReturnFocus = null;
@@ -2595,6 +2639,9 @@
                     console.error('Import error:', error);
                 }
             };
+            reader.onerror = () => {
+                showToast('Error reading settings file');
+            };
             reader.readAsText(file);
         });
 
@@ -2611,11 +2658,12 @@
 
             const themeBtn = toolbar.querySelector('[data-command="toggleTheme"]');
             if (themeBtn) {
+                const label = STATE.isDarkMode
+                    ? 'Switch to light theme'
+                    : 'Switch to dark theme';
                 themeBtn.textContent = STATE.isDarkMode ? '☀️' : '🌙';
-                themeBtn.setAttribute(
-                    'aria-label',
-                    STATE.isDarkMode ? 'Switch to light theme' : 'Switch to dark theme'
-                );
+                themeBtn.dataset.tooltip = label;
+                themeBtn.setAttribute('aria-label', label);
             }
         }
 
