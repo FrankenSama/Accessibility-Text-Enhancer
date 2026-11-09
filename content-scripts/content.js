@@ -2394,6 +2394,15 @@
                         min="${CONFIG.minTtsPitch}" max="${CONFIG.maxTtsPitch}"
                         step="0.1" value="${STATE.ttsPitch}">
                 </div>
+
+                <div class="setting-actions">
+                    <button type="button" id="preview-voice" class="action-btn preview-btn">
+                        Preview voice
+                    </button>
+                    <button type="button" id="reset-reading" class="action-btn reset-btn">
+                        Reset to defaults
+                    </button>
+                </div>
             </div>
 
             <div class="setting-item">
@@ -2491,6 +2500,9 @@
 
         bindRange(rateInput, 'tts-rate-value', 'ttsRate');
         bindRange(pitchInput, 'tts-pitch-value', 'ttsPitch');
+
+        panel.querySelector('#preview-voice').addEventListener('click', previewReadingVoice);
+        panel.querySelector('#reset-reading').addEventListener('click', resetReadingSettings);
     }
 
     /**
@@ -2514,6 +2526,71 @@
         if (pitchValue) {
             pitchValue.textContent = STATE.ttsPitch.toFixed(1);
         }
+    }
+
+    /**
+     * Speak a short sample with the current reading settings.
+     */
+    function previewReadingVoice() {
+        if (!('speechSynthesis' in window)) {
+            showToast('Speech is not available in this browser');
+            return;
+        }
+
+        if (STATE.speech) {
+            showToast('Stop reading before previewing a voice');
+            return;
+        }
+
+        window.speechSynthesis.cancel();
+
+        const voice = pickReadingVoice();
+        const utterance = new SpeechSynthesisUtterance(
+            'This is a preview of the reading voice.'
+        );
+
+        if (voice) {
+            utterance.voice = voice;
+        }
+        utterance.lang = voice?.lang || getPageLanguage();
+        utterance.rate = STATE.ttsRate;
+        utterance.pitch = STATE.ttsPitch;
+
+        utterance.onerror = (event) => {
+            if (event.error !== 'canceled' && event.error !== 'interrupted') {
+                showToast('Voice preview could not play');
+            }
+        };
+
+        try {
+            window.speechSynthesis.speak(utterance);
+        } catch (error) {
+            console.warn('Voice preview threw:', error);
+            showToast('Voice preview could not play');
+        }
+    }
+
+    /**
+     * Restore the default reading preferences.
+     */
+    function resetReadingSettings() {
+        STATE.ttsVoice = '';
+        STATE.ttsRate = CONFIG.defaultTtsRate;
+        STATE.ttsPitch = CONFIG.defaultTtsPitch;
+
+        chrome.storage.local.set({
+            ttsVoice: STATE.ttsVoice,
+            ttsRate: STATE.ttsRate,
+            ttsPitch: STATE.ttsPitch
+        });
+
+        if (STATE.speech) {
+            STATE.speech.voice = pickReadingVoice();
+        }
+
+        populateVoiceSelect();
+        syncReadingSettingsControls();
+        showToast('Reading settings reset to defaults');
     }
 
     /**

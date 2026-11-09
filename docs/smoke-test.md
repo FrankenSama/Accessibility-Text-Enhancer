@@ -46,8 +46,9 @@ These should already be green before the manual pass:
 - `node --check content-scripts/content.js`
 - `node --check background.js`
 - `node --check popup/popup.js`
-- The release browser harness and its reading, popup, shortcut, tooltip, and
-  popup-layout checks.
+- `node --check options/options.js`
+- The release browser harness and its reading, popup, options, shortcut,
+  tooltip, and popup-layout checks.
 
 ## Toolbar
 
@@ -69,6 +70,16 @@ These should already be green before the manual pass:
 | S3 | Change Speed and Pitch. | The new numeric value is announced. |
 | S4 | Change Voice. | The selected voice and language are announced. |
 | S5 | Press `Escape`, or activate Close. | The dialog closes and focus returns to the Settings button. |
+| S6 | Activate Preview voice. | A short sample is spoken with the current voice, speed, and pitch. No reading session starts. |
+| S7 | Activate Reset to defaults. | Voice returns to Automatic, Speed to 0.9, and Pitch to 1.0. A reset confirmation is announced. |
+
+## Reading settings page
+
+| # | Step | Expected |
+|---|------|----------|
+| O1 | Open **Reading settings** from the popup. | The settings page opens in a tab. Voice, Speed, and Pitch are announced with their current values. |
+| O2 | Change Voice, Speed, and Pitch, then activate Preview voice. | The sample uses the new settings, and the status message is announced. |
+| O3 | Activate Reset to defaults. | Controls return to Automatic, 0.9, and 1.0, and the reset confirmation is announced. |
 
 ## Reading assistant
 

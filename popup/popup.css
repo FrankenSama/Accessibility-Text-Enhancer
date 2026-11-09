@@ -114,6 +114,36 @@ input:checked + .slider:before {
     background: rgba(244, 67, 54, 0.3);
 }
 
+.toggle-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.settings-entry {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.12);
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.settings-entry:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.settings-entry:focus-visible {
+    outline: 2px solid white;
+    outline-offset: 2px;
+}
+
 .stats {
     background: rgba(255, 255, 255, 0.1);
     backdrop-filter: blur(10px);

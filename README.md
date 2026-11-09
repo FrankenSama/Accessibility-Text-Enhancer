@@ -24,7 +24,7 @@ Originally developed for an MSc dissertation at Solent University, it is now mai
 
 - **Bold** and **highlight** just the selected words
 - **Font size, style, spacing, and contrast** for the nearest paragraph
-- **Read aloud** with selectable voice, speed, and pitch, sentence highlighting, and pause/resume/stop controls
+- **Read aloud** with selectable voice, speed, and pitch, sentence highlighting, pause/resume/stop controls, plus voice preview and a dedicated settings page
 - **Undo/redo** for the last 50 changes
 - **Dark/light toolbar**, with JSON export and import
 - **Keyboard and screen reader support**: shortcuts, a single tab stop, arrow-key navigation, and `aria-pressed` state (NVDA-verified on Windows)
@@ -44,7 +44,7 @@ To load it manually, clone this repository, open `chrome://extensions/`, turn on
 
 Bold and highlight apply to the selected words; font size, style, spacing, and contrast apply to the nearest paragraph. Shift-click flips that scope. If a selection crosses paragraphs, bold and highlight apply paragraph by paragraph and a toast explains the result.
 
-Read aloud follows the same selection rule. With the caret in a paragraph and nothing selected, `Alt+Shift+R` reads that paragraph. While reading, the toolbar's read button pauses and resumes, a stop button appears, and the current sentence is highlighted (in browsers that support the CSS Custom Highlight API). Open Settings to choose a voice and adjust speed and pitch; those preferences survive a reload.
+Read aloud follows the same selection rule. With the caret in a paragraph and nothing selected, `Alt+Shift+R` reads that paragraph. While reading, the toolbar's read button pauses and resumes, a stop button appears, and the current sentence is highlighted (in browsers that support the CSS Custom Highlight API). Open **Reading settings** from the popup (or Settings in the toolbar) to choose a voice, adjust speed and pitch, preview the voice, or reset to defaults; those preferences survive a reload.
 
 | Action | Windows/Linux | macOS |
 |---|---|---|

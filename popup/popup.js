@@ -61,6 +61,13 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    // Reading settings live on their own page so they are reachable without
+    // selecting text first, including on pages where content scripts cannot run.
+    document.getElementById('openSettings').addEventListener('click', () => {
+        chrome.runtime.openOptionsPage();
+        window.close();
+    });
+
     // Show the active tab's hostname (when available).
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
         if (!tabs[0]) {

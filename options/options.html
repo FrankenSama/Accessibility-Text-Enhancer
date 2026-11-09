@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reading settings — Accessibility Text Enhancer</title>
+    <link rel="stylesheet" href="options.css">
+</head>
+<body>
+    <main class="page">
+        <header class="page-header">
+            <h1>Accessibility Text Enhancer</h1>
+            <p class="subtitle">
+                Configure how text is read aloud. Changes save automatically and
+                apply to open pages.
+            </p>
+        </header>
+
+        <section class="card" aria-labelledby="reading-heading">
+            <h2 id="reading-heading">Reading aloud</h2>
+
+            <div class="field">
+                <label for="tts-voice">Voice</label>
+                <select id="tts-voice"></select>
+                <p class="hint">
+                    Automatic chooses a voice that matches the language of the
+                    page you are reading.
+                </p>
+            </div>
+
+            <div class="field">
+                <label for="tts-rate">
+                    Speed
+                    <output id="tts-rate-value" for="tts-rate">0.9</output>
+                </label>
+                <input type="range" id="tts-rate"
+                    min="0.5" max="2" step="0.1" value="0.9">
+            </div>
+
+            <div class="field">
+                <label for="tts-pitch">
+                    Pitch
+                    <output id="tts-pitch-value" for="tts-pitch">1.0</output>
+                </label>
+                <input type="range" id="tts-pitch"
+                    min="0.5" max="2" step="0.1" value="1">
+            </div>
+
+            <div class="actions">
+                <button type="button" id="preview-voice" class="btn primary">
+                    Preview voice
+                </button>
+                <button type="button" id="reset-reading" class="btn secondary">
+                    Reset to defaults
+                </button>
+            </div>
+
+            <p id="options-status" class="status" role="status" aria-live="polite"></p>
+        </section>
+
+        <footer class="page-footer">
+            <span>Preferences are stored only in this browser.</span>
+            <span id="version"></span>
+        </footer>
+    </main>
+
+    <script src="options.js"></script>
+</body>
+</html>
