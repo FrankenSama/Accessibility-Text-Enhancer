@@ -7,6 +7,18 @@ the automated harness cannot verify.
 Run it after any change to the toolbar, the settings dialog, keyboard handling,
 or the reading assistant.
 
+## Current coverage
+
+| Platform | Screen reader | Status |
+|----------|---------------|--------|
+| Windows | NVDA 2026.3 | Verified for v1.3.0 on 2026-11-06 |
+| macOS | VoiceOver | Not tested — no macOS hardware available |
+| Linux | Orca | Not tested — no Linux environment available |
+
+Only the Windows/NVDA path has been run. The macOS and Linux steps below are
+kept so a future tester can complete them, but do not describe the extension as
+VoiceOver- or Orca-verified until those rows are updated.
+
 ## Setup
 
 1. Load the current build as an unpacked extension:
@@ -18,6 +30,7 @@ or the reading assistant.
 3. Use a real screen reader:
    - **Windows:** NVDA with Chrome.
    - **macOS:** VoiceOver with Chrome (`Cmd+F5` to start).
+   - **Linux:** Orca with Chrome.
 4. Start with default settings. Repeat the settings and reading sections after
    changing voice, speed, and pitch if those changes are part of the release.
 
@@ -94,9 +107,10 @@ Use **Pass**, **Pass with notes**, or **Fail** for each section.
 
 | Check | Date | Environment | Result |
 |-------|------|-------------|--------|
-| Automated accessibility-tree snapshot | 2026-11-06 | Chrome 156 headless, real extension build | 21/21 checks pass |
+| Automated accessibility-tree snapshot | 2026-11-06 | Chrome 156 headless on Windows, real extension build | 21/21 checks pass |
 | NVDA manual pass | 2026-11-06 | Windows 11 Home 26200, Chrome for Testing 156.0.8078.47 headed with `--force-renderer-accessibility`, NVDA 2026.3 (Portuguese UI) | Pass with notes |
-| VoiceOver manual pass | — | macOS | Pending |
+| VoiceOver manual pass | — | macOS | Not tested — no macOS hardware available |
+| Orca manual pass | — | Linux | Not tested — no Linux environment available |
 
 The automated snapshot verifies that the toolbar, settings dialog, sliders, voice
 combobox, and reading controls expose their roles, names, pressed states, and
@@ -125,8 +139,11 @@ Not exercised separately with NVDA: `T5`–`T6`, `P1`–`P3`, and `R6`–`R9`.
 Those paths are covered by the browser harness, which also passed 33 reading
 checks, 75 page checks, and the popup, shortcut, tooltip, and layout checks.
 
-VoiceOver remains untested because no macOS environment was available. Run the
-same checklist on macOS before claiming VoiceOver coverage.
+Only the Windows/NVDA path is verified for v1.3.0. VoiceOver and Orca remain
+open, and no macOS or Linux environment is currently available to the
+maintainer. Run the same checklist on those platforms before claiming support;
+results, including a VoiceOver caption-panel transcript (`VO-Fn-Command-F10`),
+are welcome in an issue.
 
 ## Reporting failures
 

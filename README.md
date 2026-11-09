@@ -27,7 +27,7 @@ Originally developed for an MSc dissertation at Solent University, it is now mai
 - **Read aloud** with selectable voice, speed, and pitch, sentence highlighting, and pause/resume/stop controls
 - **Undo/redo** for the last 50 changes
 - **Dark/light toolbar**, with JSON export and import
-- **Keyboard and screen reader support**: shortcuts, a single tab stop, arrow-key navigation, and `aria-pressed` state
+- **Keyboard and screen reader support**: shortcuts, a single tab stop, arrow-key navigation, and `aria-pressed` state (NVDA-verified on Windows)
 - **Works in** Chrome 88+ and other Chromium-based browsers
 
 ## Install
@@ -57,6 +57,8 @@ Read aloud follows the same selection rule. With the caret in a paragraph and no
 | Undo / redo | `Ctrl+Z` / `Ctrl+Y` | `Cmd+Z` / `Cmd+Y` |
 
 Focus Toolbar can be rebound at `chrome://extensions/shortcuts` (also linked from the popup). Bold, highlight, and read aloud are ignored in inputs, text areas, and editable regions. Undo and redo are only captured while the toolbar is visible and there is a change to undo. On Windows, `Alt+Shift` is also the default layout-switch shortcut; if it conflicts, use the toolbar buttons or rebind Focus Toolbar.
+
+Screen-reader announcements are verified with NVDA on Windows. VoiceOver on macOS and Orca on Linux have not been tested; see [`docs/smoke-test.md`](docs/smoke-test.md) for the manual checklist and current coverage.
 
 ## Privacy
 

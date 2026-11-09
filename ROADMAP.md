@@ -190,7 +190,7 @@ These are worth investigating but are not scheduled:
 - [x] Browser harness green (75 page checks; command relay, shortcut conflicts, popup, and tooltip stacking verified separately)
 - [x] Keyboard-only pass: select, open toolbar, traverse, apply, undo
 - [x] NVDA smoke test on Windows — see [`docs/smoke-test.md`](docs/smoke-test.md)
-- [ ] VoiceOver smoke test on macOS — see [`docs/smoke-test.md`](docs/smoke-test.md)
+- [ ] VoiceOver (macOS) and Orca (Linux) smoke tests — not blocking for v1.3.0; no macOS or Linux hardware available. See [`docs/smoke-test.md`](docs/smoke-test.md)
 - [x] Dark and light toolbar themes
 - [x] Version bumped in `manifest.json`, `popup/popup.html`, and the README badge
 - [x] `README.md` and `CONTRIBUTING.md` updated
