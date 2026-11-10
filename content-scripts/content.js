@@ -1934,6 +1934,41 @@
     }
 
     /**
+     * The separator needed between two consecutive text nodes. Browsers render
+     * a space at most inline boundaries, but the DOM stores none for a <br> or
+     * for two adjacent block elements, so plain concatenation would glue words
+     * such as "line oneline two" together.
+     * @param {Text} previous
+     * @param {Text} next
+     * @returns {string}
+     */
+    function textSeparator(previous, next) {
+        if (/\s$/.test(previous.nodeValue) || /^\s/.test(next.nodeValue)) {
+            return '';
+        }
+
+        const previousBlock = closestBlock(previous);
+        const nextBlock = closestBlock(next);
+
+        if (previousBlock && nextBlock && previousBlock !== nextBlock) {
+            return '\n';
+        }
+
+        // Look for a <br> between the two nodes. A plain inline wrapper, such
+        // as the spans this extension creates, adds no gap and must not split
+        // a word in two.
+        const gap = document.createRange();
+        gap.setStart(previous, previous.nodeValue.length);
+        gap.setEnd(next, 0);
+
+        if (gap.cloneContents().querySelector('br')) {
+            return '\n';
+        }
+
+        return '';
+    }
+
+    /**
      * Build a text map that keeps DOM offsets alongside the plain text. This
      * lets sentence chunks be converted back into ranges for highlighting.
      * @param {Range} range
@@ -1942,6 +1977,7 @@
     function buildTextMap(range) {
         const entries = [];
         let text = '';
+        let previous = null;
 
         getSelectedTextNodes(range).forEach((node) => {
             const start = node === range.startContainer ? range.startOffset : 0;
@@ -1953,6 +1989,10 @@
                 return;
             }
 
+            if (previous) {
+                text += textSeparator(previous, node);
+            }
+
             const value = node.nodeValue.slice(from, to);
             entries.push({
                 node,
@@ -1961,6 +2001,7 @@
                 textEnd: text.length + value.length
             });
             text += value;
+            previous = node;
         });
 
         return { text, entries };
