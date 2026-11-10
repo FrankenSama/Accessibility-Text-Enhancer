@@ -81,6 +81,14 @@ These should already be green before the manual pass:
 | O2 | Change Voice, Speed, and Pitch, then activate Preview voice. | The sample uses the new settings, and the status message is announced. |
 | O3 | Activate Reset to defaults. | Controls return to Automatic, 0.9, and 1.0, and the reset confirmation is announced. |
 
+## Notifications
+
+| # | Step | Expected |
+|---|------|----------|
+| N1 | Trigger a notification, for example by selecting text and pressing Bold. | The message is announced once and fades after about two seconds. |
+| N2 | Trigger the same notification again. | The message is announced again rather than being treated as unchanged text. |
+| N3 | Trigger an error, for example by activating Read Aloud where speech synthesis is unavailable. | The message is announced and stays visible noticeably longer than a regular notification. |
+
 ## Reading assistant
 
 | # | Step | Expected |

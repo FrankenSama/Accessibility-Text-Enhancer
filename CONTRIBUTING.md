@@ -179,7 +179,7 @@ var handleClick = function(event) {
        handleSuccess(result);
    } catch (error) {
        console.error('Operation failed:', error);
-       showToast('An error occurred');
+       showToast('An error occurred', { error: true });
    }
    ```
 

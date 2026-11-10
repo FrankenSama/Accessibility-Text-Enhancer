@@ -44,7 +44,10 @@
         highlightAttr: 'data-accessibility-highlight',
         selectionAttr: 'data-atx-selection',
         selectionDelay: 150,
+        toastId: 'accessibility-toast',
         toastDuration: 2000,
+        // Errors stay on screen longer so they are not missed.
+        toastErrorDuration: 6000,
         maxHistorySize: 50,
         maxWrapNodes: 200,
         fontSizeMin: 8,
@@ -1554,7 +1557,7 @@
      */
     function toggleReadAloud() {
         if (!('speechSynthesis' in window)) {
-            showToast('Speech synthesis not supported');
+            showToast('Speech synthesis not supported', { error: true });
             return;
         }
 
@@ -1758,7 +1761,7 @@
 
             console.warn('Speech synthesis error:', event.error);
             stopReading({ silent: true });
-            showToast('Reading stopped — the voice could not speak this text');
+            showToast('Reading stopped — the voice could not speak this text', { error: true });
         };
 
         session.utterance = utterance;
@@ -1767,7 +1770,7 @@
         } catch (error) {
             console.warn('Speech synthesis threw:', error);
             stopReading({ silent: true });
-            showToast('Reading could not start');
+            showToast('Reading could not start', { error: true });
         }
     }
 
@@ -2136,7 +2139,7 @@
         updateToolbarState();
 
         if (applied === 0) {
-            showToast('That change is no longer on the page');
+            showToast('That change is no longer on the page', { error: true });
         } else if (applied < entry.changes.length) {
             showToast('Undone (some targets were no longer on the page)');
         } else {
@@ -2160,7 +2163,7 @@
         updateToolbarState();
 
         if (applied === 0) {
-            showToast('That change is no longer on the page');
+            showToast('That change is no longer on the page', { error: true });
         } else if (applied < entry.changes.length) {
             showToast('Redone (some targets were no longer on the page)');
         } else {
@@ -2533,7 +2536,7 @@
      */
     function previewReadingVoice() {
         if (!('speechSynthesis' in window)) {
-            showToast('Speech is not available in this browser');
+            showToast('Speech is not available in this browser', { error: true });
             return;
         }
 
@@ -2558,7 +2561,7 @@
 
         utterance.onerror = (event) => {
             if (event.error !== 'canceled' && event.error !== 'interrupted') {
-                showToast('Voice preview could not play');
+                showToast('Voice preview could not play', { error: true });
             }
         };
 
@@ -2566,7 +2569,7 @@
             window.speechSynthesis.speak(utterance);
         } catch (error) {
             console.warn('Voice preview threw:', error);
-            showToast('Voice preview could not play');
+            showToast('Voice preview could not play', { error: true });
         }
     }
 
@@ -2666,7 +2669,7 @@
                     const preferences = settings.preferences;
 
                     if (!preferences || typeof preferences !== 'object') {
-                        showToast('No settings found in file');
+                        showToast('No settings found in file', { error: true });
                         return;
                     }
 
@@ -2674,7 +2677,7 @@
                         .some((key) => preferences[key] !== undefined);
 
                     if (!hasSettings) {
-                        showToast('No settings found in file');
+                        showToast('No settings found in file', { error: true });
                         return;
                     }
 
@@ -2712,12 +2715,12 @@
                     showToast('Settings imported successfully');
                     removeSettingsPanel();
                 } catch (error) {
-                    showToast('Error importing settings');
+                    showToast('Error importing settings', { error: true });
                     console.error('Import error:', error);
                 }
             };
             reader.onerror = () => {
-                showToast('Error reading settings file');
+                showToast('Error reading settings file', { error: true });
             };
             reader.readAsText(file);
         });
@@ -2762,25 +2765,70 @@
 
     // ==================== UI HELPERS ====================
 
+    let toastElement = null;
+    let toastShowTimer = null;
+    let toastHideTimer = null;
+    let toastClearTimer = null;
+
+    /**
+     * Return the single live region used for notifications, creating it on
+     * first use. Reusing one element keeps announcements reliable: replacing
+     * a live region for every message can make screen readers miss them.
+     * @returns {HTMLElement}
+     */
+    function getToastElement() {
+        if (toastElement && toastElement.isConnected) {
+            return toastElement;
+        }
+
+        // Build the element directly instead of looking up the id: a page is
+        // free to use the same id, and mutating its element would be wrong.
+        toastElement = document.createElement('div');
+        toastElement.id = CONFIG.toastId;
+        toastElement.className = 'accessibility-toast';
+        toastElement.setAttribute('role', 'status');
+        toastElement.setAttribute('aria-live', 'polite');
+        toastElement.setAttribute('aria-atomic', 'true');
+        getMountNode().appendChild(toastElement);
+
+        return toastElement;
+    }
+
     /**
      * Show a temporary notification toast.
      * @param {string} message - Message to display
+     * @param {object} [options]
+     * @param {boolean} [options.error] - Keep the message on screen longer
      */
-    function showToast(message) {
-        document.querySelectorAll('.accessibility-toast').forEach((toast) => toast.remove());
+    function showToast(message, options = {}) {
+        const toast = getToastElement();
+        const duration = options.error
+            ? CONFIG.toastErrorDuration
+            : CONFIG.toastDuration;
 
-        const toast = document.createElement('div');
-        toast.className = 'accessibility-toast';
-        toast.setAttribute('role', 'status');
-        toast.setAttribute('aria-live', 'polite');
-        toast.setAttribute('aria-atomic', 'true');
-        toast.textContent = message;
-        getMountNode().appendChild(toast);
+        clearTimeout(toastShowTimer);
+        clearTimeout(toastHideTimer);
+        clearTimeout(toastClearTimer);
 
-        setTimeout(() => {
-            toast.style.opacity = '0';
-            setTimeout(() => toast.remove(), 300);
-        }, CONFIG.toastDuration);
+        // Clear the old message first so repeating the same text is announced
+        // again instead of being treated as an unchanged live region.
+        toast.textContent = '';
+        toast.classList.remove('visible');
+        toast.classList.toggle('error', Boolean(options.error));
+
+        toastShowTimer = setTimeout(() => {
+            toast.textContent = message;
+            toast.classList.add('visible');
+
+            toastHideTimer = setTimeout(() => {
+                toast.classList.remove('visible');
+                toastClearTimer = setTimeout(() => {
+                    // Keep the live region in the document, but empty it so
+                    // stale text is not re-announced the next time it is used.
+                    toast.textContent = '';
+                }, 300);
+            }, duration);
+        }, 0);
     }
 
     // ==================== EVENT LISTENERS ====================
