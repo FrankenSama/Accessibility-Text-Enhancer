@@ -101,7 +101,7 @@ These should already be green before the manual pass:
 | R6 | While reading, inspect the current sentence. | The sentence is visually highlighted. The screen reader still reads the same page text and the virtual cursor does not move unexpectedly. |
 | R7 | Stop reading, then inspect the page. | The reading highlight is gone. The page DOM is otherwise unchanged. |
 | R8 | Start a reading, then check Undo. | Reading creates no undo entry; Undo remains disabled or unchanged. |
-| R9 | Start a reading in a long section. | Speech continues through the section instead of cutting off after the first sentence, with no multi-second pause between sentences. |
+| R9 | Start a reading in a long section. | Speech continues through the section instead of cutting off after the first sentence. A paragraph is read as one continuous utterance, and the highlight follows each sentence as it is spoken. |
 
 ## Page integrity
 

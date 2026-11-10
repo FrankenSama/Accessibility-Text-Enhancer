@@ -52,8 +52,11 @@
         maxWrapNodes: 200,
         fontSizeMin: 8,
         fontSizeMax: 50,
-        // Keep every utterance short enough that Chrome does not truncate it.
-        maxSpeechChunkLength: 220,
+        // Reading a whole paragraph in one utterance avoids the pause every
+        // voice engine inserts between utterances. The limit only exists as a
+        // guard for unusually long text; desktop Chrome speaks a thousand
+        // characters without truncating.
+        maxSpeechChunkLength: 1000,
         readingHighlightName: 'atx-reading',
         defaultTtsRate: 0.9,
         defaultTtsPitch: 1,
@@ -72,6 +75,13 @@
         highlight: IS_MAC ? 'Option+Shift+H' : 'Alt+Shift+H',
         read: IS_MAC ? 'Option+Shift+R' : 'Alt+Shift+R'
     };
+
+    // A chunk that has to be split should end after punctuation rather than
+    // after an arbitrary word. Stopping mid-phrase is what makes the voice
+    // sound like it stalled instead of finished a thought.
+    const STRONG_BREAK_CHARS = new Set(['.', '!', '?', '…', ';', ':']);
+    const SOFT_BREAK_CHARS = new Set([',', '—', '–']);
+    const CLOSING_CHARS = new Set(['"', "'", '”', '’', ')', ']', '}']);
 
     // Commands that change readability, so they apply to the nearest block
     // rather than only the selected words.
@@ -1652,9 +1662,12 @@
         const session = {
             map,
             chunks,
+            sentences: buildSentenceMap(map.text),
             index: 0,
             // Highest chunk already handed to the speech engine.
             queued: -1,
+            // Start offset of the sentence currently highlighted.
+            highlightStart: -1,
             paused: false,
             utterance: null,
             voice: pickReadingVoice()
@@ -1752,6 +1765,7 @@
             }
 
             session.index = index;
+            session.highlightStart = -1;
             const range = rangeFromOffsets(session.map, chunk.start, chunk.end);
             if (range) {
                 highlightReadingRange(range);
@@ -1760,6 +1774,18 @@
             // The next chunk is already in the engine's queue by the time this
             // one finishes, so there is no cold start between sentences.
             queueSpeechChunk(session, index + 1);
+        };
+
+        // A chunk can hold several sentences. Word boundaries keep the
+        // highlight moving without splitting the utterance and re-introducing
+        // the pause this packing avoids. Engines that do not report boundaries
+        // keep the whole-chunk highlight from onstart.
+        utterance.onboundary = (event) => {
+            if (session !== STATE.speech || typeof event.charIndex !== 'number') {
+                return;
+            }
+
+            highlightReadingSentence(session, chunk.start + event.charIndex);
         };
 
         utterance.onend = () => {
@@ -1875,6 +1901,30 @@
     }
 
     /**
+     * Move the follow-along highlight to the sentence that contains an offset
+     * inside the current chunk.
+     * @param {object} session
+     * @param {number} offset
+     */
+    function highlightReadingSentence(session, offset) {
+        const sentence = session.sentences.find((entry) =>
+            offset >= entry.start && offset < entry.end
+        );
+
+        if (!sentence || sentence.start === session.highlightStart) {
+            return;
+        }
+
+        const range = rangeFromOffsets(session.map, sentence.start, sentence.end);
+        if (!range) {
+            return;
+        }
+
+        session.highlightStart = sentence.start;
+        highlightReadingRange(range);
+    }
+
+    /**
      * Remove the follow-along highlight.
      */
     function clearReadingHighlight() {
@@ -1958,71 +2008,177 @@
     }
 
     /**
-     * Split text into sentence-sized speech chunks. Sentences longer than the
-     * safe limit are broken at word boundaries so Chrome does not truncate or
-     * stall on them.
+     * Trim whitespace from the edges of a segment and report the offsets.
+     * @param {string} text
+     * @param {number} start
+     * @param {number} end
+     * @returns {{start: number, end: number}}
+     */
+    function trimSegment(text, start, end) {
+        let trimmedStart = start;
+        let trimmedEnd = end;
+
+        while (trimmedStart < trimmedEnd && /\s/.test(text[trimmedStart])) {
+            trimmedStart++;
+        }
+        while (trimmedEnd > trimmedStart && /\s/.test(text[trimmedEnd - 1])) {
+            trimmedEnd--;
+        }
+
+        return { start: trimmedStart, end: trimmedEnd };
+    }
+
+    /**
+     * Find the last sentence or clause punctuation mark inside a window.
+     * @param {string} text
+     * @param {number} boundary - Highest offset the chunk may reach
+     * @param {number} minimum - Lowest offset worth looking at
+     * @returns {number} Offset just past the punctuation, or -1 when none
+     */
+    function findPunctuationBreak(text, boundary, minimum) {
+        let soft = -1;
+
+        for (let index = boundary; index > minimum; index--) {
+            const char = text[index - 1];
+
+            // Keep a closing quote or bracket with the punctuation before it.
+            if (CLOSING_CHARS.has(char)) {
+                continue;
+            }
+
+            if (STRONG_BREAK_CHARS.has(char)) {
+                let end = index;
+                while (end < boundary && CLOSING_CHARS.has(text[end])) {
+                    end++;
+                }
+                return end;
+            }
+
+            if (soft === -1 && SOFT_BREAK_CHARS.has(char)) {
+                soft = index;
+            }
+        }
+
+        return soft;
+    }
+
+    /**
+     * Choose where an over-long chunk should end. Punctuation wins over a word
+     * boundary, so a mandatory split lands on a clause break and sounds like a
+     * pause instead of the voice stopping mid-phrase.
+     * @param {string} text
+     * @param {number} start
+     * @param {number} limit - Highest offset the chunk may reach
+     * @param {number} minimum - Lowest offset worth breaking at
+     * @returns {number} Offset to end the chunk at, always past `start`
+     */
+    function findSpeechBreak(text, start, limit, minimum) {
+        const boundary = Math.min(limit, text.length);
+        const preferred = findPunctuationBreak(text, boundary, minimum);
+
+        if (preferred > start) {
+            return preferred;
+        }
+
+        // A clause break further back still beats stopping mid-phrase.
+        const relaxed = start + Math.floor((boundary - start) * 0.35);
+        const fallback = findPunctuationBreak(text, boundary, Math.max(relaxed, start));
+
+        if (fallback > start) {
+            return fallback;
+        }
+
+        // No punctuation at all: fall back to the last word boundary.
+        for (let index = boundary; index > start; index--) {
+            if (/\s/.test(text[index - 1])) {
+                return index - 1;
+            }
+        }
+
+        // A single unbroken word longer than the limit: split it hard.
+        return boundary;
+    }
+
+    /**
+     * Group text into speech chunks. Consecutive sentences share one utterance
+     * while they fit, because every utterance boundary is a place where the
+     * voice engine pauses. Only text longer than the limit is split, and then
+     * as close to a sentence or clause break as possible.
      * @param {string} text
      * @returns {Array<{text: string, start: number, end: number}>}
      */
     function buildSpeechChunks(text) {
         const chunks = [];
         const max = CONFIG.maxSpeechChunkLength;
+        let pending = null;
+
+        const flush = () => {
+            if (pending) {
+                chunks.push(pending);
+                pending = null;
+            }
+        };
 
         for (const segment of splitIntoSentences(text)) {
-            let start = segment.start;
-            let end = segment.end;
+            const trimmed = trimSegment(text, segment.start, segment.end);
 
-            while (start < end && /\s/.test(text[start])) {
-                start++;
-            }
-            while (end > start && /\s/.test(text[end - 1])) {
-                end--;
+            if (trimmed.start >= trimmed.end) {
+                continue;
             }
 
-            while (start < end) {
-                let chunkEnd = Math.min(start + max, end);
+            // A new line means a new paragraph or list item, which should keep
+            // its natural pause instead of running into the previous sentence.
+            if (pending) {
+                const gap = text.slice(pending.end, trimmed.start);
+                if (trimmed.end - pending.start <= max && !/[\r\n]/.test(gap)) {
+                    pending = {
+                        text: text.slice(pending.start, trimmed.end),
+                        start: pending.start,
+                        end: trimmed.end
+                    };
+                    continue;
+                }
+                flush();
+            }
 
-                if (chunkEnd < end) {
-                    let breakAt = -1;
+            let start = trimmed.start;
+
+            while (start < trimmed.end) {
+                let chunkEnd = trimmed.end;
+
+                if (trimmed.end - start > max) {
                     const minimum = start + Math.floor(max * 0.6);
+                    chunkEnd = findSpeechBreak(text, start, start + max, minimum);
+                }
 
-                    for (let index = chunkEnd; index > minimum; index--) {
-                        if (/\s/.test(text[index])) {
-                            breakAt = index;
-                            break;
-                        }
+                const piece = trimSegment(text, start, chunkEnd);
+
+                if (piece.end > piece.start) {
+                    const chunk = {
+                        text: text.slice(piece.start, piece.end),
+                        start: piece.start,
+                        end: piece.end
+                    };
+
+                    if (chunkEnd >= trimmed.end) {
+                        // The tail of a long sentence can still absorb the
+                        // next short one.
+                        pending = chunk;
+                    } else {
+                        chunks.push(chunk);
                     }
-
-                    if (breakAt > start) {
-                        chunkEnd = breakAt;
-                    }
                 }
 
-                let trimmedStart = start;
-                let trimmedEnd = chunkEnd;
-
-                while (trimmedStart < trimmedEnd && /\s/.test(text[trimmedStart])) {
-                    trimmedStart++;
-                }
-                while (trimmedEnd > trimmedStart && /\s/.test(text[trimmedEnd - 1])) {
-                    trimmedEnd--;
+                if (chunkEnd >= trimmed.end) {
+                    break;
                 }
 
-                if (trimmedEnd > trimmedStart) {
-                    chunks.push({
-                        text: text.slice(trimmedStart, trimmedEnd),
-                        start: trimmedStart,
-                        end: trimmedEnd
-                    });
-                }
-
-                // Always make progress, even if no whitespace was found.
+                // Always make progress, even if the break found nothing.
                 start = Math.max(chunkEnd, start + 1);
-                while (start < end && /\s/.test(text[start])) {
-                    start++;
-                }
             }
         }
+
+        flush();
 
         return chunks;
     }
@@ -2074,6 +2230,26 @@
         }
 
         return segments;
+    }
+
+    /**
+     * Sentence offsets for the text being read, used to follow along inside a
+     * chunk that holds more than one sentence.
+     * @param {string} text
+     * @returns {Array<{start: number, end: number}>}
+     */
+    function buildSentenceMap(text) {
+        const sentences = [];
+
+        for (const segment of splitIntoSentences(text)) {
+            const trimmed = trimSegment(text, segment.start, segment.end);
+
+            if (trimmed.end > trimmed.start) {
+                sentences.push({ start: trimmed.start, end: trimmed.end });
+            }
+        }
+
+        return sentences;
     }
 
     // ==================== HISTORY MANAGEMENT ====================
