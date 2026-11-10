@@ -1653,6 +1653,8 @@
             map,
             chunks,
             index: 0,
+            // Highest chunk already handed to the speech engine.
+            queued: -1,
             paused: false,
             utterance: null,
             voice: pickReadingVoice()
@@ -1660,7 +1662,7 @@
 
         STATE.speech = session;
         ensureReadingToolbar(range);
-        speakChunk(session);
+        queueSpeechChunk(session, 0);
         showToast('Reading aloud');
     }
 
@@ -1717,20 +1719,24 @@
     }
 
     /**
-     * Speak the next sentence in a session.
+     * Queue one speech chunk, and queue the following chunk as soon as this
+     * one starts. Calling speak() only after the previous utterance ended
+     * makes the engine restart between sentences, which sounds like a
+     * multi-second pause. Keeping one chunk ahead lets it continue straight
+     * into the next sentence.
      * @param {object} session
+     * @param {number} index
      */
-    function speakChunk(session) {
-        if (session !== STATE.speech) {
+    function queueSpeechChunk(session, index) {
+        if (session !== STATE.speech ||
+            index < 0 ||
+            index >= session.chunks.length ||
+            index <= session.queued) {
             return;
         }
 
-        if (session.index >= session.chunks.length) {
-            finishReading();
-            return;
-        }
-
-        const chunk = session.chunks[session.index];
+        session.queued = index;
+        const chunk = session.chunks[index];
         const utterance = new SpeechSynthesisUtterance(chunk.text);
         utterance.rate = STATE.ttsRate;
         utterance.pitch = STATE.ttsPitch;
@@ -1744,18 +1750,26 @@
             if (session !== STATE.speech) {
                 return;
             }
+
+            session.index = index;
             const range = rangeFromOffsets(session.map, chunk.start, chunk.end);
             if (range) {
                 highlightReadingRange(range);
             }
+
+            // The next chunk is already in the engine's queue by the time this
+            // one finishes, so there is no cold start between sentences.
+            queueSpeechChunk(session, index + 1);
         };
 
         utterance.onend = () => {
             if (session !== STATE.speech) {
                 return;
             }
-            session.index++;
-            speakChunk(session);
+
+            if (index === session.chunks.length - 1) {
+                finishReading();
+            }
         };
 
         utterance.onerror = (event) => {
@@ -2490,7 +2504,7 @@
             STATE.ttsVoice = voiceSelect.value;
             chrome.storage.local.set({ ttsVoice: STATE.ttsVoice });
 
-            // Apply the new voice from the next sentence onward.
+            // Apply the new voice to sentences that are not queued yet.
             if (STATE.speech) {
                 STATE.speech.voice = pickReadingVoice();
             }
