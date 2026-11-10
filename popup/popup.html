@@ -40,44 +40,50 @@
         <p>Select any text on a webpage to open the accessibility toolbar. Use the buttons to enhance readability, contrast, and more!</p>
     </div>
 
-    <div class="shortcuts">
-        <div class="shortcuts-header">
-            <h3>⌨️ Keyboard Shortcuts</h3>
-            <button type="button" class="manage-shortcuts" id="manageShortcuts">Manage shortcuts</button>
+    <details class="shortcuts">
+        <summary class="shortcuts-summary">
+            <span>⌨️ Keyboard Shortcuts</span>
+        </summary>
+
+        <div class="shortcut-list">
+            <div class="shortcut-item">
+                <span>Open Extension</span>
+                <span class="shortcut-key" data-command="_execute_action">Ctrl+Shift+Y</span>
+            </div>
+            <div class="shortcut-item">
+                <span>Toggle Extension</span>
+                <span class="shortcut-key" data-command="toggle-extension">Ctrl+Shift+E</span>
+            </div>
+            <div class="shortcut-item">
+                <span>Focus Toolbar</span>
+                <span class="shortcut-key" data-command="focus-toolbar">Ctrl+Shift+F</span>
+            </div>
+            <div class="shortcut-item">
+                <span>Bold</span>
+                <span class="shortcut-key">Alt+Shift+B</span>
+            </div>
+            <div class="shortcut-item">
+                <span>Highlight</span>
+                <span class="shortcut-key">Alt+Shift+H</span>
+            </div>
+            <div class="shortcut-item">
+                <span>Read Aloud</span>
+                <span class="shortcut-key">Alt+Shift+R</span>
+            </div>
+            <div class="shortcut-item">
+                <span>Undo</span>
+                <span class="shortcut-key">Ctrl+Z</span>
+            </div>
+            <div class="shortcut-item">
+                <span>Redo</span>
+                <span class="shortcut-key">Ctrl+Y</span>
+            </div>
+
+            <button type="button" class="manage-shortcuts" id="manageShortcuts">
+                Manage shortcuts
+            </button>
         </div>
-        <div class="shortcut-item">
-            <span>Open Extension</span>
-            <span class="shortcut-key" data-command="_execute_action">Ctrl+Shift+Y</span>
-        </div>
-        <div class="shortcut-item">
-            <span>Toggle Extension</span>
-            <span class="shortcut-key" data-command="toggle-extension">Ctrl+Shift+E</span>
-        </div>
-        <div class="shortcut-item">
-            <span>Focus Toolbar</span>
-            <span class="shortcut-key" data-command="focus-toolbar">Ctrl+Shift+F</span>
-        </div>
-        <div class="shortcut-item">
-            <span>Bold</span>
-            <span class="shortcut-key">Alt+Shift+B</span>
-        </div>
-        <div class="shortcut-item">
-            <span>Highlight</span>
-            <span class="shortcut-key">Alt+Shift+H</span>
-        </div>
-        <div class="shortcut-item">
-            <span>Read Aloud</span>
-            <span class="shortcut-key">Alt+Shift+R</span>
-        </div>
-        <div class="shortcut-item">
-            <span>Undo</span>
-            <span class="shortcut-key">Ctrl+Z</span>
-        </div>
-        <div class="shortcut-item">
-            <span>Redo</span>
-            <span class="shortcut-key">Ctrl+Y</span>
-        </div>
-    </div>
+    </details>
 
     <div class="footer">
         <a href="https://github.com/FrankenSama/accessibility-text-enhancer" target="_blank" rel="noopener noreferrer">
