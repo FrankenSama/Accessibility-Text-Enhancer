@@ -106,6 +106,17 @@
         contrast: ['color']
     };
 
+    // Names used when describing commands in toasts and undo/redo feedback.
+    const COMMAND_LABELS = {
+        bold: 'Bold',
+        highlight: 'Highlight',
+        sizeDown: 'Font size decrease',
+        sizeUp: 'Font size increase',
+        fontStyle: 'Font style',
+        spacing: 'Text spacing',
+        contrast: 'Contrast fix'
+    };
+
     // Yellow used by the highlight feature. Highlight only paints a background
     // when the current text colour stays readable against it.
     const HIGHLIGHT_COLOR = { r: 255, g: 235, b: 59 };
@@ -1070,23 +1081,22 @@
     }
 
     /**
+     * Friendly name for a command, used in toasts and history feedback.
+     * @param {string} command
+     * @returns {string}
+     */
+    function commandLabel(command) {
+        return COMMAND_LABELS[command] || 'Change';
+    }
+
+    /**
      * Describe a grouped change for the single summary toast.
      * @param {string} command
      * @param {{scope: string, fallback: boolean, targets: HTMLElement[]}} resolved
      * @returns {string}
      */
     function describeScope(command, resolved) {
-        const labels = {
-            bold: 'Bold',
-            highlight: 'Highlight',
-            sizeDown: 'Font size',
-            sizeUp: 'Font size',
-            fontStyle: 'Font style',
-            spacing: 'Spacing',
-            contrast: 'Contrast'
-        };
-
-        const label = labels[command] || 'Change';
+        const label = commandLabel(command);
 
         if (resolved.scope === 'selection') {
             return `${label} applied to selection`;
@@ -1285,7 +1295,7 @@
             return;
         }
 
-        pushHistory({ changes });
+        pushHistory({ changes, label: commandLabel(command) });
 
         if (commandOptions.silent) {
             showToast(describeScope(command, resolved));
@@ -2087,7 +2097,7 @@
 
     /**
      * Add an entry to the undo history.
-     * @param {{changes: Array<{element: HTMLElement, before: Object, after: Object}>}} entry
+     * @param {{changes: Array<{element: HTMLElement, before: Object, after: Object}>, label?: string}} entry
      */
     function pushHistory(entry) {
         STATE.history = STATE.history.slice(0, STATE.historyIndex + 1);
@@ -2133,17 +2143,19 @@
         }
 
         const entry = STATE.history[STATE.historyIndex];
+        const label = entry.label || 'change';
         STATE.historyIndex--;
 
         const applied = applyHistoryEntry(entry, 'before');
         updateToolbarState();
 
         if (applied === 0) {
-            showToast('That change is no longer on the page', { error: true });
+            showToast(`Could not undo ${label} — the change is no longer on the page`,
+                { error: true });
         } else if (applied < entry.changes.length) {
-            showToast('Undone (some targets were no longer on the page)');
+            showToast(`Undone: ${label} (some targets were no longer on the page)`);
         } else {
-            showToast('Undone');
+            showToast(`Undone: ${label}`);
         }
     }
 
@@ -2158,16 +2170,18 @@
 
         STATE.historyIndex++;
         const entry = STATE.history[STATE.historyIndex];
+        const label = entry.label || 'change';
 
         const applied = applyHistoryEntry(entry, 'after');
         updateToolbarState();
 
         if (applied === 0) {
-            showToast('That change is no longer on the page', { error: true });
+            showToast(`Could not redo ${label} — the change is no longer on the page`,
+                { error: true });
         } else if (applied < entry.changes.length) {
-            showToast('Redone (some targets were no longer on the page)');
+            showToast(`Redone: ${label} (some targets were no longer on the page)`);
         } else {
-            showToast('Redone');
+            showToast(`Redone: ${label}`);
         }
     }
 

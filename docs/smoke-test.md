@@ -58,7 +58,7 @@ These should already be green before the manual pass:
 | T2 | Press `Ctrl+Shift+F` (`Cmd+Shift+F` on macOS). | Focus moves to the toolbar. The screen reader announces the toolbar and the focused button. |
 | T3 | Press `Right` / `Left` / `Home` / `End`. | Each button is announced as it receives focus. There is one tab stop; `Tab` leaves the toolbar. |
 | T4 | Activate Bold and Highlight. | Each button announces its pressed state. Repeating the command updates the announcement. |
-| T5 | Activate Undo and Redo. | The announced disabled state matches the button state. Undo is disabled when there is nothing to undo. |
+| T5 | Activate Undo and Redo. | The announced disabled state matches the button state, and each message names the command, for example “Undone: Bold” or “Redone: Highlight”. Undo is disabled when there is nothing to undo. |
 | T6 | Press `Escape` while the toolbar has focus. | The toolbar closes and focus returns to the page sensibly. |
 
 ## Settings dialog
