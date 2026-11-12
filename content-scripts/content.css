@@ -27,7 +27,14 @@ span[data-atx-selection] {
     transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
                 transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     flex-wrap: wrap;
-    max-width: 380px;
+    /* Size the toolbar to its controls, but keep them on two rows. The old
+       380px cap pushed the settings group onto a third row as soon as the
+       Stop Reading button appeared. Border-box makes the width below equal
+       the width the toolbar actually occupies, and the 30px gutter matches
+       the 15px margin positionToolbar leaves on each side. */
+    box-sizing: border-box;
+    width: max-content;
+    max-width: min(480px, calc(100vw - 30px));
     justify-content: center;
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
@@ -435,7 +442,6 @@ span[data-atx-selection] {
 /* Responsive adjustments */
 @media (max-width: 768px) {
     #accessibility-toolbar {
-        max-width: 90vw;
         padding: 10px 12px;
     }
 
