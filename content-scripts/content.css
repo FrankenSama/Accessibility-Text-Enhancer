@@ -29,7 +29,7 @@ span[data-atx-selection] {
     flex-wrap: wrap;
     /* Size the toolbar to its controls, but keep them on two rows. The old
        380px cap pushed the settings group onto a third row as soon as the
-       Stop Reading button appeared. Border-box makes the width below equal
+       Stop Reading button appeared. Border-box makes the width below match
        the width the toolbar actually occupies, and the 30px gutter matches
        the 15px margin positionToolbar leaves on each side. */
     box-sizing: border-box;

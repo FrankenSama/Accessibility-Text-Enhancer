@@ -32,7 +32,7 @@ export function parseColor(color) {
  * @param {{r: number, g: number, b: number}} color
  * @returns {number}
  */
-export function relativeLuminance({ r, g, b }) {
+function relativeLuminance({ r, g, b }) {
     const channel = (value) => {
         const normalized = value / 255;
         return normalized <= 0.03928
@@ -62,7 +62,7 @@ export function contrastRatio(colorA, colorB) {
  * @param {HTMLElement} element
  * @returns {{r: number, g: number, b: number}}
  */
-export function getEffectiveBackgroundColor(element) {
+function getEffectiveBackgroundColor(element) {
     const layers = [];
     let node = element;
 

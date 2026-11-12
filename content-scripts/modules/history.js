@@ -23,7 +23,7 @@ export function captureElementState(element) {
  * @param {HTMLElement} element
  * @param {{style: string|null, highlight: string|null}} state
  */
-export function restoreElementState(element, state) {
+function restoreElementState(element, state) {
     if (state.style === null) {
         element.removeAttribute('style');
     } else {
@@ -58,7 +58,7 @@ export function pushHistory(entry) {
  * @param {'before'|'after'} side
  * @returns {number} Number of targets that were still on the page
  */
-export function applyHistoryEntry(entry, side) {
+function applyHistoryEntry(entry, side) {
     let applied = 0;
 
     for (const change of entry.changes) {

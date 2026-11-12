@@ -134,7 +134,7 @@ export function showSettingsPanel() {
  * Wire the reading controls in the settings dialog to storage.
  * @param {HTMLElement} panel
  */
-export function setupReadingSettings(panel) {
+function setupReadingSettings(panel) {
     populateVoiceSelect();
     syncReadingSettingsControls();
 
@@ -204,7 +204,7 @@ export function syncReadingSettingsControls() {
 /**
  * Speak a short sample with the current reading settings.
  */
-export function previewReadingVoice() {
+function previewReadingVoice() {
     if (!('speechSynthesis' in window)) {
         showToast('Speech is not available in this browser', { error: true });
         return;
@@ -246,7 +246,7 @@ export function previewReadingVoice() {
 /**
  * Restore the default reading preferences.
  */
-export function resetReadingSettings() {
+function resetReadingSettings() {
     STATE.ttsVoice = '';
     STATE.ttsRate = CONFIG.defaultTtsRate;
     STATE.ttsPitch = CONFIG.defaultTtsPitch;
@@ -292,7 +292,7 @@ export function removeSettingsPanel() {
 /**
  * Export settings to a JSON file.
  */
-export function exportSettings() {
+function exportSettings() {
     const settings = {
         version: chrome.runtime.getManifest().version,
         exportDate: new Date().toISOString(),
@@ -321,7 +321,7 @@ export function exportSettings() {
 /**
  * Import settings from a JSON file.
  */
-export function importSettings() {
+function importSettings() {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'application/json';

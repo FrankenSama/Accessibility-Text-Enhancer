@@ -2,7 +2,7 @@
 
 // ==================== STATE MANAGEMENT ====================
 
-export const IS_MAC = /mac/i.test(
+const IS_MAC = /mac/i.test(
     navigator.userAgentData?.platform || navigator.platform || ''
 );
 

@@ -7,7 +7,7 @@ import { showToast } from './toast.js';
  * @param {{scope?: string}} options
  * @returns {string}
  */
-export function scopeSuffix(options) {
+function scopeSuffix(options) {
     if (options.scope === 'block') {
         return ' (paragraph)';
     }

@@ -186,7 +186,7 @@ export function enhanceSelection(command, options = {}) {
  * @param {string} command - The enhancement command
  * @param {{silent?: boolean, scope?: string}} options
  */
-export function applyCommand(element, command, options = {}) {
+function applyCommand(element, command, options = {}) {
     switch (command) {
         case 'bold':
             toggleBold(element, options);
@@ -219,7 +219,7 @@ export function applyCommand(element, command, options = {}) {
  * @param {HTMLElement} element - Element to modify
  * @param {{silent?: boolean, scope?: string, toggleOff?: boolean}} options
  */
-export function toggleBold(element, options = {}) {
+function toggleBold(element, options = {}) {
     const isBold = options.toggleOff ?? isCommandApplied(element, 'bold');
     element.style.setProperty('font-weight', isBold ? 'normal' : 'bold', 'important');
     notify(options, isBold ? 'Text unbolded' : 'Text bolded');
@@ -230,7 +230,7 @@ export function toggleBold(element, options = {}) {
  * @param {HTMLElement} element - Element to modify
  * @param {{silent?: boolean, scope?: string, toggleOff?: boolean}} options
  */
-export function toggleHighlight(element, options = {}) {
+function toggleHighlight(element, options = {}) {
     const mode = element.getAttribute(CONFIG.highlightAttr);
     const shouldRemove = options.toggleOff ?? (mode === 'background' || mode === 'outline');
 
@@ -282,7 +282,7 @@ export function toggleHighlight(element, options = {}) {
  * @param {number} change - Size change amount
  * @param {{silent?: boolean, scope?: string}} options
  */
-export function adjustFontSize(element, change, options = {}) {
+function adjustFontSize(element, change, options = {}) {
     const currentSize = parseFloat(getComputedStyle(element).fontSize);
     const newSize = currentSize + change;
 
@@ -299,7 +299,7 @@ export function adjustFontSize(element, change, options = {}) {
  * @param {HTMLElement} element - Element to modify
  * @param {{silent?: boolean, scope?: string, toggleOff?: boolean}} options
  */
-export function toggleFontStyle(element, options = {}) {
+function toggleFontStyle(element, options = {}) {
     const isSerif = options.toggleOff ?? isCommandApplied(element, 'fontStyle');
 
     if (isSerif) {
@@ -316,7 +316,7 @@ export function toggleFontStyle(element, options = {}) {
  * @param {HTMLElement} element - Element to modify
  * @param {{silent?: boolean, scope?: string, toggleOff?: boolean}} options
  */
-export function adjustTextSpacing(element, options = {}) {
+function adjustTextSpacing(element, options = {}) {
     const isSpaced = options.toggleOff ?? isCommandApplied(element, 'spacing');
 
     if (isSpaced) {
@@ -387,7 +387,7 @@ export function getToggleStates() {
  * @param {boolean[]} states
  * @returns {boolean|'mixed'|undefined}
  */
-export function combineStates(states) {
+function combineStates(states) {
     if (states.length === 0) {
         return undefined;
     }

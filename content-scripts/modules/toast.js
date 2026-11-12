@@ -14,7 +14,7 @@ let toastClearTimer = null;
  * a live region for every message can make screen readers miss them.
  * @returns {HTMLElement}
  */
-export function getToastElement() {
+function getToastElement() {
     if (toastElement && toastElement.isConnected) {
         return toastElement;
     }

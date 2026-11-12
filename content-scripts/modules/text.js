@@ -3,9 +3,9 @@
 // A chunk that has to be split should end after punctuation rather than
 // after an arbitrary word. Stopping mid-phrase is what makes the voice
 // sound like it stalled instead of finished a thought.
-export const STRONG_BREAK_CHARS = new Set(['.', '!', '?', '…', ';', ':']);
-export const SOFT_BREAK_CHARS = new Set([',', '—', '–']);
-export const CLOSING_CHARS = new Set(['"', "'", '”', '’', ')', ']', '}']);
+const STRONG_BREAK_CHARS = new Set(['.', '!', '?', '…', ';', ':']);
+const SOFT_BREAK_CHARS = new Set([',', '—', '–']);
+const CLOSING_CHARS = new Set(['"', "'", '”', '’', ')', ']', '}']);
 
 /**
  * Clamp a stored numeric preference to a valid range.
@@ -30,7 +30,7 @@ export function clampNumber(value, min, max, fallback) {
  * @param {number} end
  * @returns {{start: number, end: number}}
  */
-export function trimSegment(text, start, end) {
+function trimSegment(text, start, end) {
     let trimmedStart = start;
     let trimmedEnd = end;
 
@@ -51,7 +51,7 @@ export function trimSegment(text, start, end) {
  * @param {number} minimum - Lowest offset worth looking at
  * @returns {number} Offset just past the punctuation, or -1 when none
  */
-export function findPunctuationBreak(text, boundary, minimum) {
+function findPunctuationBreak(text, boundary, minimum) {
     let soft = -1;
 
     for (let index = boundary; index > minimum; index--) {
@@ -88,7 +88,7 @@ export function findPunctuationBreak(text, boundary, minimum) {
  * @param {number} minimum - Lowest offset worth breaking at
  * @returns {number} Offset to end the chunk at, always past `start`
  */
-export function findSpeechBreak(text, start, limit, minimum) {
+function findSpeechBreak(text, start, limit, minimum) {
     const boundary = Math.min(limit, text.length);
     const preferred = findPunctuationBreak(text, boundary, minimum);
 
@@ -207,7 +207,7 @@ export function buildSpeechChunks(text, maxLength, language) {
  * @param {string} language BCP 47 language tag used by Intl.Segmenter
  * @returns {Array<{start: number, end: number}>}
  */
-export function splitIntoSentences(text, language) {
+function splitIntoSentences(text, language) {
     const segments = [];
 
     if (typeof Intl !== 'undefined' && typeof Intl.Segmenter === 'function') {

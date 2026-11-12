@@ -64,7 +64,7 @@ export function populateVoiceSelect() {
  * Voices currently exposed by the browser.
  * @returns {SpeechSynthesisVoice[]}
  */
-export function getAvailableVoices() {
+function getAvailableVoices() {
     if (!('speechSynthesis' in window)) {
         return [];
     }
@@ -136,7 +136,7 @@ export function toggleReadAloud() {
  * paragraph containing the caret.
  * @returns {Range|null}
  */
-export function getReadingTarget() {
+function getReadingTarget() {
     if (STATE.savedRange &&
         STATE.savedRange.commonAncestorContainer.isConnected &&
         !STATE.savedRange.collapsed &&
@@ -172,13 +172,13 @@ export function getReadingTarget() {
  * Start a new reading from a range.
  * @param {Range} range
  */
-export function startReading(range) {
+function startReading(range) {
     const map = buildTextMap(range);
     const chunks = buildSpeechChunks(
-            map.text,
-            CONFIG.maxSpeechChunkLength,
-            getPageLanguage()
-        );
+        map.text,
+        CONFIG.maxSpeechChunkLength,
+        getPageLanguage()
+    );
 
     if (chunks.length === 0) {
         showToast('Nothing to read');
@@ -216,7 +216,7 @@ export function startReading(range) {
  * start without a selection, so no toolbar exists yet.
  * @param {Range} range
  */
-export function ensureReadingToolbar(range) {
+function ensureReadingToolbar(range) {
     if (document.getElementById(CONFIG.toolbarId)) {
         updateToolbarReadingState();
         return;
@@ -272,7 +272,7 @@ export function pickReadingVoice() {
  * @param {object} session
  * @param {number} index
  */
-export function queueSpeechChunk(session, index) {
+function queueSpeechChunk(session, index) {
     if (session !== STATE.speech ||
         index < 0 ||
         index >= session.chunks.length ||
@@ -359,7 +359,7 @@ export function queueSpeechChunk(session, index) {
 /**
  * Pause the current reading.
  */
-export function pauseReading() {
+function pauseReading() {
     if (!STATE.speech || STATE.speech.paused) {
         return;
     }
@@ -373,7 +373,7 @@ export function pauseReading() {
 /**
  * Resume a paused reading.
  */
-export function resumeReading() {
+function resumeReading() {
     if (!STATE.speech || !STATE.speech.paused) {
         return;
     }
@@ -407,7 +407,7 @@ export function stopReading(options = {}) {
 /**
  * Finish the current reading normally.
  */
-export function finishReading() {
+function finishReading() {
     const wasReading = Boolean(STATE.speech);
     STATE.speech = null;
     clearReadingHighlight();
@@ -424,7 +424,7 @@ export function finishReading() {
  * read the text; only the visual follow-along is skipped.
  * @param {Range} range
  */
-export function highlightReadingRange(range) {
+function highlightReadingRange(range) {
     if (!window.CSS || !CSS.highlights || typeof Highlight !== 'function') {
         return;
     }
@@ -438,7 +438,7 @@ export function highlightReadingRange(range) {
  * @param {object} session
  * @param {number} offset
  */
-export function highlightReadingSentence(session, offset) {
+function highlightReadingSentence(session, offset) {
     const sentence = session.sentences.find((entry) =>
         offset >= entry.start && offset < entry.end
     );
@@ -459,7 +459,7 @@ export function highlightReadingSentence(session, offset) {
 /**
  * Remove the follow-along highlight.
  */
-export function clearReadingHighlight() {
+function clearReadingHighlight() {
     if (window.CSS && CSS.highlights) {
         CSS.highlights.delete(CONFIG.readingHighlightName);
     }

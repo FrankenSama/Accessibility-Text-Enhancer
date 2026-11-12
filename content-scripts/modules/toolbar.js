@@ -119,7 +119,7 @@ export function createToolbar() {
  * @param {boolean} [includeDisabled]
  * @returns {HTMLButtonElement[]}
  */
-export function getToolbarButtons(toolbar, includeDisabled = false) {
+function getToolbarButtons(toolbar, includeDisabled = false) {
     return Array.from(toolbar.querySelectorAll('button'))
         .filter((button) => !button.hidden && (includeDisabled || !button.disabled));
 }
@@ -129,7 +129,7 @@ export function getToolbarButtons(toolbar, includeDisabled = false) {
  * @param {HTMLButtonElement} button
  * @param {HTMLElement} toolbar
  */
-export function setToolbarTabStop(button, toolbar) {
+function setToolbarTabStop(button, toolbar) {
     // Reset hidden buttons too. Otherwise a hidden reading control can
     // keep a stale tabindex="0" after it leaves the toolbar.
     Array.from(toolbar.querySelectorAll('button')).forEach((item) => {
@@ -142,7 +142,7 @@ export function setToolbarTabStop(button, toolbar) {
  * button that just became disabled.
  * @param {HTMLElement} toolbar
  */
-export function syncToolbarTabStops(toolbar) {
+function syncToolbarTabStops(toolbar) {
     const enabled = getToolbarButtons(toolbar);
 
     if (enabled.length === 0) {
@@ -179,7 +179,7 @@ export function syncToolbarTabStops(toolbar) {
  * Arrow-key navigation for the toolbar's single tab stop.
  * @param {HTMLElement} toolbar
  */
-export function setupToolbarKeyboardNavigation(toolbar) {
+function setupToolbarKeyboardNavigation(toolbar) {
     toolbar.addEventListener('keydown', (event) => {
         if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) {
             return;
