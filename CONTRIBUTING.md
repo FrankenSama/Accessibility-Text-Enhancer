@@ -223,10 +223,22 @@ project/
 │   ├── popup.css         # Popup styling
 │   └── popup.js          # Popup logic
 ├── content-scripts/
-│   ├── content.js        # Classic loader that imports app.js
+│   ├── content.js        # Classic loader that dynamically imports app.js
 │   ├── app.js            # Wiring: preferences, listeners, keyboard shortcuts
-│   ├── modules/          # Focused ES modules (toolbar, commands, reading, ...)
-│   └── content.css       # Toolbar styling
+│   ├── content.css       # Toolbar styling
+│   └── modules/
+│       ├── core.js       # STATE, CONFIG, and command constants
+│       ├── text.js       # Sentence splitting and speech chunking
+│       ├── dom.js        # Selection, range, and DOM helpers
+│       ├── toolbar.js    # Toolbar rendering, positioning, and focus
+│       ├── reading.js    # Read-aloud session and follow-along highlight
+│       ├── settings.js   # Settings dialog plus import and export
+│       ├── scope.js      # Which elements a command affects
+│       ├── commands.js   # Command dispatch and enhancement effects
+│       ├── contrast.js   # WCAG colour math and contrast command
+│       ├── history.js    # Undo and redo history
+│       ├── toast.js      # Single live-region notification
+│       └── feedback.js   # Toast wording shared by commands
 ├── icons/                # Extension icons
 ├── docs/                 # Documentation and research
 ├── index.html            # GitHub Pages landing page
