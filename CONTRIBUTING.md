@@ -223,7 +223,9 @@ project/
 │   ├── popup.css         # Popup styling
 │   └── popup.js          # Popup logic
 ├── content-scripts/
-│   ├── content.js        # Main enhancement engine
+│   ├── content.js        # Classic loader that imports app.js
+│   ├── app.js            # Wiring: preferences, listeners, keyboard shortcuts
+│   ├── modules/          # Focused ES modules (toolbar, commands, reading, ...)
 │   └── content.css       # Toolbar styling
 ├── icons/                # Extension icons
 ├── docs/                 # Documentation and research

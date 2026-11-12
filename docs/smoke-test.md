@@ -44,6 +44,8 @@ unusable.
 These should already be green before the manual pass:
 
 - `node --check content-scripts/content.js`
+- The module files in `content-scripts/` are ES modules; the release browser
+  harness parses and exercises them.
 - `node --check background.js`
 - `node --check popup/popup.js`
 - `node --check options/options.js`
