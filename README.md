@@ -2,9 +2,9 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-1.3.0-blue.svg)
+![Version](https://img.shields.io/badge/version-1.3.1-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
-![Chrome](https://img.shields.io/badge/Chrome-88%2B-yellow.svg)
+![Chrome](https://img.shields.io/badge/Chrome-91%2B-yellow.svg)
 
 **Read the web on your terms.**
 
@@ -28,7 +28,7 @@ Originally developed for an MSc dissertation at Solent University, it is now mai
 - **Undo/redo** for the last 50 changes
 - **Dark/light toolbar**, with JSON export and import
 - **Keyboard and screen reader support**: shortcuts, a single tab stop, arrow-key navigation, and `aria-pressed` state (NVDA-verified on Windows)
-- **Works in** Chrome 88+ and other Chromium-based browsers
+- **Works in** Chrome 91+ and other Chromium-based browsers
 
 ## Install
 

@@ -83,7 +83,7 @@ Pull requests are optional. If you would rather maintain your own version, fork 
 
 ### Prerequisites
 
-- Chrome/Chromium browser (v88+)
+- Chrome/Chromium browser (v91+)
 - Git
 - Text editor (VS Code recommended)
 - Basic knowledge of JavaScript and Chrome Extension APIs

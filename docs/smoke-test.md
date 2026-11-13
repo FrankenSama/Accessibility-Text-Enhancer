@@ -19,6 +19,11 @@ Only the Windows/NVDA path has been run. The macOS and Linux steps below are
 kept so a future tester can complete them, but do not describe the extension as
 VoiceOver- or Orca-verified until those rows are updated.
 
+v1.3.1 changed the toolbar layout, speech queueing, notification handling, and
+the content-script structure. Those paths pass the automated accessibility-tree
+and browser harness checks, but the manual NVDA pass has not been repeated since
+v1.3.0.
+
 ## Setup
 
 1. Load the current build as an unpacked extension:
@@ -128,7 +133,7 @@ Use **Pass**, **Pass with notes**, or **Fail** for each section.
 
 | Check | Date | Environment | Result |
 |-------|------|-------------|--------|
-| Automated accessibility-tree snapshot | 2026-11-06 | Chrome 156 headless on Windows, real extension build | 21/21 checks pass |
+| Automated accessibility-tree snapshot | 2026-11-12 | Chrome 156 headless on Windows, real extension build | 23/23 checks pass |
 | NVDA manual pass | 2026-11-06 | Windows 11 Home 26200, Chrome for Testing 156.0.8078.47 headed with `--force-renderer-accessibility`, NVDA 2026.3 (Portuguese UI) | Pass with notes |
 | VoiceOver manual pass | — | macOS | Not tested — no macOS hardware available |
 | Orca manual pass | — | Linux | Not tested — no Linux environment available |
@@ -160,11 +165,11 @@ Not exercised separately with NVDA: `T5`–`T6`, `P1`–`P3`, and `R6`–`R9`.
 Those paths are covered by the browser harness, which also passed 33 reading
 checks, 75 page checks, and the popup, shortcut, tooltip, and layout checks.
 
-Only the Windows/NVDA path is verified for v1.3.0. VoiceOver and Orca remain
-open, and no macOS or Linux environment is currently available to the
-maintainer. Run the same checklist on those platforms before claiming support;
-results, including a VoiceOver caption-panel transcript (`VO-Fn-Command-F10`),
-are welcome in an issue.
+Only the Windows/NVDA path is verified, and the latest full manual pass was
+v1.3.0. VoiceOver and Orca remain open, and no macOS or Linux environment is
+currently available to the maintainer. Run the same checklist on those
+platforms before claiming support; results, including a VoiceOver caption-panel
+transcript (`VO-Fn-Command-F10`), are welcome in an issue.
 
 ## Reporting failures
 

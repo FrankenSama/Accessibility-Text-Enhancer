@@ -2,7 +2,7 @@
 
 This roadmap tracks the accessibility work planned for Accessibility Text Enhancer. It is a living document: items move between phases as the project learns from real use, and nothing here is a commitment to a date.
 
-**Current build:** v1.3.0 (released) · **Last updated:** 2026-11-06
+**Current build:** v1.3.1 (released) · **Last updated:** 2026-11-12
 
 ## Guiding principles
 
@@ -24,6 +24,8 @@ This roadmap tracks the accessibility work planned for Accessibility Text Enhanc
 | 5 | Platform and reach | v2.0.0 | 💡 Exploring |
 
 **Status key:** ✅ Done · 🚧 In progress · 📋 Planned · 💡 Exploring · ⏸️ Deferred
+
+**v1.3.1 (maintenance):** keeps the toolbar on two rows so it covers less page text, fixes the toolbar focus fallback, queues the next speech chunk so reading no longer pauses between chunks, reads a paragraph as one utterance, keeps words apart across line breaks and block boundaries, names the command in undo/redo feedback, reuses a single notification live region, adds a Reading settings page with voice preview, compacts the popup shortcut list, and splits the content script into ES modules. No new permissions or network access.
 
 ---
 
@@ -117,7 +119,7 @@ The toolbar already declares `role="toolbar"`, but it was not operable or unders
 
 ## Phase 3 — Personalization and persistence (v1.4.0) 📋
 
-**Problem:** only `darkMode` is stored, only locally. The settings panel has two buttons, and every command has one fixed value.
+**Problem:** every preference is local to one Chrome profile. Reading voice, speed, and pitch are stored in `chrome.storage.local` and included in settings export/import, but font size, spacing, highlight colour, and theme still reset per command instead of following the user. There are no per-site rules and no single action to reset a page.
 
 **Work:**
 
@@ -187,14 +189,14 @@ These are worth investigating but are not scheduled:
 
 ## Release checklist
 
-- [x] Browser harness green (75 page checks; command relay, shortcut conflicts, popup, and tooltip stacking verified separately)
-- [x] Keyboard-only pass: select, open toolbar, traverse, apply, undo
-- [x] NVDA smoke test on Windows — see [`docs/smoke-test.md`](docs/smoke-test.md)
-- [ ] VoiceOver (macOS) and Orca (Linux) smoke tests — not blocking for v1.3.0; no macOS or Linux hardware available. See [`docs/smoke-test.md`](docs/smoke-test.md)
+- [x] Browser harness green (197 automated checks across chunks, reading, accessibility tree, toolbar focus, in-page settings, history, toast, options, and popup layout; real-extension load and command smoke tests also pass)
+- [x] Keyboard-only harness checks: focus, traversal, apply, undo
+- [x] NVDA smoke test on Windows — last full pass on v1.3.0; v1.3.1 changes covered by the automated harness. See [`docs/smoke-test.md`](docs/smoke-test.md)
+- [ ] VoiceOver (macOS) and Orca (Linux) smoke tests — not blocking for v1.3.1; no macOS or Linux hardware available. See [`docs/smoke-test.md`](docs/smoke-test.md)
 - [x] Dark and light toolbar themes
 - [x] Version bumped in `manifest.json`, `popup/popup.html`, and the README badge
 - [x] `README.md` and `CONTRIBUTING.md` updated
-- [x] `v1.3.0` tag created after the release commit
+- [x] `v1.3.1` tag created after the release commit
 
 ## How to contribute
 

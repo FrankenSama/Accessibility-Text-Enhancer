@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Accessibility Text Enhancer",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "description": "Real-time, user-driven web accessibility enhancement tool with intelligent text modifications and personalization.",
   "minimum_chrome_version": "91",
   "icons": {
