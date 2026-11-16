@@ -2,13 +2,13 @@
 
 This roadmap tracks the accessibility work planned for Accessibility Text Enhancer. It is a living document: items move between phases as the project learns from real use, and nothing here is a commitment to a date.
 
-**Current build:** v1.3.1 (released) · **Last updated:** 2026-11-12
+**Latest GitHub release:** v1.3.1 · **Chrome Web Store:** v1.2.0 · **Last updated:** 2026-11-13
 
 ## Guiding principles
 
 1. **User-driven only.** The extension never changes a page on its own. Every style change starts with an explicit selection or command.
 2. **Keyboard parity.** Anything reachable with a mouse must be reachable, operable, and understandable with a keyboard and a screen reader.
-3. **Reversible by default.** Every visual change goes through the undo history, and every session can be reset.
+3. **Reversible by default.** Every visual change goes through the undo history, and resetting a whole page will be a first-class action.
 4. **Respect the page.** Form controls, editable regions, the extension's own UI, SVG, and MathML stay untouched.
 5. **Local and private.** No telemetry, no analytics, no network requests, no remote code.
 6. **Graceful degradation.** A page that fights back should produce a clear message, not a broken layout.
@@ -18,14 +18,19 @@ This roadmap tracks the accessibility work planned for Accessibility Text Enhanc
 | Phase | Theme | Target | Status |
 |-------|-------|--------|--------|
 | 1 | Accessibility correctness | v1.2.0 | ✅ Released |
-| 2 | Reading assistant | v1.3.0 | ✅ Released |
-| 3 | Personalization and persistence | v1.4.0 | 📋 Planned |
-| 4 | Reading aids | v1.5.0 | 📋 Planned |
-| 5 | Platform and reach | v2.0.0 | 💡 Exploring |
+| 2 | Reading assistant | v1.3.0–v1.3.1 | ✅ Released |
+| 3 | Persistence and control | v1.4.0 | 📋 Planned |
+| 4 | Personalization | v1.5.0 | 📋 Planned |
+| 5 | Reading aids | v1.6.0 | 📋 Planned |
+| 6 | Platform and reach | v2.0.0 | 💡 Exploring |
 
 **Status key:** ✅ Done · 🚧 In progress · 📋 Planned · 💡 Exploring · ⏸️ Deferred
 
 **v1.3.1 (maintenance):** keeps the toolbar on two rows so it covers less page text, fixes the toolbar focus fallback, queues the next speech chunk so reading no longer pauses between chunks, reads a paragraph as one utterance, keeps words apart across line breaks and block boundaries, names the command in undo/redo feedback, reuses a single notification live region, adds a Reading settings page with voice preview, compacts the popup shortcut list, and splits the content script into ES modules. No new permissions or network access.
+
+**v1.3.2 (maintenance, unreleased):** quality-of-life pass before v1.4.0. Adds Windows High Contrast (`forced-colors`) styling for the toolbar, settings dialog, notifications, popup, and reading settings page; a toolbar ✕ button that dismisses the toolbar the way `Escape` does; near-selection toolbar placement that flips above or below the selection and clamps to the viewport, with tooltips that open away from the text; and a readable export filename (`accessibility-text-enhancer-settings-v<version>-<date>.json`). Also lets Focus Toolbar restore the toolbar for a selection that is still on the page after a dismissal. No new permissions or network access.
+
+**Distribution:** as of 2026-11-13, v1.3.1 is the latest GitHub release and includes a packaged extension zip. The Chrome Web Store listing still serves v1.2.0, so publishing the v1.3.1 package there is the remaining distribution step.
 
 ---
 
@@ -96,7 +101,7 @@ The toolbar already declares `role="toolbar"`, but it was not operable or unders
 
 ---
 
-## Phase 2 — Reading assistant (v1.3.0) ✅
+## Phase 2 — Reading assistant (v1.3.0–v1.3.1) ✅
 
 **Problem:** `readTextAloud()` is a single fixed-rate utterance. It is the only feature aimed at blind and low-vision users, and it is the least developed one.
 
@@ -111,35 +116,51 @@ The toolbar already declares `role="toolbar"`, but it was not operable or unders
 
 **Acceptance:** a user can start, pause, resume, and stop a reading; the current sentence is visible; rate and voice survive a reload; reading never creates an undo entry.
 
-**Risks:** the voice list is asynchronous and inconsistent across platforms; sentence highlighting needs the CSS Custom Highlight API, so older browsers read without visual follow-along; Chrome may cut off very long utterances.
+**Risks:** the voice list is asynchronous and inconsistent across platforms; sentence highlighting needs the CSS Custom Highlight API, so older browsers read without visual follow-along; very long single sentences can still be truncated even though v1.3.1 chunks and queues speech.
 
 **Effort:** medium · **Impact:** very high
 
 ---
 
-## Phase 3 — Personalization and persistence (v1.4.0) 📋
+## Phase 3 — Persistence and control (v1.4.0) 📋
 
-**Problem:** every preference is local to one Chrome profile. Reading voice, speed, and pitch are stored in `chrome.storage.local` and included in settings export/import, but font size, spacing, highlight colour, and theme still reset per command instead of following the user. There are no per-site rules and no single action to reset a page.
+**Problem:** preferences do not follow the user across Chrome profiles. Theme, reading voice, speed, and pitch are stored in `chrome.storage.local`; font size, spacing, and highlight colour have no saved defaults at all. There are no per-site rules and no one-action reset.
 
 **Work:**
 
-- **Synced defaults.** Move preferences to `chrome.storage.sync`: font-size step, TTS voice/rate, highlight colour, spacing preset, theme.
-- **Per-site rules.** "Always on", "always off", and "remember my styles here", with a control in the popup (which already knows the hostname).
-- **Reset page.** One action that removes every wrapper, override, and history entry.
-- **Font picker.** Sans, serif, monospace, and a bundled OpenDyslexic face.
-- **Spacing presets.** A WCAG 1.4.12 preset (line height 1.5, paragraph spacing 2em, letter spacing 0.12em, word spacing 0.16em) plus a slider.
-- **Highlight options.** Several colours and an underline-only mode for users who cannot rely on a background colour.
+- **Synced preferences.** Move the existing preferences to `chrome.storage.sync`: theme and TTS voice, rate, and pitch. Decide whether the extension on/off switch stays per-device rather than syncing.
 - **Settings schema v2.** Versioned export/import with migration from the current file.
+- **Per-site rules.** "Always on" and "always off" per origin, with a control in the popup (which already knows the hostname). Keep this to enabling and disabling the extension; reapplying text-level changes stays in the backlog.
+- **Reset page.** One action that removes every wrapper, override, and history entry.
 
-**Acceptance:** preferences follow the user to another Chrome profile; a site can be excluded permanently; reset leaves the page as it was found; exported settings round-trip across versions.
+**Acceptance:** preferences follow the user to another Chrome profile; a site can be excluded permanently; Reset page leaves the page as it was found; exported settings round-trip across versions.
 
-**Risks:** `storage.sync` quotas; site rules must key on origin, not full URL; reset must not touch styles the extension did not set.
+**Risks:** `storage.sync` quotas and conflict resolution; site rules must key on origin, not full URL; reset must not touch styles the extension did not set.
 
 **Effort:** medium · **Impact:** high
 
 ---
 
-## Phase 4 — Reading aids (v1.5.0) 📋
+## Phase 4 — Personalization (v1.5.0) 📋
+
+**Problem:** every command uses one fixed value: one highlight colour, two font families, and a single spacing toggle.
+
+**Work:**
+
+- **Font picker.** Sans, serif, monospace, and a bundled OpenDyslexic face.
+- **Spacing presets.** A WCAG 1.4.12 preset (line height 1.5, paragraph spacing 2em, letter spacing 0.12em, word spacing 0.16em) plus a slider.
+- **Highlight options.** Several colours and an underline-only mode for users who cannot rely on a background colour.
+- **Saved defaults.** Persist and sync the chosen font, spacing preset, and highlight style through the v1.4.0 storage layer.
+
+**Acceptance:** a user can choose a font, spacing preset, and highlight style; the choices apply to new commands, survive a reload, and follow the profile; export/import round-trips them.
+
+**Risks:** a bundled font increases package size; page CSS can override the chosen values; highlight colours must keep WCAG contrast; a saved default for a relative command such as size ± needs a clear definition.
+
+**Effort:** medium · **Impact:** high
+
+---
+
+## Phase 5 — Reading aids (v1.6.0) 📋
 
 **Problem:** the extension can restyle text, but it cannot reduce visual noise or help a reader keep their place.
 
@@ -156,7 +177,7 @@ The toolbar already declares `role="toolbar"`, but it was not operable or unders
 
 ---
 
-## Phase 5 — Platform and reach (v2.0.0) 💡
+## Phase 6 — Platform and reach (v2.0.0) 💡
 
 - **Context-menu commands.** A `chrome.contextMenus` submenu for Bold, Highlight, Read Aloud, Contrast, and Spacing, available on a selection or a right-clicked paragraph. Gives discoverability and a keyboard path through the context-menu key.
 - **Frame support.** Enable `all_frames`, keep the UI in the top frame, and coordinate commands with `chrome.runtime` messaging.
@@ -175,7 +196,7 @@ These are worth investigating but are not scheduled:
 
 - **Background-image contrast.** Sample the dominant colour behind text so `Fix Contrast` works on hero images and gradients. Cross-origin canvas restrictions may make this unreliable; a text-shadow fallback is the safer first step.
 - **Page-wide high-contrast theme.** A reversible dark/high-contrast overlay for the whole document. High impact, high risk of breaking layouts.
-- **Persistent enhancements.** Reapply a user's changes when they revisit a page. Text anchors are more stable than selectors, but still fragile on dynamic sites.
+- **Persistent enhancements.** Reapply a user's text-level changes when they revisit a page, beyond the per-site on/off rules in Phase 3. Text anchors are more stable than selectors, but still fragile on dynamic sites.
 - **Reading progress and word count.** Useful for long articles, but outside the current "enhance what you select" model.
 - **Automated accessibility audit.** Explicitly not planned: this is an enhancement tool, not a checker.
 
@@ -189,14 +210,18 @@ These are worth investigating but are not scheduled:
 
 ## Release checklist
 
-- [x] Browser harness green (197 automated checks across chunks, reading, accessibility tree, toolbar focus, in-page settings, history, toast, options, and popup layout; real-extension load and command smoke tests also pass)
-- [x] Keyboard-only harness checks: focus, traversal, apply, undo
-- [x] NVDA smoke test on Windows — last full pass on v1.3.0; v1.3.1 changes covered by the automated harness. See [`docs/smoke-test.md`](docs/smoke-test.md)
-- [ ] VoiceOver (macOS) and Orca (Linux) smoke tests — not blocking for v1.3.1; no macOS or Linux hardware available. See [`docs/smoke-test.md`](docs/smoke-test.md)
-- [x] Dark and light toolbar themes
-- [x] Version bumped in `manifest.json`, `popup/popup.html`, and the README badge
-- [x] `README.md` and `CONTRIBUTING.md` updated
-- [x] `v1.3.1` tag created after the release commit
+Use this list for every release. The v1.3.1 run is recorded in the release notes and [`docs/smoke-test.md`](docs/smoke-test.md).
+
+- [ ] Browser harness green (all suites, including real-extension load and command smoke tests)
+- [ ] Keyboard-only harness checks: focus, traversal, apply, undo
+- [ ] NVDA smoke test on Windows when the toolbar, settings, or reading changes — see [`docs/smoke-test.md`](docs/smoke-test.md). Last full pass: v1.3.0
+- [ ] VoiceOver (macOS) and Orca (Linux) smoke tests — not blocking, but still untested; no macOS or Linux hardware available
+- [ ] Dark and light toolbar themes
+- [ ] Version bumped in `manifest.json`, `popup/popup.html`, and the README badge
+- [ ] `README.md` and `CONTRIBUTING.md` updated
+- [ ] Packaged extension zip attached to the GitHub release, with a SHA-256 checksum
+- [ ] Chrome Web Store package submitted and published, and the store version recorded here
+- [ ] `vX.Y.Z` tag created after the release commit
 
 ## How to contribute
 

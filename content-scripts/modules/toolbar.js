@@ -77,6 +77,7 @@ export function createToolbar() {
         <div class="button-group">
             <button type="button" data-command="settings" class="settings-btn" data-tooltip="Settings">⚙️</button>
             <button type="button" data-command="toggleTheme" class="settings-btn" data-tooltip="Toggle Theme">${STATE.isDarkMode ? '☀️' : '🌙'}</button>
+            <button type="button" data-command="close" class="settings-btn dismiss-btn" data-tooltip="Dismiss toolbar (Esc)">✕</button>
         </div>
     `;
 
@@ -240,6 +241,20 @@ export function focusToolbarForSelection() {
     }
 
     if (!STATE.savedRange) {
+        // Dismissing the toolbar (Escape or the close button) clears the
+        // saved range but leaves the page selection alone. Adopt a live
+        // selection so Focus Toolbar can bring the toolbar back for text
+        // that is still highlighted on the page.
+        const selection = window.getSelection();
+        if (selection && selection.rangeCount > 0 && !selection.isCollapsed) {
+            const live = selection.getRangeAt(0);
+            if (live.toString().trim()) {
+                STATE.savedRange = live.cloneRange();
+            }
+        }
+    }
+
+    if (!STATE.savedRange) {
         const hint = STATE.focusToolbarShortcut
             ? `press ${STATE.focusToolbarShortcut}`
             : 'use the Focus Toolbar shortcut';
@@ -266,7 +281,9 @@ export function focusToolbarForSelection() {
 }
 
 /**
- * Positions the toolbar at the top of the viewport.
+ * Positions the toolbar next to the selection: above it when there is room,
+ * flipped below when there is not, and clamped to the viewport edges. When
+ * neither side has room, the toolbar docks near the top of the viewport.
  * @param {HTMLElement} toolbar - The toolbar element
  * @param {Range} range - The selection range
  */
@@ -275,20 +292,56 @@ export function positionToolbar(toolbar, range) {
         return;
     }
 
+    // Keep the toolbar off the very edge of the viewport, and leave a small
+    // gap so it does not touch the selected text.
+    const margin = 15;
+    const gap = 10;
+
     const rect = range.getBoundingClientRect();
     const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
     const toolbarWidth = Math.min(
         toolbar.offsetWidth || CONFIG.toolbarMaxWidth,
-        viewportWidth - 30
+        viewportWidth - margin * 2
     );
+    const toolbarHeight = toolbar.offsetHeight || 0;
+
+    // The CSS translates the toolbar by -50% on the X axis, so `left` is the
+    // centre of the toolbar. Centre it on the selection, then clamp it so it
+    // never leaves the viewport.
     const center = rect.width > 0 ? rect.left + (rect.width / 2) : viewportWidth / 2;
     const left = Math.max(
-        toolbarWidth / 2 + 15,
-        Math.min(center, viewportWidth - toolbarWidth / 2 - 15)
+        toolbarWidth / 2 + margin,
+        Math.min(center, viewportWidth - toolbarWidth / 2 - margin)
     );
 
-    toolbar.style.top = '15px';
-    toolbar.style.left = `${left}px`;
+    const spaceAbove = rect.top - gap - margin;
+    const spaceBelow = viewportHeight - rect.bottom - gap - margin;
+
+    let above = false;
+    let top;
+
+    if (spaceAbove >= toolbarHeight) {
+        above = true;
+        top = rect.top - gap - toolbarHeight;
+    } else if (spaceBelow >= toolbarHeight) {
+        top = rect.bottom + gap;
+    } else {
+        // Neither side fits a multi-row toolbar, so dock it where the old
+        // behaviour put it: out of the way at the top of the viewport.
+        top = margin;
+    }
+
+    top = Math.max(margin, Math.min(top, viewportHeight - toolbarHeight - margin));
+
+    // Tooltips open downwards by default. Above the toolbar they would cover
+    // the selected text, and below a toolbar near the bottom of the viewport
+    // they would be clipped, so flip them when either applies.
+    const tooltipsAbove = above ||
+        viewportHeight - (top + toolbarHeight) < 40;
+    toolbar.classList.toggle('toolbar-above', tooltipsAbove);
+    toolbar.style.top = `${Math.round(top)}px`;
+    toolbar.style.left = `${Math.round(left)}px`;
 }
 
 /**

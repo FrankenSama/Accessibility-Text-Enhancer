@@ -97,6 +97,12 @@ input:checked + .slider:before {
     transform: translateX(26px);
 }
 
+/* The checkbox itself is visually hidden, so show focus on the track. */
+.switch input:focus-visible + .slider {
+    outline: 2px solid white;
+    outline-offset: 2px;
+}
+
 #status {
     text-align: center;
     font-weight: 600;
@@ -288,4 +294,85 @@ input:checked + .slider:before {
     font-size: 11px;
     opacity: 0.6;
     margin-top: 8px;
+}
+
+/* Forced-colors mode: the gradient page and translucent cards lose their
+   contrast, so switch to system colours and visible borders. */
+@media (forced-colors: active) {
+    body {
+        background: Canvas;
+        color: CanvasText;
+    }
+
+    .main-toggle,
+    .stats,
+    .info,
+    .shortcuts,
+    #status,
+    .shortcut-key {
+        background: Canvas;
+        border: 1px solid CanvasText;
+        box-shadow: none;
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+    }
+
+    .settings-entry {
+        background: ButtonFace;
+        color: ButtonText;
+        border-color: ButtonText;
+    }
+
+    .slider {
+        background: ButtonFace;
+        border: 1px solid ButtonText;
+    }
+
+    .slider:before {
+        background: ButtonText;
+        box-shadow: none;
+    }
+
+    input:checked + .slider {
+        background: Highlight;
+    }
+
+    input:checked + .slider:before {
+        background: HighlightText;
+    }
+
+    .switch input:focus-visible + .slider,
+    .settings-entry:focus-visible,
+    .shortcuts-summary:focus-visible,
+    .manage-shortcuts:focus-visible {
+        outline: 2px solid Highlight;
+        outline-offset: 2px;
+    }
+
+    #status.active,
+    #status.disabled {
+        border-width: 2px;
+    }
+
+    .shortcut-key {
+        background: ButtonFace;
+        color: ButtonText;
+    }
+
+    .manage-shortcuts,
+    .footer a {
+        color: LinkText;
+    }
+
+    .footer {
+        border-top-color: CanvasText;
+    }
+
+    .header p,
+    .stat-label,
+    .info p,
+    .version,
+    .manage-shortcuts {
+        opacity: 1;
+    }
 }

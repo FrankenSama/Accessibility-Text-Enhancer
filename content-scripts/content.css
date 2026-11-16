@@ -192,6 +192,19 @@ span[data-atx-selection] {
     transform: translateX(-50%) translateY(4px);
 }
 
+/* When the toolbar sits above the selection, open tooltips upwards so they
+   do not cover the selected text. */
+#accessibility-toolbar.toolbar-above button::before {
+    top: auto;
+    bottom: 100%;
+    transform: translateX(-50%) translateY(-8px);
+}
+
+#accessibility-toolbar.toolbar-above button:hover::before,
+#accessibility-toolbar.toolbar-above button:focus-visible::before {
+    transform: translateX(-50%) translateY(-4px);
+}
+
 /* Undo/Redo buttons */
 #accessibility-toolbar .history-btn {
     min-width: 36px;
@@ -463,5 +476,126 @@ span[data-atx-selection] {
 
     #accessibility-toolbar button:hover {
         transform: none;
+    }
+}
+
+/* Windows High Contrast / forced-colors mode. Gradients and translucent
+   backgrounds are replaced by system colours, and box-shadow disappears, so
+   add real borders and explicit system colours to keep every control legible. */
+@media (forced-colors: active) {
+    #accessibility-toolbar,
+    #accessibility-toolbar.light-mode {
+        background: Canvas;
+        border: 1px solid CanvasText;
+        box-shadow: none;
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+    }
+
+    #accessibility-toolbar .button-group,
+    #accessibility-toolbar.light-mode .button-group {
+        border-right-color: CanvasText;
+    }
+
+    #accessibility-toolbar .button-group button,
+    #accessibility-toolbar.light-mode .button-group button {
+        background: ButtonFace;
+        color: ButtonText;
+        border: 1px solid ButtonText;
+    }
+
+    #accessibility-toolbar .button-group button:hover {
+        background: ButtonFace;
+        color: ButtonText;
+        outline: 2px solid Highlight;
+        outline-offset: -2px;
+    }
+
+    #accessibility-toolbar .button-group button[aria-pressed="true"] {
+        background: ButtonFace;
+        color: ButtonText;
+        border: 2px solid Highlight;
+    }
+
+    #accessibility-toolbar .button-group button[aria-pressed="true"]:hover {
+        background: ButtonFace;
+        color: ButtonText;
+        outline: 2px dashed Highlight;
+    }
+
+    #accessibility-toolbar .button-group button[aria-pressed="mixed"] {
+        border: 2px dotted ButtonText;
+    }
+
+    #accessibility-toolbar .button-group button:disabled,
+    #accessibility-toolbar .button-group button:disabled:hover {
+        background: ButtonFace;
+        color: GrayText;
+        border-color: GrayText;
+        opacity: 1;
+    }
+
+    #accessibility-toolbar button:focus-visible,
+    #accessibility-settings-panel button:focus-visible {
+        outline: 2px solid Highlight;
+        outline-offset: 2px;
+    }
+
+    #accessibility-toolbar button::before {
+        background: Canvas;
+        color: CanvasText;
+        border: 1px solid CanvasText;
+        box-shadow: none;
+    }
+
+    #accessibility-settings-panel {
+        background: Canvas;
+        color: CanvasText;
+        border: 1px solid CanvasText;
+        box-shadow: none;
+    }
+
+    #accessibility-settings-panel .setting-item {
+        background: Canvas;
+        border: 1px solid CanvasText;
+    }
+
+    #accessibility-settings-panel .setting-field output {
+        opacity: 1;
+    }
+
+    #accessibility-settings-panel .setting-select {
+        background: Field;
+        color: FieldText;
+        border-color: ButtonText;
+    }
+
+    #accessibility-settings-panel .close-btn,
+    #accessibility-settings-panel .action-btn {
+        background: ButtonFace;
+        color: ButtonText;
+        border: 1px solid ButtonText;
+    }
+
+    #accessibility-settings-overlay {
+        background: transparent;
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+    }
+
+    .accessibility-toast {
+        background: Canvas;
+        color: CanvasText;
+        border: 1px solid CanvasText;
+        box-shadow: none;
+    }
+
+    .accessibility-toast.error {
+        border-width: 2px;
+    }
+
+    ::highlight(atx-reading) {
+        background-color: Highlight;
+        color: CanvasText;
     }
 }

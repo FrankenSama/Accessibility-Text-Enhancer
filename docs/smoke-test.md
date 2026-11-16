@@ -67,6 +67,18 @@ These should already be green before the manual pass:
 | T4 | Activate Bold and Highlight. | Each button announces its pressed state. Repeating the command updates the announcement. |
 | T5 | Activate Undo and Redo. | The announced disabled state matches the button state, and each message names the command, for example “Undone: Bold” or “Redone: Highlight”. Undo is disabled when there is nothing to undo. |
 | T6 | Press `Escape` while the toolbar has focus. | The toolbar closes and focus returns to the page sensibly. |
+| T7 | Move to the last toolbar button with `End` and activate it, or click the ✕ button. | The toolbar closes, “Toolbar dismissed” is announced, and the page selection is left in place. Pressing `Ctrl+Shift+F` (`Cmd+Shift+F`) brings the toolbar back for the same selection. |
+| T8 | Select text near the top of the page, then text in the middle of the viewport, then text at the bottom. | The toolbar appears below the selection when there is no room above, and above it otherwise. It stays fully inside the viewport at both edges and never covers the selected text. |
+
+## High contrast
+
+Turn on Windows High Contrast (or emulate `forced-colors: active` in DevTools) and repeat each step.
+
+| # | Step | Expected |
+|---|------|----------|
+| H1 | Select text and inspect the toolbar. | Every button keeps a visible border and system text colour. Toggle buttons that are on show a highlight border instead of a solid colour block, and disabled Undo/Redo stay readable. |
+| H2 | Open Settings, then the popup, then Reading settings. | Panels, controls, and focus rings keep visible borders and system colours; no text disappears against its background. |
+| H3 | Trigger a notification and read aloud. | The notification and the sentence highlight stay legible against the page background. |
 
 ## Settings dialog
 
@@ -133,7 +145,8 @@ Use **Pass**, **Pass with notes**, or **Fail** for each section.
 
 | Check | Date | Environment | Result |
 |-------|------|-------------|--------|
-| Automated accessibility-tree snapshot | 2026-11-12 | Chrome 156 headless on Windows, real extension build | 23/23 checks pass |
+| Automated accessibility-tree snapshot | 2026-11-13 | Chrome 156 headless on Windows, real extension build | 23/23 checks pass |
+| Automated forced-colors and QoL checks | 2026-11-13 | Chrome 156 headless on Windows, real extension build, emulated `forced-colors: active` | 28/28 QoL checks pass; toolbar, settings, popup, and reading settings use system colours |
 | NVDA manual pass | 2026-11-06 | Windows 11 Home 26200, Chrome for Testing 156.0.8078.47 headed with `--force-renderer-accessibility`, NVDA 2026.3 (Portuguese UI) | Pass with notes |
 | VoiceOver manual pass | — | macOS | Not tested — no macOS hardware available |
 | Orca manual pass | — | Linux | Not tested — no Linux environment available |

@@ -16,7 +16,7 @@ import {
     selectedSlice
 } from './dom.js';
 import { showToast } from './toast.js';
-import { updateToolbarState } from './toolbar.js';
+import { removeToolbar, updateToolbarState } from './toolbar.js';
 import { stopReading, toggleReadAloud } from './reading.js';
 import { showSettingsPanel, toggleToolbarTheme } from './settings.js';
 import { notify } from './feedback.js';
@@ -58,9 +58,27 @@ export function handleCommand(command, options = {}) {
         case 'stopReading':
             stopReading();
             return;
+        case 'close':
+            closeToolbar();
+            return;
         default:
             enhanceSelection(command, options);
     }
+}
+
+/**
+ * Dismiss the toolbar the way Escape does: stop reading silently, forget the
+ * saved selection, and remove the toolbar. The page's own selection is left
+ * alone, so Focus Toolbar can bring the toolbar back for it.
+ */
+function closeToolbar() {
+    if (STATE.speech) {
+        stopReading({ silent: true });
+    }
+
+    STATE.savedRange = null;
+    removeToolbar();
+    showToast('Toolbar dismissed');
 }
 
 /**

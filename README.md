@@ -27,6 +27,7 @@ Originally developed for an MSc dissertation at Solent University, it is now mai
 - **Read aloud** with selectable voice, speed, and pitch, sentence highlighting, pause/resume/stop controls, plus voice preview and a dedicated settings page
 - **Undo/redo** for the last 50 changes
 - **Dark/light toolbar**, with JSON export and import
+- **High contrast**: the toolbar, popup, settings, and reading settings follow Windows High Contrast / forced-colors
 - **Keyboard and screen reader support**: shortcuts, a single tab stop, arrow-key navigation, and `aria-pressed` state (NVDA-verified on Windows)
 - **Works in** Chrome 91+ and other Chromium-based browsers
 
@@ -41,6 +42,8 @@ To load it manually, clone this repository, open `chrome://extensions/`, turn on
 1. Select text on any standard web page.
 2. Use the toolbar that appears, or one of the shortcuts below.
 3. Undo with `Ctrl+Z` / `Cmd+Z` if a change is not right.
+
+The toolbar opens next to your selection, above it when there is room and below it otherwise, and always stays inside the viewport. Its ✕ button dismisses the toolbar without clearing the page selection, as does `Escape`; `Ctrl+Shift+F` (`Cmd+Shift+F`) brings it back for the same text.
 
 Bold and highlight apply to the selected words; font size, style, spacing, and contrast apply to the nearest paragraph. Shift-click flips that scope. If a selection crosses paragraphs, bold and highlight apply paragraph by paragraph and a toast explains the result.
 

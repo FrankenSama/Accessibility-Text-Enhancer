@@ -308,7 +308,8 @@ function exportSettings() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `accessibility-settings-${Date.now()}.json`;
+    const date = settings.exportDate.slice(0, 10);
+    link.download = `accessibility-text-enhancer-settings-v${settings.version}-${date}.json`;
     getMountNode().appendChild(link);
     link.click();
     link.remove();

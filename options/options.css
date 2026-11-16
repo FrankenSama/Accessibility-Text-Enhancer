@@ -185,3 +185,69 @@ input[type="range"]:focus-visible {
     color: var(--muted);
     font-size: 13px;
 }
+
+/* Forced-colors mode: replace the theme palette with system colours so the
+   page, cards, controls, and focus rings stay legible. */
+@media (forced-colors: active) {
+    :root {
+        --page-bg: Canvas;
+        --card-bg: Canvas;
+        --text: CanvasText;
+        --muted: CanvasText;
+        --border: CanvasText;
+        --accent: Highlight;
+        --accent-hover: Highlight;
+        --secondary: ButtonFace;
+        --secondary-hover: ButtonFace;
+        --status-bg: Canvas;
+    }
+
+    .card {
+        border-color: CanvasText;
+    }
+
+    .btn {
+        border-color: CanvasText;
+    }
+
+    .btn.primary {
+        background: ButtonFace;
+        color: ButtonText;
+        border: 2px solid Highlight;
+    }
+
+    .btn.primary:hover {
+        background: ButtonFace;
+        color: ButtonText;
+        outline: 2px solid Highlight;
+        outline-offset: 2px;
+    }
+
+    .btn.secondary {
+        background: ButtonFace;
+        color: ButtonText;
+    }
+
+    select {
+        background: Field;
+        color: FieldText;
+    }
+
+    .status {
+        border: 1px solid CanvasText;
+    }
+
+    .status:empty {
+        border: none;
+    }
+
+    .btn:focus-visible,
+    select:focus-visible,
+    input[type="range"]:focus-visible {
+        outline: 2px solid Highlight;
+    }
+
+    .page-footer {
+        color: CanvasText;
+    }
+}
