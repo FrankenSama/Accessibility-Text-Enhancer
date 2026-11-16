@@ -59,15 +59,63 @@ function setStatus(message) {
 }
 
 /**
- * Persist one or more preferences.
+ * Persist one or more preferences. Theme and reading preferences sync
+ * across the user's Chrome profiles.
  * @param {Record<string, unknown>} values
  */
 function savePreferences(values) {
-    chrome.storage.local.set(values, () => {
+    chrome.storage.sync.set(values, () => {
         if (chrome.runtime.lastError) {
             setStatus('Could not save settings. Try again.');
         }
     });
+}
+
+/**
+ * Promise wrapper around a storage area read.
+ * @param {'local'|'sync'} area
+ * @param {string[]} keys
+ * @returns {Promise<Object>}
+ */
+function getStorage(area, keys) {
+    return new Promise((resolve) => {
+        chrome.storage[area].get(keys, (result) => {
+            resolve(chrome.runtime.lastError ? {} : (result || {}));
+        });
+    });
+}
+
+/**
+ * Load the synced reading preferences, copying values that only exist in
+ * storage.local from a pre-1.4.0 install.
+ * @returns {Promise<Object>}
+ */
+async function loadPreferences() {
+    const keys = ['ttsVoice', 'ttsRate', 'ttsPitch'];
+    const synced = await getStorage('sync', keys);
+    const missing = keys.filter((key) => synced[key] === undefined);
+
+    if (missing.length > 0) {
+        const legacy = await getStorage('local', missing);
+        const updates = {};
+
+        for (const key of missing) {
+            if (legacy[key] !== undefined) {
+                updates[key] = legacy[key];
+            }
+        }
+
+        if (Object.keys(updates).length > 0) {
+            chrome.storage.sync.set(updates, () => {
+                if (!chrome.runtime.lastError) {
+                    chrome.storage.local.remove(Object.keys(updates));
+                }
+            });
+            Object.assign(synced, updates);
+        }
+    }
+
+    return synced;
 }
 
 /**
@@ -215,12 +263,7 @@ function resetReadingSettings() {
 }
 
 // Load saved preferences.
-chrome.storage.local.get(['ttsVoice', 'ttsRate', 'ttsPitch'], (result) => {
-    if (chrome.runtime.lastError) {
-        setStatus('Could not load settings. Try reopening this page.');
-        return;
-    }
-
+loadPreferences().then((result) => {
     state.ttsVoice = typeof result.ttsVoice === 'string' ? result.ttsVoice : '';
     state.ttsRate = clampNumber(
         result.ttsRate,
@@ -237,12 +280,14 @@ chrome.storage.local.get(['ttsVoice', 'ttsRate', 'ttsPitch'], (result) => {
 
     loadVoices();
     syncControls();
+}).catch(() => {
+    setStatus('Could not load settings. Try reopening this page.');
 });
 
 // Keep the page in sync if the same settings are changed from the in-page
 // toolbar while this page is open.
 chrome.storage.onChanged.addListener((changes, areaName) => {
-    if (areaName !== 'local') {
+    if (areaName !== 'sync') {
         return;
     }
 

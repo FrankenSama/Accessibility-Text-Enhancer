@@ -290,6 +290,19 @@ span[data-atx-selection] {
     font-weight: 600;
 }
 
+#accessibility-settings-panel .page-reset h4 {
+    margin: 0 0 8px 0;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+#accessibility-settings-panel .setting-help {
+    margin: 0 0 10px 0;
+    font-size: 12px;
+    line-height: 1.5;
+    opacity: 0.8;
+}
+
 #accessibility-settings-panel .setting-field {
     margin: 12px 0;
 }
@@ -395,6 +408,14 @@ span[data-atx-selection] {
 
 #accessibility-settings-panel .reset-btn:hover {
     background: #546e7a;
+}
+
+#accessibility-settings-panel .reset-btn.armed {
+    background: #f44336;
+}
+
+#accessibility-settings-panel .reset-btn.armed:hover {
+    background: #e53935;
 }
 
 #accessibility-settings-panel button:focus-visible {

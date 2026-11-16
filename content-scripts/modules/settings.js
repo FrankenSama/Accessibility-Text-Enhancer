@@ -6,6 +6,8 @@ import { getMountNode } from './dom.js';
 import { showToast } from './toast.js';
 import { applyTheme } from './toolbar.js';
 import { getPageLanguage, pickReadingVoice, populateVoiceSelect } from './reading.js';
+import { normalizeSiteRules, saveSyncedPreferences } from './prefs.js';
+import { hasPageChanges, resetPageChanges } from './history.js';
 
 let settingsReturnFocus = null;
 
@@ -78,6 +80,17 @@ export function showSettingsPanel() {
             </div>
         </div>
 
+        <div class="setting-item page-reset">
+            <h4>Page</h4>
+            <p class="setting-help">
+                Remove every change this extension made to the current page,
+                including the undo history.
+            </p>
+            <button type="button" id="reset-page" class="action-btn reset-btn">
+                Reset page changes
+            </button>
+        </div>
+
         <div class="setting-item">
             <button type="button" id="export-settings" class="action-btn export-btn">
                 Export Settings
@@ -100,6 +113,7 @@ export function showSettingsPanel() {
     panel.querySelector('#export-settings').addEventListener('click', exportSettings);
     panel.querySelector('#import-settings').addEventListener('click', importSettings);
     setupReadingSettings(panel);
+    setupPageReset(panel);
 
     // Keep keyboard focus inside the dialog while it is open.
     panel.addEventListener('keydown', (event) => {
@@ -144,7 +158,7 @@ function setupReadingSettings(panel) {
 
     voiceSelect.addEventListener('change', () => {
         STATE.ttsVoice = voiceSelect.value;
-        chrome.storage.local.set({ ttsVoice: STATE.ttsVoice });
+        saveSyncedPreferences({ ttsVoice: STATE.ttsVoice });
 
         // Apply the new voice to sentences that are not queued yet.
         if (STATE.speech) {
@@ -167,7 +181,7 @@ function setupReadingSettings(panel) {
         });
 
         input.addEventListener('change', () => {
-            chrome.storage.local.set({ [stateKey]: STATE[stateKey] });
+            saveSyncedPreferences({ [stateKey]: STATE[stateKey] });
         });
     };
 
@@ -176,6 +190,49 @@ function setupReadingSettings(panel) {
 
     panel.querySelector('#preview-voice').addEventListener('click', previewReadingVoice);
     panel.querySelector('#reset-reading').addEventListener('click', resetReadingSettings);
+}
+
+/**
+ * Wire the Reset page control. The first press arms the button so a stray
+ * click cannot wipe a page of work; the second press performs the reset.
+ * @param {HTMLElement} panel
+ */
+function setupPageReset(panel) {
+    const button = panel.querySelector('#reset-page');
+    let armed = false;
+    let timer = null;
+
+    const disarm = () => {
+        armed = false;
+        button.textContent = 'Reset page changes';
+        button.classList.remove('armed');
+        if (timer) {
+            clearTimeout(timer);
+            timer = null;
+        }
+    };
+
+    button.addEventListener('click', () => {
+        if (!hasPageChanges()) {
+            showToast('Nothing to reset');
+            return;
+        }
+
+        if (!armed) {
+            armed = true;
+            button.textContent = 'Confirm reset';
+            button.classList.add('armed');
+            showToast('Press Reset page changes again to confirm');
+            timer = setTimeout(disarm, 5000);
+            return;
+        }
+
+        disarm();
+
+        if (resetPageChanges()) {
+            removeSettingsPanel();
+        }
+    });
 }
 
 /**
@@ -251,7 +308,7 @@ function resetReadingSettings() {
     STATE.ttsRate = CONFIG.defaultTtsRate;
     STATE.ttsPitch = CONFIG.defaultTtsPitch;
 
-    chrome.storage.local.set({
+    saveSyncedPreferences({
         ttsVoice: STATE.ttsVoice,
         ttsRate: STATE.ttsRate,
         ttsPitch: STATE.ttsPitch
@@ -293,23 +350,26 @@ export function removeSettingsPanel() {
  * Export settings to a JSON file.
  */
 function exportSettings() {
+    const appVersion = chrome.runtime.getManifest().version;
     const settings = {
-        version: chrome.runtime.getManifest().version,
-        exportDate: new Date().toISOString(),
+        schema: CONFIG.settingsSchemaVersion,
+        appVersion,
+        exportedAt: new Date().toISOString(),
         preferences: {
             darkMode: STATE.isDarkMode,
             ttsVoice: STATE.ttsVoice,
             ttsRate: STATE.ttsRate,
             ttsPitch: STATE.ttsPitch
-        }
+        },
+        siteRules: STATE.siteRules || {}
     };
 
     const blob = new Blob([JSON.stringify(settings, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    const date = settings.exportDate.slice(0, 10);
-    link.download = `accessibility-text-enhancer-settings-v${settings.version}-${date}.json`;
+    const date = settings.exportedAt.slice(0, 10);
+    link.download = `accessibility-text-enhancer-settings-v${appVersion}-${date}.json`;
     getMountNode().appendChild(link);
     link.click();
     link.remove();
@@ -317,6 +377,42 @@ function exportSettings() {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
 
     showToast('Settings exported');
+}
+
+/**
+ * Apply the preferences from an imported file to STATE, clamping anything
+ * that is out of range. Returns whether at least one preference was found.
+ * @param {Object} preferences
+ * @returns {boolean}
+ */
+function applyImportedPreferences(preferences) {
+    const keys = ['darkMode', 'ttsVoice', 'ttsRate', 'ttsPitch'];
+    const hasSettings = keys.some((key) => preferences[key] !== undefined);
+
+    if (typeof preferences.darkMode === 'boolean') {
+        STATE.isDarkMode = preferences.darkMode;
+    }
+    if (typeof preferences.ttsVoice === 'string') {
+        STATE.ttsVoice = preferences.ttsVoice;
+    }
+    if (preferences.ttsRate !== undefined) {
+        STATE.ttsRate = clampNumber(
+            preferences.ttsRate,
+            CONFIG.minTtsRate,
+            CONFIG.maxTtsRate,
+            CONFIG.defaultTtsRate
+        );
+    }
+    if (preferences.ttsPitch !== undefined) {
+        STATE.ttsPitch = clampNumber(
+            preferences.ttsPitch,
+            CONFIG.minTtsPitch,
+            CONFIG.maxTtsPitch,
+            CONFIG.defaultTtsPitch
+        );
+    }
+
+    return hasSettings;
 }
 
 /**
@@ -344,43 +440,30 @@ function importSettings() {
                     return;
                 }
 
-                const hasSettings = ['darkMode', 'ttsVoice', 'ttsRate', 'ttsPitch']
-                    .some((key) => preferences[key] !== undefined);
+                // Files written before schema 2 have no schema field and
+                // only carry preferences, so they import as-is.
+                const schema = typeof settings.schema === 'number' ? settings.schema : 1;
+                const hasSettings = applyImportedPreferences(preferences);
+                const hasRules = schema >= 2 && settings.siteRules !== undefined;
 
-                if (!hasSettings) {
+                if (!hasSettings && !hasRules) {
                     showToast('No settings found in file', { error: true });
                     return;
                 }
 
-                if (typeof preferences.darkMode === 'boolean') {
-                    STATE.isDarkMode = preferences.darkMode;
-                }
-                if (typeof preferences.ttsVoice === 'string') {
-                    STATE.ttsVoice = preferences.ttsVoice;
-                }
-                if (preferences.ttsRate !== undefined) {
-                    STATE.ttsRate = clampNumber(
-                        preferences.ttsRate,
-                        CONFIG.minTtsRate,
-                        CONFIG.maxTtsRate,
-                        CONFIG.defaultTtsRate
-                    );
-                }
-                if (preferences.ttsPitch !== undefined) {
-                    STATE.ttsPitch = clampNumber(
-                        preferences.ttsPitch,
-                        CONFIG.minTtsPitch,
-                        CONFIG.maxTtsPitch,
-                        CONFIG.defaultTtsPitch
-                    );
-                }
-
-                chrome.storage.local.set({
+                const updates = {
                     darkMode: STATE.isDarkMode,
                     ttsVoice: STATE.ttsVoice,
                     ttsRate: STATE.ttsRate,
                     ttsPitch: STATE.ttsPitch
-                });
+                };
+
+                if (hasRules) {
+                    STATE.siteRules = normalizeSiteRules(settings.siteRules);
+                    updates.siteRules = STATE.siteRules;
+                }
+
+                saveSyncedPreferences(updates);
                 applyTheme();
                 syncReadingSettingsControls();
                 showToast('Settings imported successfully');
@@ -404,7 +487,7 @@ function importSettings() {
  */
 export function toggleToolbarTheme() {
     STATE.isDarkMode = !STATE.isDarkMode;
-    chrome.storage.local.set({ darkMode: STATE.isDarkMode });
+    saveSyncedPreferences({ darkMode: STATE.isDarkMode });
     applyTheme();
     showToast(`${STATE.isDarkMode ? 'Dark' : 'Light'} mode activated`);
 }

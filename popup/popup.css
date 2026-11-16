@@ -8,7 +8,7 @@
 
 body {
     width: 320px;
-    padding: 20px;
+    padding: 14px;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
@@ -16,7 +16,7 @@ body {
 
 .header {
     text-align: center;
-    margin-bottom: 24px;
+    margin-bottom: 16px;
 }
 
 .header h2 {
@@ -33,7 +33,7 @@ body {
 .main-toggle {
     background: rgba(255, 255, 255, 0.1);
     backdrop-filter: blur(10px);
-    padding: 20px;
+    padding: 16px;
     border-radius: 12px;
     margin-bottom: 16px;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
@@ -153,9 +153,9 @@ input:checked + .slider:before {
 .stats {
     background: rgba(255, 255, 255, 0.1);
     backdrop-filter: blur(10px);
-    padding: 16px;
+    padding: 12px;
     border-radius: 12px;
-    margin-bottom: 16px;
+    margin-bottom: 12px;
 }
 
 .stats h3 {
@@ -186,12 +186,47 @@ input:checked + .slider:before {
     font-size: 14px;
 }
 
+.site-rule {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding-top: 10px;
+    margin-top: 2px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.site-rule-label {
+    font-size: 13px;
+    opacity: 0.85;
+}
+
+.site-rule-select {
+    max-width: 170px;
+    padding: 6px 8px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: rgba(255, 255, 255, 0.12);
+    color: inherit;
+    font: inherit;
+    font-size: 13px;
+}
+
+.site-rule-select:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 2px;
+}
+
+.site-rule-select:disabled {
+    opacity: 0.5;
+}
+
 .info {
     background: rgba(255, 255, 255, 0.1);
     backdrop-filter: blur(10px);
-    padding: 16px;
+    padding: 12px;
     border-radius: 12px;
-    margin-bottom: 16px;
+    margin-bottom: 12px;
 }
 
 .info p {
@@ -321,6 +356,16 @@ input:checked + .slider:before {
         background: ButtonFace;
         color: ButtonText;
         border-color: ButtonText;
+    }
+
+    .site-rule-select {
+        background: ButtonFace;
+        color: ButtonText;
+        border-color: ButtonText;
+    }
+
+    .site-rule-select:focus-visible {
+        outline: 2px solid Highlight;
     }
 
     .slider {

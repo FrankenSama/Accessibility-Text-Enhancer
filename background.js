@@ -2,44 +2,132 @@
 
 const BADGE_COLOR_ON = '#4CAF50';
 const BADGE_COLOR_OFF = '#F44336';
+const PREFERENCE_KEYS = ['darkMode', 'ttsVoice', 'ttsRate', 'ttsPitch'];
 
 /**
- * Update the extension badge to reflect the enabled state.
- * @param {boolean} isEnabled
+ * The effective on/off state for a URL, taking the site rule into account.
+ * @param {boolean} globalEnabled
+ * @param {Object<string, 'on'|'off'>} siteRules
+ * @param {string|undefined} url
+ * @returns {boolean}
  */
-function updateBadge(isEnabled) {
-    chrome.action.setBadgeText({ text: isEnabled ? '' : 'OFF' });
-    chrome.action.setBadgeBackgroundColor({
-        color: isEnabled ? BADGE_COLOR_ON : BADGE_COLOR_OFF
+function isEnabledForUrl(globalEnabled, siteRules, url) {
+    if (!url) {
+        return globalEnabled;
+    }
+
+    try {
+        const parsed = new URL(url);
+        if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+            return globalEnabled;
+        }
+
+        const rule = siteRules[parsed.origin];
+        if (rule === 'on') {
+            return true;
+        }
+        if (rule === 'off') {
+            return false;
+        }
+    } catch {
+        // A URL the browser cannot parse has no site rule.
+    }
+
+    return globalEnabled;
+}
+
+/**
+ * Paint the badge for one tab. A disabled tab shows OFF, including when a
+ * site rule turned the extension off only for that origin.
+ * @param {number} tabId
+ * @param {string|undefined} url
+ */
+function refreshBadgeForTab(tabId, url) {
+    chrome.storage.local.get(['extensionEnabled'], (local) => {
+        chrome.storage.sync.get(['siteRules'], (synced) => {
+            const globalEnabled = local.extensionEnabled !== false;
+            const siteRules = synced.siteRules || {};
+            const isEnabled = isEnabledForUrl(globalEnabled, siteRules, url);
+            const color = isEnabled ? BADGE_COLOR_ON : BADGE_COLOR_OFF;
+
+            chrome.action.setBadgeText({ tabId, text: isEnabled ? '' : 'OFF' });
+            chrome.action.setBadgeBackgroundColor({ tabId, color });
+        });
     });
 }
 
 /**
- * Read the current enabled state and pass it to a callback.
- * @param {(isEnabled: boolean) => void} callback
+ * Refresh every open tab after a preference or site-rule change.
  */
-function readEnabledState(callback) {
-    chrome.storage.local.get(['extensionEnabled'], (result) => {
-        callback(result.extensionEnabled !== false);
+function refreshAllBadges() {
+    chrome.tabs.query({}, (tabs) => {
+        tabs.forEach((tab) => {
+            if (typeof tab.id === 'number') {
+                refreshBadgeForTab(tab.id, tab.url);
+            }
+        });
+    });
+}
+
+/**
+ * Move pre-1.4.0 preferences from storage.local to storage.sync. Values that
+ * are already in sync win, so running this twice is harmless.
+ * @param {() => void} callback
+ */
+function migratePreferences(callback) {
+    chrome.storage.sync.get(PREFERENCE_KEYS, (synced) => {
+        chrome.storage.local.get(PREFERENCE_KEYS, (legacy) => {
+            const updates = {};
+
+            for (const key of PREFERENCE_KEYS) {
+                if (synced[key] === undefined && legacy[key] !== undefined) {
+                    updates[key] = legacy[key];
+                }
+            }
+
+            // The toolbar defaults to dark when no preference was ever saved.
+            if (synced.darkMode === undefined && updates.darkMode === undefined) {
+                updates.darkMode = true;
+            }
+
+            const legacyKeys = PREFERENCE_KEYS.filter(
+                (key) => legacy[key] !== undefined
+            );
+
+            const removeLegacy = () => {
+                if (legacyKeys.length > 0) {
+                    chrome.storage.local.remove(legacyKeys, () => callback());
+                } else {
+                    callback();
+                }
+            };
+
+            if (Object.keys(updates).length > 0) {
+                chrome.storage.sync.set(updates, () => {
+                    // A failed write leaves the old values in place so the
+                    // next start can retry the migration.
+                    if (chrome.runtime.lastError) {
+                        callback();
+                    } else {
+                        removeLegacy();
+                    }
+                });
+            } else {
+                removeLegacy();
+            }
+        });
     });
 }
 
 // Set default values on install/update and show the project page on first install.
 chrome.runtime.onInstalled.addListener((details) => {
-    chrome.storage.local.get(['extensionEnabled', 'darkMode'], (result) => {
-        const updates = {};
-
-        if (result.extensionEnabled === undefined) {
-            updates.extensionEnabled = true;
-        }
-        if (result.darkMode === undefined) {
-            updates.darkMode = true;
-        }
-        if (Object.keys(updates).length > 0) {
-            chrome.storage.local.set(updates);
-        }
-
-        updateBadge(result.extensionEnabled !== false);
+    migratePreferences(() => {
+        chrome.storage.local.get(['extensionEnabled'], (result) => {
+            if (result.extensionEnabled === undefined) {
+                chrome.storage.local.set({ extensionEnabled: true });
+            }
+            refreshAllBadges();
+        });
     });
 
     if (details.reason === 'install') {
@@ -95,8 +183,10 @@ function readShortcuts(callback) {
 // so toggling only needs to update the shared state.
 chrome.commands.onCommand.addListener((command) => {
     if (command === 'toggle-extension') {
-        readEnabledState((isEnabled) => {
-            chrome.storage.local.set({ extensionEnabled: !isEnabled });
+        chrome.storage.local.get(['extensionEnabled'], (result) => {
+            chrome.storage.local.set({
+                extensionEnabled: result.extensionEnabled === false
+            });
         });
         return;
     }
@@ -133,14 +223,29 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
 });
 
-// Keep the badge in sync with the enabled state.
+// Keep the badge in sync with the enabled state and site rules. A site rule
+// only affects its own tab, so refresh every tab when the rules change.
 chrome.storage.onChanged.addListener((changes, areaName) => {
-    if (areaName !== 'local' || !changes.extensionEnabled) {
-        return;
+    if ((areaName === 'local' && changes.extensionEnabled) ||
+        (areaName === 'sync' && changes.siteRules)) {
+        refreshAllBadges();
     }
+});
 
-    updateBadge(changes.extensionEnabled.newValue !== false);
+// Recompute the badge when the user switches or navigates tabs.
+chrome.tabs.onActivated.addListener(({ tabId }) => {
+    chrome.tabs.get(tabId, (tab) => {
+        if (!chrome.runtime.lastError && tab) {
+            refreshBadgeForTab(tabId, tab.url);
+        }
+    });
+});
+
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+    if (changeInfo.url || changeInfo.status === 'complete') {
+        refreshBadgeForTab(tabId, tab.url);
+    }
 });
 
 // Initialize the badge when the service worker starts.
-readEnabledState(updateBadge);
+refreshAllBadges();

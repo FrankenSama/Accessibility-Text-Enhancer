@@ -42,6 +42,16 @@ function restoreElementState(element, state) {
  * @param {{changes: Array<{element: HTMLElement, before: Object, after: Object}>, label?: string}} entry
  */
 export function pushHistory(entry) {
+    // Remember the first state each element was seen in. Reset page uses
+    // this instead of replaying the (capped) undo history, so changes that
+    // scrolled out of history are still reversible.
+    for (const change of entry.changes) {
+        if (!STATE.originals.has(change.element)) {
+            STATE.originals.set(change.element, change.before);
+        }
+    }
+    pruneOriginals();
+
     STATE.history = STATE.history.slice(0, STATE.historyIndex + 1);
     STATE.history.push(entry);
     STATE.historyIndex++;
@@ -49,6 +59,22 @@ export function pushHistory(entry) {
     if (STATE.history.length > CONFIG.maxHistorySize) {
         STATE.history.shift();
         STATE.historyIndex--;
+    }
+}
+
+/**
+ * Drop snapshots for elements a re-render detached, so a long-lived SPA
+ * session does not keep them alive.
+ */
+function pruneOriginals() {
+    if (STATE.originals.size <= CONFIG.maxHistorySize * 4) {
+        return;
+    }
+
+    for (const element of STATE.originals.keys()) {
+        if (!element.isConnected) {
+            STATE.originals.delete(element);
+        }
     }
 }
 
@@ -125,4 +151,69 @@ export function redo() {
     } else {
         showToast(`Redone: ${label}`);
     }
+}
+
+// ==================== PAGE RESET ====================
+
+/**
+ * Remove a selection wrapper while keeping its content in place.
+ * @param {HTMLElement} wrapper
+ */
+function unwrapElement(wrapper) {
+    const parent = wrapper.parentNode;
+    if (!parent) {
+        return;
+    }
+
+    while (wrapper.firstChild) {
+        parent.insertBefore(wrapper.firstChild, wrapper);
+    }
+    parent.removeChild(wrapper);
+    // Re-joining the split text nodes restores the original text nodes, so
+    // the page's own markup and any page listeners keep working.
+    parent.normalize();
+}
+
+/**
+ * Whether this page has anything for Reset page to remove.
+ * @returns {boolean}
+ */
+export function hasPageChanges() {
+    return STATE.history.length > 0 ||
+        document.querySelector(`[${CONFIG.selectionAttr}]`) !== null;
+}
+
+/**
+ * Remove every change the extension made to this page and empty the undo
+ * history. The page is left as it was found, including markup that predates
+ * any selection wrapper.
+ */
+export function resetPageChanges() {
+    if (!hasPageChanges()) {
+        showToast('Nothing to reset');
+        return false;
+    }
+
+    for (const [element, snapshot] of STATE.originals) {
+        if (element.isConnected) {
+            restoreElementState(element, snapshot);
+        }
+    }
+    STATE.originals.clear();
+
+    // Restoring a wrapper's snapshot only clears its inline style; the span
+    // itself still splits the page's text nodes, so unwrap it too.
+    document.querySelectorAll(`[${CONFIG.selectionAttr}]`).forEach((wrapper) => {
+        if (!wrapper.closest(`#${CONFIG.toolbarId}, #${CONFIG.settingsPanelId}`)) {
+            unwrapElement(wrapper);
+        }
+    });
+
+    STATE.history = [];
+    STATE.historyIndex = -1;
+    STATE.savedRange = null;
+
+    updateToolbarState();
+    showToast('Page reset — all changes removed');
+    return true;
 }

@@ -33,6 +33,14 @@
             <span class="stat-label">Current Domain</span>
             <span class="stat-value" id="currentDomain">-</span>
         </div>
+        <div class="site-rule">
+            <label class="site-rule-label" for="siteRule">This site</label>
+            <select id="siteRule" class="site-rule-select" disabled>
+                <option value="">Use global setting</option>
+                <option value="on">Always on</option>
+                <option value="off">Always off</option>
+            </select>
+        </div>
     </div>
 
     <div class="info">
@@ -89,9 +97,9 @@
         <a href="https://github.com/FrankenSama/accessibility-text-enhancer" target="_blank" rel="noopener noreferrer">
             View on GitHub
         </a>
-        <div class="version">v1.3.2</div>
+        <div class="version">v1.4.0</div>
     </div>
 
-    <script src="popup.js"></script>
+    <script type="module" src="popup.js"></script>
 </body>
 </html>

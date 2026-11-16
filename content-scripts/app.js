@@ -30,6 +30,12 @@ import {
 } from './modules/commands.js';
 import { getScopeOverride } from './modules/scope.js';
 import { redo, undo } from './modules/history.js';
+import {
+    isEnabledForOrigin,
+    loadSyncedPreferences,
+    normalizeSiteRules,
+    siteOrigin
+} from './modules/prefs.js';
 
 /**
  * Promise wrapper around chrome.storage.local.get for older Chrome versions.
@@ -92,24 +98,30 @@ async function initialize() {
  * Load saved extension state from storage.
  */
 async function loadExtensionState() {
-    const result = await getStorage([
-        'extensionEnabled',
-        'darkMode',
-        'ttsVoice',
-        'ttsRate',
-        'ttsPitch'
+    const [local, synced] = await Promise.all([
+        getStorage(['extensionEnabled']),
+        loadSyncedPreferences()
     ]);
-    STATE.isExtensionEnabled = result.extensionEnabled !== false;
-    STATE.isDarkMode = result.darkMode !== false;
-    STATE.ttsVoice = typeof result.ttsVoice === 'string' ? result.ttsVoice : '';
+
+    STATE.globalEnabled = local.extensionEnabled !== false;
+    STATE.siteRules = normalizeSiteRules(synced.siteRules);
+    STATE.origin = siteOrigin();
+    STATE.isExtensionEnabled = isEnabledForOrigin(
+        STATE.globalEnabled,
+        STATE.siteRules,
+        STATE.origin
+    );
+
+    STATE.isDarkMode = synced.darkMode !== false;
+    STATE.ttsVoice = typeof synced.ttsVoice === 'string' ? synced.ttsVoice : '';
     STATE.ttsRate = clampNumber(
-        result.ttsRate,
+        synced.ttsRate,
         CONFIG.minTtsRate,
         CONFIG.maxTtsRate,
         CONFIG.defaultTtsRate
     );
     STATE.ttsPitch = clampNumber(
-        result.ttsPitch,
+        synced.ttsPitch,
         CONFIG.minTtsPitch,
         CONFIG.maxTtsPitch,
         CONFIG.defaultTtsPitch
@@ -375,24 +387,24 @@ function setupKeyboardShortcuts() {
 // ==================== STORAGE SYNC ====================
 
 function handleStorageChange(changes, areaName) {
-    if (areaName !== 'local') {
+    // The on/off switch is per device and lives in storage.local.
+    if (areaName === 'local') {
+        if (changes.extensionEnabled) {
+            STATE.globalEnabled = changes.extensionEnabled.newValue !== false;
+            applyEnabledState();
+        }
         return;
     }
 
-    if (changes.extensionEnabled) {
-        const isEnabled = changes.extensionEnabled.newValue !== false;
-        if (isEnabled !== STATE.isExtensionEnabled) {
-            STATE.isExtensionEnabled = isEnabled;
+    if (areaName !== 'sync') {
+        return;
+    }
 
-            if (!isEnabled) {
-                STATE.savedRange = null;
-                stopReading({ silent: true });
-                removeToolbar();
-                removeSettingsPanel();
-            }
-
-            showToast(isEnabled ? 'Extension enabled' : 'Extension disabled');
-        }
+    // A site rule for this origin can turn the extension on or off without
+    // touching the global switch.
+    if (changes.siteRules) {
+        STATE.siteRules = normalizeSiteRules(changes.siteRules.newValue);
+        applyEnabledState();
     }
 
     if (changes.darkMode) {
@@ -431,6 +443,33 @@ function handleStorageChange(changes, areaName) {
     if (changes.ttsRate || changes.ttsPitch) {
         syncReadingSettingsControls();
     }
+}
+
+/**
+ * Recompute the effective on/off state for this page and tear down the UI
+ * when it turns off.
+ */
+function applyEnabledState() {
+    const next = isEnabledForOrigin(
+        STATE.globalEnabled,
+        STATE.siteRules,
+        STATE.origin
+    );
+
+    if (next === STATE.isExtensionEnabled) {
+        return;
+    }
+
+    STATE.isExtensionEnabled = next;
+
+    if (!next) {
+        STATE.savedRange = null;
+        stopReading({ silent: true });
+        removeToolbar();
+        removeSettingsPanel();
+    }
+
+    showToast(next ? 'Extension enabled' : 'Extension disabled');
 }
 
 /**

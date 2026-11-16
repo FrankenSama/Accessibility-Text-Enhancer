@@ -8,10 +8,18 @@ const IS_MAC = /mac/i.test(
 
 export const STATE = {
     savedRange: null,
+    // The on/off switch as the user set it. The effective state for this page
+    // also depends on the site rule, so it lives in isExtensionEnabled.
+    globalEnabled: true,
     isExtensionEnabled: true,
+    origin: null,
+    siteRules: {},
     isDarkMode: true,
     history: [],
     historyIndex: -1,
+    // First-seen state of every element the extension changed, so Reset page
+    // can put the page back even after those entries left the undo history.
+    originals: new Map(),
     toolbarTimeout: null,
     positionFrame: null,
     isApplyingCommand: false,
@@ -41,6 +49,12 @@ export const CONFIG = {
     toastErrorDuration: 6000,
     maxHistorySize: 50,
     maxWrapNodes: 200,
+    // Version of the exported settings file. Bump it whenever the shape
+    // changes so import can migrate older files.
+    settingsSchemaVersion: 2,
+    // Cap on stored site rules. storage.sync allows 8 KB per item, and 100
+    // origin strings stay comfortably under that even for long hostnames.
+    maxSiteRules: 100,
     // Must match the toolbar max-width in content.css.
     toolbarMaxWidth: 480,
     fontSizeMin: 8,

@@ -1,8 +1,22 @@
 // popup/popup.js
+import {
+    isEnabledForOrigin,
+    normalizeSiteRules,
+    ruleForOrigin,
+    siteOrigin
+} from '../content-scripts/modules/prefs.js';
+
 document.addEventListener('DOMContentLoaded', () => {
     const toggle = document.getElementById('toggle');
     const statusDiv = document.getElementById('status');
     const currentDomain = document.getElementById('currentDomain');
+    const siteRuleSelect = document.getElementById('siteRule');
+
+    // Per-site state for the active tab. The toggle is the global default;
+    // the site rule for this origin wins when one is set.
+    let origin = null;
+    let globalEnabled = true;
+    let siteRules = {};
 
     // Show macOS modifier names in the shortcut list.
     const platform = navigator.userAgentData?.platform || navigator.platform || '';
@@ -68,53 +82,131 @@ document.addEventListener('DOMContentLoaded', () => {
         window.close();
     });
 
-    // Show the active tab's hostname (when available).
+    /**
+     * The effective state for this tab: the site rule wins over the global
+     * switch.
+     * @returns {boolean}
+     */
+    function effectiveEnabled() {
+        return isEnabledForOrigin(globalEnabled, siteRules, origin);
+    }
+
+    /**
+     * Update the status line, naming the site rule when one is in effect.
+     */
+    function updateStatus() {
+        const isEnabled = effectiveEnabled();
+        const rule = ruleForOrigin(siteRules, origin);
+
+        statusDiv.textContent = isEnabled ? '✓ Active' : '✗ Disabled';
+
+        if (rule) {
+            statusDiv.textContent += rule === 'on'
+                ? ' — always on here'
+                : ' — always off here';
+        }
+
+        statusDiv.classList.toggle('active', isEnabled);
+        statusDiv.classList.toggle('disabled', !isEnabled);
+    }
+
+    /**
+     * Mirror the site rule into the select.
+     */
+    function syncSiteRuleControl() {
+        siteRuleSelect.disabled = !origin;
+        siteRuleSelect.value = origin
+            ? (ruleForOrigin(siteRules, origin) || '')
+            : '';
+    }
+
+    // Show the active tab's hostname (when available) and its site rule.
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        if (!tabs[0]) {
+        const tab = tabs[0];
+        if (!tab) {
             return;
         }
 
         try {
-            const url = new URL(tabs[0].url);
+            const url = new URL(tab.url);
             currentDomain.textContent = url.hostname || 'N/A';
+            origin = siteOrigin(url);
         } catch {
             currentDomain.textContent = 'N/A';
+            origin = null;
         }
+
+        siteRuleSelect.disabled = !origin;
+
+        chrome.storage.sync.get(['siteRules'], (result) => {
+            if (chrome.runtime.lastError) {
+                return;
+            }
+            siteRules = normalizeSiteRules(result.siteRules);
+            syncSiteRuleControl();
+            updateStatus();
+        });
     });
 
     // Load the shared enabled state.
     chrome.storage.local.get(['extensionEnabled'], (result) => {
-        const isEnabled = result.extensionEnabled !== false;
-        toggle.checked = isEnabled;
-        updateStatus(isEnabled);
+        globalEnabled = result.extensionEnabled !== false;
+        toggle.checked = globalEnabled;
+        updateStatus();
     });
 
     // The content scripts listen for storage changes, so saving the value is
     // enough to enable/disable the extension everywhere.
     toggle.addEventListener('change', () => {
-        const isEnabled = toggle.checked;
-        updateStatus(isEnabled);
-        chrome.storage.local.set({ extensionEnabled: isEnabled });
+        globalEnabled = toggle.checked;
+        updateStatus();
+        chrome.storage.local.set({ extensionEnabled: globalEnabled });
     });
 
-    // Keep the popup in sync if the state changes from a keyboard shortcut.
-    chrome.storage.onChanged.addListener((changes, areaName) => {
-        if (areaName !== 'local' || !changes.extensionEnabled) {
+    // "Use global setting" removes the rule; otherwise store this origin.
+    siteRuleSelect.addEventListener('change', () => {
+        if (!origin) {
             return;
         }
 
-        const isEnabled = changes.extensionEnabled.newValue !== false;
-        toggle.checked = isEnabled;
-        updateStatus(isEnabled);
+        const rules = normalizeSiteRules(siteRules);
+
+        if (siteRuleSelect.value === 'on' || siteRuleSelect.value === 'off') {
+            rules[origin] = siteRuleSelect.value;
+        } else {
+            delete rules[origin];
+        }
+
+        chrome.storage.sync.set({ siteRules: rules }, () => {
+            if (chrome.runtime.lastError) {
+                // Storage.sync can reject a write, for example when the
+                // per-item quota is full. Keep the control on the stored
+                // value so it does not claim a rule that was not saved.
+                syncSiteRuleControl();
+                updateStatus();
+                statusDiv.textContent = 'Could not save this site rule';
+                return;
+            }
+
+            siteRules = rules;
+            updateStatus();
+        });
     });
 
-    /**
-     * Update status display.
-     * @param {boolean} isEnabled - Whether the extension is enabled.
-     */
-    function updateStatus(isEnabled) {
-        statusDiv.textContent = isEnabled ? '✓ Active' : '✗ Disabled';
-        statusDiv.classList.toggle('active', isEnabled);
-        statusDiv.classList.toggle('disabled', !isEnabled);
-    }
+    // Keep the popup in sync if the state changes from a keyboard shortcut
+    // or another popup.
+    chrome.storage.onChanged.addListener((changes, areaName) => {
+        if (areaName === 'local' && changes.extensionEnabled) {
+            globalEnabled = changes.extensionEnabled.newValue !== false;
+            toggle.checked = globalEnabled;
+            updateStatus();
+            return;
+        }
+
+        if (areaName === 'sync' && changes.siteRules) {
+            siteRules = normalizeSiteRules(changes.siteRules.newValue);
+            syncSiteRuleControl();
+            updateStatus();
+        }
+    });
 });
