@@ -7,7 +7,7 @@
 
 import { CONFIG } from './core.js';
 
-export const SYNC_KEYS = [
+const SYNC_KEYS = [
     'darkMode',
     'ttsVoice',
     'ttsRate',
@@ -69,22 +69,17 @@ export async function loadSyncedPreferences() {
             }
         }
 
-        if (Object.keys(updates).length > 0) {
+        const migrated = Object.keys(updates);
+        if (migrated.length > 0) {
             const saved = await setArea('sync', updates);
 
-            // A failed write leaves the legacy values in storage.local so the
-            // next page load can retry instead of losing them.
+            // Only drop the pre-1.4.0 copies once the synced write landed;
+            // otherwise the next page load retries instead of losing them.
             if (saved) {
                 Object.assign(synced, updates);
+                chrome.storage.local.remove(migrated);
             }
         }
-    }
-
-    // Drop the pre-1.4.0 copies that sync now supersedes. The background
-    // migration does the same, but a page can load before it runs.
-    const superseded = SYNC_KEYS.filter((key) => synced[key] !== undefined);
-    if (superseded.length > 0) {
-        chrome.storage.local.remove(superseded);
     }
 
     return synced;
@@ -93,9 +88,14 @@ export async function loadSyncedPreferences() {
 /**
  * Persist one or more synced preferences.
  * @param {Object} values
+ * @param {(saved: boolean) => void} [callback]
  */
-export function saveSyncedPreferences(values) {
-    chrome.storage.sync.set(values);
+export function saveSyncedPreferences(values, callback) {
+    chrome.storage.sync.set(values, () => {
+        if (callback) {
+            callback(!chrome.runtime.lastError);
+        }
+    });
 }
 
 /**

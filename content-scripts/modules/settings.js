@@ -444,7 +444,10 @@ function importSettings() {
                 // only carry preferences, so they import as-is.
                 const schema = typeof settings.schema === 'number' ? settings.schema : 1;
                 const hasSettings = applyImportedPreferences(preferences);
-                const hasRules = schema >= 2 && settings.siteRules !== undefined;
+                const hasRules = schema >= 2 &&
+                    settings.siteRules !== null &&
+                    typeof settings.siteRules === 'object' &&
+                    !Array.isArray(settings.siteRules);
 
                 if (!hasSettings && !hasRules) {
                     showToast('No settings found in file', { error: true });

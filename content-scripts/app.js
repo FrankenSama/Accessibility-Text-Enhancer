@@ -39,6 +39,8 @@ import {
 
 /**
  * Promise wrapper around chrome.storage.local.get for older Chrome versions.
+ * Only the per-device on/off switch lives here; synced preferences and site
+ * rules go through prefs.js.
  * @param {string[]} keys
  * @returns {Promise<Object>}
  */

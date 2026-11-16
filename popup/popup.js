@@ -5,6 +5,7 @@ import {
     ruleForOrigin,
     siteOrigin
 } from '../content-scripts/modules/prefs.js';
+import { CONFIG } from '../content-scripts/modules/core.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     const toggle = document.getElementById('toggle');
@@ -122,7 +123,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Show the active tab's hostname (when available) and its site rule.
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        const tab = tabs[0];
+        const tab = tabs && tabs[0];
         if (!tab) {
             return;
         }
@@ -150,7 +151,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Load the shared enabled state.
     chrome.storage.local.get(['extensionEnabled'], (result) => {
-        globalEnabled = result.extensionEnabled !== false;
+        // A failed read leaves the switch on its default rather than
+        // stranding the popup on "Loading...".
+        globalEnabled = chrome.runtime.lastError
+            ? true
+            : result.extensionEnabled !== false;
         toggle.checked = globalEnabled;
         updateStatus();
     });
@@ -170,8 +175,20 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const rules = normalizeSiteRules(siteRules);
+        const adding = siteRuleSelect.value === 'on' || siteRuleSelect.value === 'off';
 
-        if (siteRuleSelect.value === 'on' || siteRuleSelect.value === 'off') {
+        // normalizeSiteRules caps the stored list, so refuse a new origin
+        // instead of saving a rule that would be dropped on the next load.
+        if (adding &&
+            !Object.prototype.hasOwnProperty.call(rules, origin) &&
+            Object.keys(rules).length >= CONFIG.maxSiteRules) {
+            syncSiteRuleControl();
+            updateStatus();
+            statusDiv.textContent = `Site rule limit reached (${CONFIG.maxSiteRules})`;
+            return;
+        }
+
+        if (adding) {
             rules[origin] = siteRuleSelect.value;
         } else {
             delete rules[origin];

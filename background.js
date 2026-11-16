@@ -37,34 +37,59 @@ function isEnabledForUrl(globalEnabled, siteRules, url) {
 }
 
 /**
+ * Read the state every badge depends on once, instead of per tab.
+ * @param {(state: {globalEnabled: boolean, siteRules: Object}) => void} callback
+ */
+function readBadgeState(callback) {
+    chrome.storage.local.get(['extensionEnabled'], (local) => {
+        chrome.storage.sync.get(['siteRules'], (synced) => {
+            callback({
+                globalEnabled: (local || {}).extensionEnabled !== false,
+                siteRules: (synced || {}).siteRules || {}
+            });
+        });
+    });
+}
+
+/**
  * Paint the badge for one tab. A disabled tab shows OFF, including when a
  * site rule turned the extension off only for that origin.
  * @param {number} tabId
  * @param {string|undefined} url
+ * @param {{globalEnabled: boolean, siteRules: Object}} state
+ */
+function paintBadge(tabId, url, state) {
+    const isEnabled = isEnabledForUrl(
+        state.globalEnabled,
+        state.siteRules,
+        url
+    );
+    const color = isEnabled ? BADGE_COLOR_ON : BADGE_COLOR_OFF;
+
+    chrome.action.setBadgeText({ tabId, text: isEnabled ? '' : 'OFF' });
+    chrome.action.setBadgeBackgroundColor({ tabId, color });
+}
+
+/**
+ * Refresh one tab's badge, for example after it finishes navigating.
+ * @param {number} tabId
+ * @param {string|undefined} url
  */
 function refreshBadgeForTab(tabId, url) {
-    chrome.storage.local.get(['extensionEnabled'], (local) => {
-        chrome.storage.sync.get(['siteRules'], (synced) => {
-            const globalEnabled = local.extensionEnabled !== false;
-            const siteRules = synced.siteRules || {};
-            const isEnabled = isEnabledForUrl(globalEnabled, siteRules, url);
-            const color = isEnabled ? BADGE_COLOR_ON : BADGE_COLOR_OFF;
-
-            chrome.action.setBadgeText({ tabId, text: isEnabled ? '' : 'OFF' });
-            chrome.action.setBadgeBackgroundColor({ tabId, color });
-        });
-    });
+    readBadgeState((state) => paintBadge(tabId, url, state));
 }
 
 /**
  * Refresh every open tab after a preference or site-rule change.
  */
 function refreshAllBadges() {
-    chrome.tabs.query({}, (tabs) => {
-        tabs.forEach((tab) => {
-            if (typeof tab.id === 'number') {
-                refreshBadgeForTab(tab.id, tab.url);
-            }
+    readBadgeState((state) => {
+        chrome.tabs.query({}, (tabs) => {
+            (tabs || []).forEach((tab) => {
+                if (typeof tab.id === 'number') {
+                    paintBadge(tab.id, tab.url, state);
+                }
+            });
         });
     });
 }

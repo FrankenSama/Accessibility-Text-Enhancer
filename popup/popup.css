@@ -158,10 +158,8 @@ input:checked + .slider:before {
     margin-bottom: 12px;
 }
 
-.stats h3 {
-    font-size: 14px;
-    margin-bottom: 12px;
-    opacity: 0.9;
+.stats > * + * {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .stat-item {
@@ -169,11 +167,6 @@ input:checked + .slider:before {
     justify-content: space-between;
     align-items: center;
     padding: 8px 0;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.stat-item:last-child {
-    border-bottom: none;
 }
 
 .stat-label {
@@ -192,8 +185,6 @@ input:checked + .slider:before {
     justify-content: space-between;
     gap: 12px;
     padding-top: 10px;
-    margin-top: 2px;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .site-rule-label {
