@@ -2,7 +2,7 @@
 
 This roadmap tracks the accessibility work planned for Accessibility Text Enhancer. It is a living document: items move between phases as the project learns from real use, and nothing here is a commitment to a date.
 
-**Latest GitHub release:** v1.3.1 · **Chrome Web Store:** v1.2.0 · **Last updated:** 2026-11-13
+**Latest GitHub release:** v1.3.2 · **Chrome Web Store:** v1.2.0 · **Last updated:** 2026-11-16
 
 ## Guiding principles
 
@@ -18,7 +18,7 @@ This roadmap tracks the accessibility work planned for Accessibility Text Enhanc
 | Phase | Theme | Target | Status |
 |-------|-------|--------|--------|
 | 1 | Accessibility correctness | v1.2.0 | ✅ Released |
-| 2 | Reading assistant | v1.3.0–v1.3.1 | ✅ Released |
+| 2 | Reading assistant | v1.3.0–v1.3.2 | ✅ Released |
 | 3 | Persistence and control | v1.4.0 | 📋 Planned |
 | 4 | Personalization | v1.5.0 | 📋 Planned |
 | 5 | Reading aids | v1.6.0 | 📋 Planned |
@@ -28,9 +28,9 @@ This roadmap tracks the accessibility work planned for Accessibility Text Enhanc
 
 **v1.3.1 (maintenance):** keeps the toolbar on two rows so it covers less page text, fixes the toolbar focus fallback, queues the next speech chunk so reading no longer pauses between chunks, reads a paragraph as one utterance, keeps words apart across line breaks and block boundaries, names the command in undo/redo feedback, reuses a single notification live region, adds a Reading settings page with voice preview, compacts the popup shortcut list, and splits the content script into ES modules. No new permissions or network access.
 
-**v1.3.2 (maintenance, unreleased):** quality-of-life pass before v1.4.0. Adds Windows High Contrast (`forced-colors`) styling for the toolbar, settings dialog, notifications, popup, and reading settings page; a toolbar ✕ button that dismisses the toolbar the way `Escape` does; near-selection toolbar placement that flips above or below the selection and clamps to the viewport, with tooltips that open away from the text; and a readable export filename (`accessibility-text-enhancer-settings-v<version>-<date>.json`). Also lets Focus Toolbar restore the toolbar for a selection that is still on the page after a dismissal. No new permissions or network access.
+**v1.3.2 (maintenance):** quality-of-life pass before v1.4.0. Adds Windows High Contrast (`forced-colors`) styling for the toolbar, settings dialog, notifications, popup, and reading settings page; a toolbar ✕ button that dismisses the toolbar the way `Escape` does; near-selection toolbar placement that flips above or below the selection and clamps to the viewport, with tooltips that open away from the text; and a readable export filename (`accessibility-text-enhancer-settings-v<version>-<date>.json`). Also lets Focus Toolbar restore the toolbar for a selection that is still on the page after a dismissal. No new permissions or network access.
 
-**Distribution:** as of 2026-11-13, v1.3.1 is the latest GitHub release and includes a packaged extension zip. The Chrome Web Store listing still serves v1.2.0, so publishing the v1.3.1 package there is the remaining distribution step.
+**Distribution:** as of 2026-11-16, v1.3.2 is the latest GitHub release and includes a packaged extension zip. The Chrome Web Store listing still serves v1.2.0, so publishing the current package there is the remaining distribution step.
 
 ---
 
@@ -101,7 +101,7 @@ The toolbar already declares `role="toolbar"`, but it was not operable or unders
 
 ---
 
-## Phase 2 — Reading assistant (v1.3.0–v1.3.1) ✅
+## Phase 2 — Reading assistant (v1.3.0–v1.3.2) ✅
 
 **Problem:** `readTextAloud()` is a single fixed-rate utterance. It is the only feature aimed at blind and low-vision users, and it is the least developed one.
 
@@ -116,7 +116,7 @@ The toolbar already declares `role="toolbar"`, but it was not operable or unders
 
 **Acceptance:** a user can start, pause, resume, and stop a reading; the current sentence is visible; rate and voice survive a reload; reading never creates an undo entry.
 
-**Risks:** the voice list is asynchronous and inconsistent across platforms; sentence highlighting needs the CSS Custom Highlight API, so older browsers read without visual follow-along; very long single sentences can still be truncated even though v1.3.1 chunks and queues speech.
+**Risks:** the voice list is asynchronous and inconsistent across platforms; sentence highlighting needs the CSS Custom Highlight API, so older browsers read without visual follow-along; very long single sentences can still be truncated even though v1.3.2 chunks and queues speech.
 
 **Effort:** medium · **Impact:** very high
 
@@ -210,7 +210,7 @@ These are worth investigating but are not scheduled:
 
 ## Release checklist
 
-Use this list for every release. The v1.3.1 run is recorded in the release notes and [`docs/smoke-test.md`](docs/smoke-test.md).
+Use this list for every release. The v1.3.2 run is recorded in the release notes and [`docs/smoke-test.md`](docs/smoke-test.md).
 
 - [ ] Browser harness green (all suites, including real-extension load and command smoke tests)
 - [ ] Keyboard-only harness checks: focus, traversal, apply, undo

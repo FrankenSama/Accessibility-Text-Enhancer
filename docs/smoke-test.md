@@ -19,10 +19,11 @@ Only the Windows/NVDA path has been run. The macOS and Linux steps below are
 kept so a future tester can complete them, but do not describe the extension as
 VoiceOver- or Orca-verified until those rows are updated.
 
-v1.3.1 changed the toolbar layout, speech queueing, notification handling, and
-the content-script structure. Those paths pass the automated accessibility-tree
-and browser harness checks, but the manual NVDA pass has not been repeated since
-v1.3.0.
+v1.3.2 changed toolbar placement, added a dismiss button, and added Windows High
+Contrast styling, on top of the v1.3.1 changes to the toolbar layout, speech
+queueing, notification handling, and content-script structure. Those paths pass
+the automated accessibility-tree and browser harness checks, but the manual NVDA
+pass has not been repeated since v1.3.0.
 
 ## Setup
 
@@ -145,8 +146,8 @@ Use **Pass**, **Pass with notes**, or **Fail** for each section.
 
 | Check | Date | Environment | Result |
 |-------|------|-------------|--------|
-| Automated accessibility-tree snapshot | 2026-11-13 | Chrome 156 headless on Windows, real extension build | 23/23 checks pass |
-| Automated forced-colors and QoL checks | 2026-11-13 | Chrome 156 headless on Windows, real extension build, emulated `forced-colors: active` | 28/28 QoL checks pass; toolbar, settings, popup, and reading settings use system colours |
+| Automated accessibility-tree snapshot | 2026-11-16 | Chrome 156 headless on Windows, real extension build | 23/23 checks pass |
+| Automated forced-colors and QoL checks | 2026-11-16 | Chrome 156 headless on Windows, real extension build, emulated `forced-colors: active` | 28/28 QoL checks pass; toolbar, settings, popup, and reading settings use system colours |
 | NVDA manual pass | 2026-11-06 | Windows 11 Home 26200, Chrome for Testing 156.0.8078.47 headed with `--force-renderer-accessibility`, NVDA 2026.3 (Portuguese UI) | Pass with notes |
 | VoiceOver manual pass | — | macOS | Not tested — no macOS hardware available |
 | Orca manual pass | — | Linux | Not tested — no Linux environment available |
