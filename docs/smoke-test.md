@@ -19,11 +19,11 @@ Only the Windows/NVDA path has been run. The macOS and Linux steps below are
 kept so a future tester can complete them, but do not describe the extension as
 VoiceOver- or Orca-verified until those rows are updated.
 
-v1.3.2 changed toolbar placement, added a dismiss button, and added Windows High
-Contrast styling, on top of the v1.3.1 changes to the toolbar layout, speech
-queueing, notification handling, and content-script structure. Those paths pass
-the automated accessibility-tree and browser harness checks, but the manual NVDA
-pass has not been repeated since v1.3.0.
+v1.4.0 moved the theme and reading preferences to synced storage, added
+per-site on/off rules, Reset page, and a schema 2 settings export, on top of
+the v1.3.2 toolbar placement, dismiss button, and High Contrast styling. Those
+paths pass the automated accessibility-tree and browser harness checks, but
+the manual NVDA pass has not been repeated since v1.3.0.
 
 ## Setup
 
@@ -92,6 +92,8 @@ Turn on Windows High Contrast (or emulate `forced-colors: active` in DevTools) a
 | S5 | Press `Escape`, or activate Close. | The dialog closes and focus returns to the Settings button. |
 | S6 | Activate Preview voice. | A short sample is spoken with the current voice, speed, and pitch. No reading session starts. |
 | S7 | Activate Reset to defaults. | Voice returns to Automatic, Speed to 0.9, and Pitch to 1.0. A reset confirmation is announced. |
+| S8 | Apply two changes, open Settings, and activate Reset page changes twice. | The first press arms the button and announces "Press Reset page changes again to confirm"; the second removes both changes, closes the dialog, and the toolbar's Undo button is disabled. |
+| S9 | In the popup, set **This site** to Always off, reload, and select text. | No toolbar appears, the badge shows `OFF`, and the global switch stays on. Setting it back to Use global setting restores the toolbar. |
 
 ## Reading settings page
 
@@ -148,6 +150,7 @@ Use **Pass**, **Pass with notes**, or **Fail** for each section.
 |-------|------|-------------|--------|
 | Automated accessibility-tree snapshot | 2026-11-16 | Chrome 156 headless on Windows, real extension build | 23/23 checks pass |
 | Automated forced-colors and QoL checks | 2026-11-16 | Chrome 156 headless on Windows, real extension build, emulated `forced-colors: active` | 28/28 QoL checks pass; toolbar, settings, popup, and reading settings use system colours |
+| Automated v1.4.0 checks | 2026-11-16 | Chrome 156 headless on Windows, real extension build | 27/27 sync, site-rule, reset, and export checks pass |
 | NVDA manual pass | 2026-11-06 | Windows 11 Home 26200, Chrome for Testing 156.0.8078.47 headed with `--force-renderer-accessibility`, NVDA 2026.3 (Portuguese UI) | Pass with notes |
 | VoiceOver manual pass | — | macOS | Not tested — no macOS hardware available |
 | Orca manual pass | — | Linux | Not tested — no Linux environment available |

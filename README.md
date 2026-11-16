@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-1.3.2-blue.svg)
+![Version](https://img.shields.io/badge/version-1.4.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Chrome](https://img.shields.io/badge/Chrome-91%2B-yellow.svg)
 
@@ -25,8 +25,8 @@ Originally developed for an MSc dissertation at Solent University, it is now mai
 - **Bold** and **highlight** just the selected words
 - **Font size, style, spacing, and contrast** for the nearest paragraph
 - **Read aloud** with selectable voice, speed, and pitch, sentence highlighting, pause/resume/stop controls, plus voice preview and a dedicated settings page
-- **Undo/redo** for the last 50 changes
-- **Dark/light toolbar**, with JSON export and import
+- **Undo/redo** for the last 50 changes, plus **Reset page** to remove everything in one action
+- **Dark/light toolbar**, with JSON export/import (schema 2, older files still import), synced preferences, and per-site on/off rules
 - **High contrast**: the toolbar, popup, settings, and reading settings follow Windows High Contrast / forced-colors
 - **Keyboard and screen reader support**: shortcuts, a single tab stop, arrow-key navigation, and `aria-pressed` state (NVDA-verified on Windows)
 - **Works in** Chrome 91+ and other Chromium-based browsers
@@ -49,6 +49,10 @@ Bold and highlight apply to the selected words; font size, style, spacing, and c
 
 Read aloud follows the same selection rule. With the caret in a paragraph and nothing selected, `Alt+Shift+R` reads that paragraph. While reading, the toolbar's read button pauses and resumes, a stop button appears, and the current sentence is highlighted (in browsers that support the CSS Custom Highlight API). Open **Reading settings** from the popup (or Settings in the toolbar) to choose a voice, adjust speed and pitch, preview the voice, or reset to defaults; those preferences survive a reload.
 
+The popup's **This site** menu can keep the extension **Always on** or **Always off** for the current site. A site rule wins over the global switch, and the toolbar shows an `OFF` badge on sites you turned off. Open **Settings** in the toolbar and choose **Reset page changes** — the button asks for a second click — to remove every change and clear the undo history, leaving the page as it was found.
+
+Theme, reading preferences, and site rules are stored with `chrome.storage.sync`, so they follow your Chrome profile to other devices signed in to the same account. The on/off switch itself stays on this device.
+
 | Action | Windows/Linux | macOS |
 |---|---|---|
 | Open extension | `Ctrl+Shift+Y` | `Cmd+Shift+Y` |
@@ -65,7 +69,7 @@ Screen-reader announcements are verified with NVDA on Windows. VoiceOver on macO
 
 ## Privacy
 
-Preferences are stored locally with `chrome.storage.local`. Selections and page content are processed in your browser and never sent to the developer or a third party. See the [privacy policy](privacy-policy.md) for details.
+Preferences and site rules are stored with `chrome.storage.sync`, so Chrome may sync them across the devices signed in to your Google account; the on/off switch uses `chrome.storage.local` and stays on this device. Selections and page content are processed in your browser and never sent to the developer or a third party. See the [privacy policy](privacy-policy.md) for details.
 
 ## Contributing
 

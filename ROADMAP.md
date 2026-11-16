@@ -2,7 +2,7 @@
 
 This roadmap tracks the accessibility work planned for Accessibility Text Enhancer. It is a living document: items move between phases as the project learns from real use, and nothing here is a commitment to a date.
 
-**Latest GitHub release:** v1.3.2 · **Chrome Web Store:** v1.2.0 · **Last updated:** 2026-11-16
+**Latest GitHub release:** v1.4.0 · **Chrome Web Store:** v1.2.0 · **Last updated:** 2026-11-16
 
 ## Guiding principles
 
@@ -19,7 +19,7 @@ This roadmap tracks the accessibility work planned for Accessibility Text Enhanc
 |-------|-------|--------|--------|
 | 1 | Accessibility correctness | v1.2.0 | ✅ Released |
 | 2 | Reading assistant | v1.3.0–v1.3.2 | ✅ Released |
-| 3 | Persistence and control | v1.4.0 | 📋 Planned |
+| 3 | Persistence and control | v1.4.0 | ✅ Released |
 | 4 | Personalization | v1.5.0 | 📋 Planned |
 | 5 | Reading aids | v1.6.0 | 📋 Planned |
 | 6 | Platform and reach | v2.0.0 | 💡 Exploring |
@@ -30,7 +30,9 @@ This roadmap tracks the accessibility work planned for Accessibility Text Enhanc
 
 **v1.3.2 (maintenance):** quality-of-life pass before v1.4.0. Adds Windows High Contrast (`forced-colors`) styling for the toolbar, settings dialog, notifications, popup, and reading settings page; a toolbar ✕ button that dismisses the toolbar the way `Escape` does; near-selection toolbar placement that flips above or below the selection and clamps to the viewport, with tooltips that open away from the text; and a readable export filename (`accessibility-text-enhancer-settings-v<version>-<date>.json`). Also lets Focus Toolbar restore the toolbar for a selection that is still on the page after a dismissal. No new permissions or network access.
 
-**Distribution:** as of 2026-11-16, v1.3.2 is the latest GitHub release and includes a packaged extension zip. The Chrome Web Store listing still serves v1.2.0, so publishing the current package there is the remaining distribution step.
+**v1.4.0 (persistence and control):** moves the theme and reading preferences to `chrome.storage.sync` so they follow the Chrome profile, with a one-time migration from the old local values; versions the settings export as schema 2 (site rules included) and keeps importing older files; adds per-site **Always on** / **Always off** rules from the popup, keyed on the origin and shown on the badge; and adds **Reset page changes** to the toolbar settings dialog, which restores each element's first-seen state, unwraps every selection span, and clears the undo history. The global on/off switch stays per device. No new permissions or network access.
+
+**Distribution:** as of 2026-11-16, v1.4.0 is the latest GitHub release and includes a packaged extension zip. The Chrome Web Store listing still serves v1.2.0, so publishing the current package there is the remaining distribution step.
 
 ---
 
@@ -122,16 +124,16 @@ The toolbar already declares `role="toolbar"`, but it was not operable or unders
 
 ---
 
-## Phase 3 — Persistence and control (v1.4.0) 📋
+## Phase 3 — Persistence and control (v1.4.0) ✅
 
 **Problem:** preferences do not follow the user across Chrome profiles. Theme, reading voice, speed, and pitch are stored in `chrome.storage.local`; font size, spacing, and highlight colour have no saved defaults at all. There are no per-site rules and no one-action reset.
 
 **Work:**
 
-- **Synced preferences.** Move the existing preferences to `chrome.storage.sync`: theme and TTS voice, rate, and pitch. Decide whether the extension on/off switch stays per-device rather than syncing.
-- **Settings schema v2.** Versioned export/import with migration from the current file.
-- **Per-site rules.** "Always on" and "always off" per origin, with a control in the popup (which already knows the hostname). Keep this to enabling and disabling the extension; reapplying text-level changes stays in the backlog.
-- **Reset page.** One action that removes every wrapper, override, and history entry.
+- ✅ **Synced preferences.** Theme and TTS voice, rate, and pitch moved to `chrome.storage.sync`, with a lazy migration from the old local values. The extension on/off switch intentionally stays in `chrome.storage.local`.
+- ✅ **Settings schema v2.** Versioned export/import that includes site rules and still imports the pre-1.4.0 file shape.
+- ✅ **Per-site rules.** "Always on" and "always off" per origin, controlled from the popup and reflected on the toolbar badge. The rule wins over the global switch; reapplying text-level changes stays in the backlog.
+- ✅ **Reset page.** One action in the toolbar settings dialog that restores every element's first-seen state, unwraps the selection spans, and clears the undo history. It asks for a second click before acting.
 
 **Acceptance:** preferences follow the user to another Chrome profile; a site can be excluded permanently; Reset page leaves the page as it was found; exported settings round-trip across versions.
 
@@ -210,7 +212,7 @@ These are worth investigating but are not scheduled:
 
 ## Release checklist
 
-Use this list for every release. The v1.3.2 run is recorded in the release notes and [`docs/smoke-test.md`](docs/smoke-test.md).
+Use this list for every release. The v1.4.0 run is recorded in the release notes and [`docs/smoke-test.md`](docs/smoke-test.md).
 
 - [ ] Browser harness green (all suites, including real-extension load and command smoke tests)
 - [ ] Keyboard-only harness checks: focus, traversal, apply, undo

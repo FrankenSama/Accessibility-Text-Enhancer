@@ -236,7 +236,8 @@ project/
 │       ├── scope.js      # Which elements a command affects
 │       ├── commands.js   # Command dispatch and enhancement effects
 │       ├── contrast.js   # WCAG colour math and contrast command
-│       ├── history.js    # Undo and redo history
+│       ├── history.js    # Undo, redo, and Reset page
+│       ├── prefs.js      # Synced preferences and per-site rules
 │       ├── toast.js      # Single live-region notification
 │       └── feedback.js   # Toast wording shared by commands
 ├── icons/                # Extension icons
