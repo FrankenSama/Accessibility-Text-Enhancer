@@ -34,7 +34,7 @@ This roadmap tracks the accessibility work planned for Accessibility Text Enhanc
 
 **v1.4.1 (settings hub):** turns the options page into the settings hub. Adds an **Appearance** section for the toolbar theme, a **Site rules** section that lists every rule with a remove button, a rule count against the 100-rule cap, and a **Clear all site rules** action that asks for a second click; and a **Backup and restore** section for export and import. Shares the schema 2 build and parse logic through a new DOM-free `settings-io.js` module. Also renames the popup gear to **Settings**, hides the **This site** control on non-web pages, trims the popup copy for headroom, and labels the reading reset accurately. No new permissions or network access.
 
-**Distribution:** as of 2026-11-17, v1.4.0 is live on both GitHub (packaged zip with a SHA-256 checksum) and the Chrome Web Store, so both channels serve the same code. v1.4.1 is the next patch release. No new permissions or privacy disclosures were required.
+**Distribution:** as of 2026-11-17, v1.4.1 is the latest GitHub release with a packaged zip and SHA-256 checksum. The Chrome Web Store still serves v1.4.0 until the v1.4.1 package is uploaded. No new permissions or privacy disclosures are required.
 
 ---
 
