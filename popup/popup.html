@@ -16,7 +16,7 @@
             <span class="toggle-label">Extension Status</span>
             <div class="toggle-controls">
                 <button type="button" id="openSettings" class="settings-entry"
-                    aria-label="Reading settings" title="Reading settings">
+                    aria-label="Settings" title="Settings">
                     <span aria-hidden="true">⚙️</span>
                 </button>
                 <label class="switch">
@@ -33,7 +33,7 @@
             <span class="stat-label">Current Domain</span>
             <span class="stat-value" id="currentDomain">-</span>
         </div>
-        <div class="site-rule">
+        <div class="site-rule" hidden>
             <label class="site-rule-label" for="siteRule">This site</label>
             <select id="siteRule" class="site-rule-select" disabled>
                 <option value="">Use global setting</option>
@@ -45,7 +45,7 @@
 
     <div class="info">
         <strong>💡 Quick Start</strong>
-        <p>Select any text on a webpage to open the accessibility toolbar. Use the buttons to enhance readability, contrast, and more!</p>
+        <p>Select text on a page to open the toolbar, then use its buttons to enhance the text.</p>
     </div>
 
     <details class="shortcuts">
@@ -97,7 +97,7 @@
         <a href="https://github.com/FrankenSama/accessibility-text-enhancer" target="_blank" rel="noopener noreferrer">
             View on GitHub
         </a>
-        <div class="version">v1.4.0</div>
+        <div class="version">v1.4.1</div>
     </div>
 
     <script type="module" src="popup.js"></script>

@@ -187,6 +187,10 @@ input:checked + .slider:before {
     padding-top: 10px;
 }
 
+.site-rule[hidden] {
+    display: none;
+}
+
 .site-rule-label {
     font-size: 13px;
     opacity: 0.85;

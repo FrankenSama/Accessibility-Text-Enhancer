@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reading settings — Accessibility Text Enhancer</title>
+    <title>Settings — Accessibility Text Enhancer</title>
     <link rel="stylesheet" href="options.css">
 </head>
 <body>
@@ -11,10 +11,25 @@
         <header class="page-header">
             <h1>Accessibility Text Enhancer</h1>
             <p class="subtitle">
-                Configure how text is read aloud. Changes save automatically and
-                apply to open pages.
+                Settings for how the extension looks and reads pages aloud.
+                Changes save automatically and apply to open pages.
             </p>
         </header>
+
+        <section class="card" aria-labelledby="appearance-heading">
+            <h2 id="appearance-heading">Appearance</h2>
+
+            <div class="field">
+                <label for="toolbar-theme">Toolbar theme</label>
+                <select id="toolbar-theme">
+                    <option value="dark">Dark</option>
+                    <option value="light">Light</option>
+                </select>
+                <p class="hint">
+                    Applies to the on-page toolbar and its settings dialog.
+                </p>
+            </div>
+        </section>
 
         <section class="card" aria-labelledby="reading-heading">
             <h2 id="reading-heading">Reading aloud</h2>
@@ -51,15 +66,57 @@
                     Preview voice
                 </button>
                 <button type="button" id="reset-reading" class="btn secondary">
-                    Reset to defaults
+                    Reset reading settings
                 </button>
             </div>
-
-            <p id="options-status" class="status" role="status" aria-live="polite"></p>
         </section>
 
+        <section class="card" aria-labelledby="sites-heading">
+            <h2 id="sites-heading">Site rules</h2>
+
+            <p class="hint">
+                A site rule keeps the extension always on or always off for one
+                site, and wins over the global switch.
+            </p>
+            <p id="site-rule-count" class="hint"></p>
+
+            <ul id="site-rule-list" class="site-rule-list"></ul>
+            <p id="site-rule-empty" class="empty">No site rules yet.</p>
+
+            <div class="actions">
+                <button type="button" id="clear-site-rules" class="btn secondary">
+                    Clear all site rules
+                </button>
+            </div>
+        </section>
+
+        <section class="card" aria-labelledby="backup-heading">
+            <h2 id="backup-heading">Backup and restore</h2>
+
+            <p class="hint">
+                Export the theme, reading preferences, and site rules to a JSON
+                file, or restore them on another profile. Files from earlier
+                versions still import.
+            </p>
+
+            <div class="actions">
+                <button type="button" id="export-settings" class="btn primary">
+                    Export settings
+                </button>
+                <button type="button" id="import-settings" class="btn secondary">
+                    Import settings
+                </button>
+                <input type="file" id="import-file" accept="application/json" hidden>
+            </div>
+        </section>
+
+        <p id="options-status" class="status" role="status" aria-live="polite"></p>
+
         <footer class="page-footer">
-            <span>Preferences are stored only in this browser.</span>
+            <span>
+                Preferences sync through your Chrome profile. The on/off switch
+                stays on this device.
+            </span>
             <span id="version"></span>
         </footer>
     </main>

@@ -233,6 +233,7 @@ project/
 │       ├── toolbar.js    # Toolbar rendering, positioning, and focus
 │       ├── reading.js    # Read-aloud session and follow-along highlight
 │       ├── settings.js   # Settings dialog plus import and export
+│       ├── settings-io.js # Schema 2 settings file build and parse
 │       ├── scope.js      # Which elements a command affects
 │       ├── commands.js   # Command dispatch and enhancement effects
 │       ├── contrast.js   # WCAG colour math and contrast command

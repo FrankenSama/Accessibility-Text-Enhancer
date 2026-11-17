@@ -19,11 +19,13 @@ Only the Windows/NVDA path has been run. The macOS and Linux steps below are
 kept so a future tester can complete them, but do not describe the extension as
 VoiceOver- or Orca-verified until those rows are updated.
 
-v1.4.0 moved the theme and reading preferences to synced storage, added
-per-site on/off rules, Reset page, and a schema 2 settings export, on top of
-the v1.3.2 toolbar placement, dismiss button, and High Contrast styling. Those
-paths pass the automated accessibility-tree and browser harness checks, but
-the manual NVDA pass has not been repeated since v1.3.0.
+v1.4.1 turns the options page into the settings hub and shares the settings
+file logic with the in-page dialog. v1.4.0 moved the theme and reading
+preferences to synced storage, added per-site on/off rules, Reset page, and a
+schema 2 settings export, on top of the v1.3.2 toolbar placement, dismiss
+button, and High Contrast styling. Those paths pass the automated
+accessibility-tree and browser harness checks, but the manual NVDA pass has not
+been repeated since v1.3.0.
 
 ## Setup
 
@@ -78,7 +80,7 @@ Turn on Windows High Contrast (or emulate `forced-colors: active` in DevTools) a
 | # | Step | Expected |
 |---|------|----------|
 | H1 | Select text and inspect the toolbar. | Every button keeps a visible border and system text colour. Toggle buttons that are on show a highlight border instead of a solid colour block, and disabled Undo/Redo stay readable. |
-| H2 | Open Settings, then the popup, then Reading settings. | Panels, controls, and focus rings keep visible borders and system colours; no text disappears against its background. |
+| H2 | Open Settings, then the popup, then Settings. | Panels, controls, and focus rings keep visible borders and system colours; no text disappears against its background. |
 | H3 | Trigger a notification and read aloud. | The notification and the sentence highlight stay legible against the page background. |
 
 ## Settings dialog
@@ -95,13 +97,18 @@ Turn on Windows High Contrast (or emulate `forced-colors: active` in DevTools) a
 | S8 | Apply two changes, open Settings, and activate Reset page changes twice. | The first press arms the button and announces "Press Reset page changes again to confirm"; the second removes both changes, closes the dialog, and the toolbar's Undo button is disabled. |
 | S9 | In the popup, set **This site** to Always off, reload, and select text. | No toolbar appears, the badge shows `OFF`, and the global switch stays on. Setting it back to Use global setting restores the toolbar. |
 
-## Reading settings page
+## Settings page
 
 | # | Step | Expected |
 |---|------|----------|
-| O1 | Open **Reading settings** from the popup. | The settings page opens in a tab. Voice, Speed, and Pitch are announced with their current values. |
+| O1 | Open **Settings** from the popup. | The settings page opens in a tab. The page name and each section heading are announced, and Voice, Speed, and Pitch are announced with their current values. |
 | O2 | Change Voice, Speed, and Pitch, then activate Preview voice. | The sample uses the new settings, and the status message is announced. |
-| O3 | Activate Reset to defaults. | Controls return to Automatic, 0.9, and 1.0, and the reset confirmation is announced. |
+| O3 | Activate Reset reading settings. | Controls return to Automatic, 0.9, and 1.0, and the reset confirmation is announced. |
+| O4 | Change Toolbar theme to Light, then select text on a page. | The toolbar and its settings dialog use the light theme. The choice survives a reload and follows the Chrome profile. |
+| O5 | Set **This site** to Always off in the popup, then open Settings. | The site rule is listed with its origin and **Always off**, and the count reads 1 of 100. Remove it with its Remove button; the list empties and the removal is announced. |
+| O6 | Add two site rules, activate Clear all site rules twice. | The first press arms the button and announces the confirmation prompt; the second removes both rules, announces the result, and disables the button. |
+| O7 | Activate Export settings, then Import settings and choose the exported file. | A versioned JSON file downloads, the import is announced, and the controls keep the same values. |
+| O8 | Import a settings file written before v1.4.0. | The older file imports its preferences, its missing site rules leave the current rules alone, and the result is announced. |
 
 ## Notifications
 
@@ -149,8 +156,9 @@ Use **Pass**, **Pass with notes**, or **Fail** for each section.
 | Check | Date | Environment | Result |
 |-------|------|-------------|--------|
 | Automated accessibility-tree snapshot | 2026-11-16 | Chrome 156 headless on Windows, real extension build | 23/23 checks pass |
-| Automated forced-colors and QoL checks | 2026-11-16 | Chrome 156 headless on Windows, real extension build, emulated `forced-colors: active` | 28/28 QoL checks pass; toolbar, settings, popup, and reading settings use system colours |
+| Automated forced-colors and QoL checks | 2026-11-16 | Chrome 156 headless on Windows, real extension build, emulated `forced-colors: active` | 28/28 QoL checks pass; toolbar, settings, popup, and settings page use system colours |
 | Automated v1.4.0 checks | 2026-11-16 | Chrome 156 headless on Windows, real extension build | 27/27 sync, site-rule, reset, and export checks pass |
+| Automated v1.4.1 checks | 2026-11-17 | Chrome 156 headless on Windows, real extension build | 37/37 settings-hub, site-rule, backup/restore, and popup checks pass; options suite 46/46 |
 | NVDA manual pass | 2026-11-06 | Windows 11 Home 26200, Chrome for Testing 156.0.8078.47 headed with `--force-renderer-accessibility`, NVDA 2026.3 (Portuguese UI) | Pass with notes |
 | VoiceOver manual pass | — | macOS | Not tested — no macOS hardware available |
 | Orca manual pass | — | Linux | Not tested — no Linux environment available |

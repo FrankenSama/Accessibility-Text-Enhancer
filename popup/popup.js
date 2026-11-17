@@ -12,6 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const statusDiv = document.getElementById('status');
     const currentDomain = document.getElementById('currentDomain');
     const siteRuleSelect = document.getElementById('siteRule');
+    const siteRuleRow = siteRuleSelect.closest('.site-rule');
 
     // Per-site state for the active tab. The toggle is the global default;
     // the site rule for this origin wins when one is set.
@@ -76,7 +77,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Reading settings live on their own page so they are reachable without
+    // Extension settings live on their own page so they are reachable without
     // selecting text first, including on pages where content scripts cannot run.
     document.getElementById('openSettings').addEventListener('click', () => {
         chrome.runtime.openOptionsPage();
@@ -130,12 +131,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             const url = new URL(tab.url);
-            currentDomain.textContent = url.hostname || 'N/A';
             origin = siteOrigin(url);
+            // Only real web pages have a domain worth showing; a chrome:// or
+            // extension URL would otherwise print a misleading hostname.
+            currentDomain.textContent = origin ? (url.hostname || 'N/A') : 'N/A';
         } catch {
             currentDomain.textContent = 'N/A';
             origin = null;
         }
+
+        // A site rule only makes sense for http(s) pages, so do not show a
+        // disabled control on chrome://, file://, or other internal pages.
+        siteRuleRow.hidden = !origin;
 
         siteRuleSelect.disabled = !origin;
 

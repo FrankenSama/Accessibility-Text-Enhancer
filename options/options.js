@@ -2,10 +2,17 @@
 
 import {
     loadSyncedPreferences,
+    normalizeSiteRules,
     saveSyncedPreferences
 } from '../content-scripts/modules/prefs.js';
+import { CONFIG } from '../content-scripts/modules/core.js';
+import {
+    buildSettingsFile,
+    parseSettingsFile
+} from '../content-scripts/modules/settings-io.js';
 
 const DEFAULTS = {
+    darkMode: true,
     ttsVoice: '',
     ttsRate: 0.9,
     ttsPitch: 1
@@ -18,16 +25,26 @@ const LIMITS = {
     maxPitch: 2
 };
 
-const state = { ...DEFAULTS };
+const state = {
+    ...DEFAULTS,
+    siteRules: {}
+};
+
 let voices = [];
 let statusTimer = null;
 
+const themeSelect = document.getElementById('toolbar-theme');
 const voiceSelect = document.getElementById('tts-voice');
 const rateInput = document.getElementById('tts-rate');
 const rateValue = document.getElementById('tts-rate-value');
 const pitchInput = document.getElementById('tts-pitch');
 const pitchValue = document.getElementById('tts-pitch-value');
 const status = document.getElementById('options-status');
+const siteRuleList = document.getElementById('site-rule-list');
+const siteRuleEmpty = document.getElementById('site-rule-empty');
+const siteRuleCount = document.getElementById('site-rule-count');
+const clearRulesButton = document.getElementById('clear-site-rules');
+const importFile = document.getElementById('import-file');
 
 /**
  * Clamp a stored numeric preference to a valid range.
@@ -67,11 +84,15 @@ function setStatus(message) {
  * Persist one or more preferences. Theme and reading preferences sync
  * across the user's Chrome profiles.
  * @param {Record<string, unknown>} values
+ * @param {(saved: boolean) => void} [callback]
  */
-function savePreferences(values) {
+function savePreferences(values, callback) {
     saveSyncedPreferences(values, (saved) => {
         if (!saved) {
             setStatus('Could not save settings. Try again.');
+        }
+        if (callback) {
+            callback(saved);
         }
     });
 }
@@ -144,7 +165,7 @@ function loadVoices() {
 }
 
 /**
- * Mirror the state into the controls.
+ * Mirror the reading state into the controls.
  */
 function syncControls() {
     rateInput.value = String(state.ttsRate);
@@ -154,6 +175,89 @@ function syncControls() {
 
     const hasSavedVoice = voices.some((voice) => voice.voiceURI === state.ttsVoice);
     voiceSelect.value = hasSavedVoice ? state.ttsVoice : '';
+}
+
+/**
+ * Mirror the stored theme into the appearance control.
+ */
+function syncThemeControl() {
+    themeSelect.value = state.darkMode ? 'dark' : 'light';
+}
+
+/**
+ * Human-readable label for a stored site rule.
+ * @param {'on'|'off'} rule
+ * @returns {string}
+ */
+function ruleLabel(rule) {
+    return rule === 'on' ? 'Always on' : 'Always off';
+}
+
+/**
+ * Rebuild the site-rule list and its count.
+ */
+function renderSiteRules() {
+    const origins = Object.keys(state.siteRules).sort();
+    siteRuleList.innerHTML = '';
+
+    origins.forEach((origin) => {
+        const item = document.createElement('li');
+        item.className = 'site-rule-item';
+
+        const name = document.createElement('span');
+        name.className = 'site-rule-origin';
+        name.textContent = origin;
+
+        const value = document.createElement('span');
+        value.className = 'site-rule-value';
+        value.textContent = ruleLabel(state.siteRules[origin]);
+
+        const remove = document.createElement('button');
+        remove.type = 'button';
+        remove.className = 'btn link';
+        remove.textContent = 'Remove';
+        remove.setAttribute('aria-label', `Remove site rule for ${origin}`);
+        remove.addEventListener('click', () => removeSiteRule(origin));
+
+        item.append(name, value, remove);
+        siteRuleList.appendChild(item);
+    });
+
+    siteRuleList.hidden = origins.length === 0;
+    siteRuleEmpty.hidden = origins.length > 0;
+    clearRulesButton.disabled = origins.length === 0;
+    siteRuleCount.textContent =
+        `${origins.length} of ${CONFIG.maxSiteRules} site rules used.`;
+}
+
+/**
+ * Save a site-rule map, rolling the list back if the write fails.
+ * @param {Object<string, 'on'|'off'>} rules
+ * @param {string} message
+ */
+function saveSiteRules(rules, message) {
+    const previous = state.siteRules;
+    state.siteRules = rules;
+    renderSiteRules();
+
+    savePreferences({ siteRules: rules }, (saved) => {
+        if (!saved) {
+            state.siteRules = previous;
+            renderSiteRules();
+            return;
+        }
+        setStatus(message);
+    });
+}
+
+/**
+ * Remove the rule for one origin.
+ * @param {string} origin
+ */
+function removeSiteRule(origin) {
+    const rules = { ...state.siteRules };
+    delete rules[origin];
+    saveSiteRules(rules, `Removed the site rule for ${origin}.`);
 }
 
 /**
@@ -220,8 +324,142 @@ function resetReadingSettings() {
     setStatus('Reading settings reset to defaults.');
 }
 
+/**
+ * Export the full settings file.
+ */
+function exportSettings() {
+    const settings = buildSettingsFile({
+        darkMode: state.darkMode,
+        ttsVoice: state.ttsVoice,
+        ttsRate: state.ttsRate,
+        ttsPitch: state.ttsPitch,
+        siteRules: state.siteRules,
+        appVersion: chrome.runtime.getManifest().version
+    });
+
+    const blob = new Blob(
+        [JSON.stringify(settings, null, 2)],
+        { type: 'application/json' }
+    );
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    const date = settings.exportedAt.slice(0, 10);
+    link.download =
+        `accessibility-text-enhancer-settings-v${settings.appVersion}-${date}.json`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+    setStatus('Settings exported.');
+}
+
+/**
+ * Apply imported preferences to the page state.
+ * @param {Object} preferences
+ * @returns {boolean} Whether at least one preference was found.
+ */
+function applyImportedPreferences(preferences) {
+    let applied = false;
+
+    if (typeof preferences.darkMode === 'boolean') {
+        state.darkMode = preferences.darkMode;
+        applied = true;
+    }
+    if (typeof preferences.ttsVoice === 'string') {
+        state.ttsVoice = preferences.ttsVoice;
+        applied = true;
+    }
+    if (preferences.ttsRate !== undefined) {
+        state.ttsRate = clampNumber(
+            preferences.ttsRate,
+            LIMITS.minRate,
+            LIMITS.maxRate,
+            DEFAULTS.ttsRate
+        );
+        applied = true;
+    }
+    if (preferences.ttsPitch !== undefined) {
+        state.ttsPitch = clampNumber(
+            preferences.ttsPitch,
+            LIMITS.minPitch,
+            LIMITS.maxPitch,
+            DEFAULTS.ttsPitch
+        );
+        applied = true;
+    }
+
+    return applied;
+}
+
+/**
+ * Read a chosen settings file and apply it.
+ * @param {File} file
+ */
+function importFileContents(file) {
+    const reader = new FileReader();
+
+    reader.onload = (event) => {
+        let parsed;
+
+        try {
+            parsed = parseSettingsFile(event.target.result);
+        } catch (error) {
+            console.warn('Import error:', error);
+            setStatus('That file is not valid settings JSON.');
+            return;
+        }
+
+        if (!parsed) {
+            setStatus('No settings found in that file.');
+            return;
+        }
+
+        const hasSettings = applyImportedPreferences(parsed.preferences);
+        const hasRules = parsed.hasRules;
+
+        if (!hasSettings && !hasRules) {
+            setStatus('No settings found in that file.');
+            return;
+        }
+
+        const updates = {
+            darkMode: state.darkMode,
+            ttsVoice: state.ttsVoice,
+            ttsRate: state.ttsRate,
+            ttsPitch: state.ttsPitch
+        };
+
+        if (hasRules) {
+            state.siteRules = parsed.siteRules;
+            updates.siteRules = state.siteRules;
+        }
+
+        savePreferences(updates, (saved) => {
+            if (!saved) {
+                return;
+            }
+            loadVoices();
+            syncControls();
+            syncThemeControl();
+            renderSiteRules();
+            setStatus('Settings imported.');
+        });
+    };
+
+    reader.onerror = () => {
+        setStatus('Could not read that settings file.');
+    };
+
+    reader.readAsText(file);
+}
+
 // Load saved preferences.
 loadSyncedPreferences().then((result) => {
+    state.darkMode = typeof result.darkMode === 'boolean'
+        ? result.darkMode
+        : DEFAULTS.darkMode;
     state.ttsVoice = typeof result.ttsVoice === 'string' ? result.ttsVoice : '';
     state.ttsRate = clampNumber(
         result.ttsRate,
@@ -235,21 +473,29 @@ loadSyncedPreferences().then((result) => {
         LIMITS.maxPitch,
         DEFAULTS.ttsPitch
     );
+    state.siteRules = normalizeSiteRules(result.siteRules);
 
     loadVoices();
     syncControls();
+    syncThemeControl();
+    renderSiteRules();
 }).catch(() => {
     setStatus('Could not load settings. Try reopening this page.');
 });
 
 // Keep the page in sync if the same settings are changed from the in-page
-// toolbar while this page is open.
+// toolbar or another profile while this page is open.
 chrome.storage.onChanged.addListener((changes, areaName) => {
     if (areaName !== 'sync') {
         return;
     }
 
     let changed = false;
+
+    if (changes.darkMode) {
+        state.darkMode = changes.darkMode.newValue !== false;
+        syncThemeControl();
+    }
 
     if (changes.ttsVoice) {
         state.ttsVoice = typeof changes.ttsVoice.newValue === 'string'
@@ -278,13 +524,17 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
         changed = true;
     }
 
+    if (changes.siteRules) {
+        state.siteRules = normalizeSiteRules(changes.siteRules.newValue);
+        renderSiteRules();
+    }
+
     if (changed) {
         syncControls();
     }
 });
 
 // Voices load asynchronously on most platforms.
-loadVoices();
 if ('speechSynthesis' in window) {
     if (typeof window.speechSynthesis.addEventListener === 'function') {
         window.speechSynthesis.addEventListener('voiceschanged', loadVoices);
@@ -292,6 +542,11 @@ if ('speechSynthesis' in window) {
         window.speechSynthesis.onvoiceschanged = loadVoices;
     }
 }
+
+themeSelect.addEventListener('change', () => {
+    state.darkMode = themeSelect.value !== 'light';
+    savePreferences({ darkMode: state.darkMode });
+});
 
 voiceSelect.addEventListener('change', () => {
     state.ttsVoice = voiceSelect.value;
@@ -328,6 +583,49 @@ pitchInput.addEventListener('change', () => {
 
 document.getElementById('preview-voice').addEventListener('click', previewVoice);
 document.getElementById('reset-reading').addEventListener('click', resetReadingSettings);
+document.getElementById('export-settings').addEventListener('click', exportSettings);
+document.getElementById('import-settings').addEventListener('click', () => {
+    importFile.click();
+});
+
+importFile.addEventListener('change', () => {
+    const file = importFile.files[0];
+    importFile.value = '';
+    if (file) {
+        importFileContents(file);
+    }
+});
+
+// Clearing every rule asks for a second click, matching the in-page reset.
+let clearArmed = false;
+let clearTimer = null;
+
+function disarmClear() {
+    clearArmed = false;
+    clearRulesButton.textContent = 'Clear all site rules';
+    if (clearTimer) {
+        clearTimeout(clearTimer);
+        clearTimer = null;
+    }
+}
+
+clearRulesButton.addEventListener('click', () => {
+    if (Object.keys(state.siteRules).length === 0) {
+        setStatus('There are no site rules to clear.');
+        return;
+    }
+
+    if (!clearArmed) {
+        clearArmed = true;
+        clearRulesButton.textContent = 'Confirm clear all';
+        clearTimer = setTimeout(disarmClear, 5000);
+        setStatus('Activate Confirm clear all to remove every site rule.');
+        return;
+    }
+
+    disarmClear();
+    saveSiteRules({}, 'All site rules cleared.');
+});
 
 document.getElementById('version').textContent =
     `v${chrome.runtime.getManifest().version}`;

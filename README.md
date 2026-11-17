@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-1.4.0-blue.svg)
+![Version](https://img.shields.io/badge/version-1.4.1-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Chrome](https://img.shields.io/badge/Chrome-91%2B-yellow.svg)
 
@@ -27,7 +27,7 @@ Originally developed for an MSc dissertation at Solent University, it is now mai
 - **Read aloud** with selectable voice, speed, and pitch, sentence highlighting, pause/resume/stop controls, plus voice preview and a dedicated settings page
 - **Undo/redo** for the last 50 changes, plus **Reset page** to remove everything in one action
 - **Dark/light toolbar**, with JSON export/import (schema 2, older files still import), synced preferences, and per-site on/off rules
-- **High contrast**: the toolbar, popup, settings, and reading settings follow Windows High Contrast / forced-colors
+- **High contrast**: the toolbar, popup, and settings pages follow Windows High Contrast / forced-colors
 - **Keyboard and screen reader support**: shortcuts, a single tab stop, arrow-key navigation, and `aria-pressed` state (NVDA-verified on Windows)
 - **Works in** Chrome 91+ and other Chromium-based browsers
 
@@ -47,9 +47,9 @@ The toolbar opens next to your selection, above it when there is room and below 
 
 Bold and highlight apply to the selected words; font size, style, spacing, and contrast apply to the nearest paragraph. Shift-click flips that scope. If a selection crosses paragraphs, bold and highlight apply paragraph by paragraph and a toast explains the result.
 
-Read aloud follows the same selection rule. With the caret in a paragraph and nothing selected, `Alt+Shift+R` reads that paragraph. While reading, the toolbar's read button pauses and resumes, a stop button appears, and the current sentence is highlighted (in browsers that support the CSS Custom Highlight API). Open **Reading settings** from the popup (or Settings in the toolbar) to choose a voice, adjust speed and pitch, preview the voice, or reset to defaults; those preferences survive a reload.
+Read aloud follows the same selection rule. With the caret in a paragraph and nothing selected, `Alt+Shift+R` reads that paragraph. While reading, the toolbar's read button pauses and resumes, a stop button appears, and the current sentence is highlighted (in browsers that support the CSS Custom Highlight API). Open **Settings** from the popup (or Settings in the toolbar) to choose a voice, adjust speed and pitch, preview the voice, switch the toolbar theme, manage site rules, or export and import your settings; those preferences survive a reload.
 
-The popup's **This site** menu can keep the extension **Always on** or **Always off** for the current site. A site rule wins over the global switch, and the toolbar shows an `OFF` badge on sites you turned off. Open **Settings** in the toolbar and choose **Reset page changes** — the button asks for a second click — to remove every change and clear the undo history, leaving the page as it was found.
+The popup's **This site** menu can keep the extension **Always on** or **Always off** for the current site. A site rule wins over the global switch, and the toolbar shows an `OFF` badge on sites you turned off. Open **Settings** from the popup to review or remove site rules. To undo the extension's changes to the current page, choose **Reset page changes** in the toolbar's settings dialog — the button asks for a second click — which removes every change and clears the undo history, leaving the page as it was found.
 
 Theme, reading preferences, and site rules are stored with `chrome.storage.sync`, so they follow your Chrome profile to other devices signed in to the same account. The on/off switch itself stays on this device.
 

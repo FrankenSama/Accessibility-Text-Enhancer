@@ -6,7 +6,8 @@ import { getMountNode } from './dom.js';
 import { showToast } from './toast.js';
 import { applyTheme } from './toolbar.js';
 import { getPageLanguage, pickReadingVoice, populateVoiceSelect } from './reading.js';
-import { normalizeSiteRules, saveSyncedPreferences } from './prefs.js';
+import { saveSyncedPreferences } from './prefs.js';
+import { buildSettingsFile, parseSettingsFile } from './settings-io.js';
 import { hasPageChanges, resetPageChanges } from './history.js';
 
 let settingsReturnFocus = null;
@@ -350,26 +351,21 @@ export function removeSettingsPanel() {
  * Export settings to a JSON file.
  */
 function exportSettings() {
-    const appVersion = chrome.runtime.getManifest().version;
-    const settings = {
-        schema: CONFIG.settingsSchemaVersion,
-        appVersion,
-        exportedAt: new Date().toISOString(),
-        preferences: {
-            darkMode: STATE.isDarkMode,
-            ttsVoice: STATE.ttsVoice,
-            ttsRate: STATE.ttsRate,
-            ttsPitch: STATE.ttsPitch
-        },
-        siteRules: STATE.siteRules || {}
-    };
+    const settings = buildSettingsFile({
+        darkMode: STATE.isDarkMode,
+        ttsVoice: STATE.ttsVoice,
+        ttsRate: STATE.ttsRate,
+        ttsPitch: STATE.ttsPitch,
+        siteRules: STATE.siteRules,
+        appVersion: chrome.runtime.getManifest().version
+    });
 
     const blob = new Blob([JSON.stringify(settings, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
     const date = settings.exportedAt.slice(0, 10);
-    link.download = `accessibility-text-enhancer-settings-v${appVersion}-${date}.json`;
+    link.download = `accessibility-text-enhancer-settings-v${settings.appVersion}-${date}.json`;
     getMountNode().appendChild(link);
     link.click();
     link.remove();
@@ -432,22 +428,15 @@ function importSettings() {
         const reader = new FileReader();
         reader.onload = (loadEvent) => {
             try {
-                const settings = JSON.parse(loadEvent.target.result);
-                const preferences = settings.preferences;
+                const parsed = parseSettingsFile(loadEvent.target.result);
 
-                if (!preferences || typeof preferences !== 'object') {
+                if (!parsed) {
                     showToast('No settings found in file', { error: true });
                     return;
                 }
 
-                // Files written before schema 2 have no schema field and
-                // only carry preferences, so they import as-is.
-                const schema = typeof settings.schema === 'number' ? settings.schema : 1;
-                const hasSettings = applyImportedPreferences(preferences);
-                const hasRules = schema >= 2 &&
-                    settings.siteRules !== null &&
-                    typeof settings.siteRules === 'object' &&
-                    !Array.isArray(settings.siteRules);
+                const hasSettings = applyImportedPreferences(parsed.preferences);
+                const hasRules = parsed.hasRules;
 
                 if (!hasSettings && !hasRules) {
                     showToast('No settings found in file', { error: true });
@@ -462,7 +451,7 @@ function importSettings() {
                 };
 
                 if (hasRules) {
-                    STATE.siteRules = normalizeSiteRules(settings.siteRules);
+                    STATE.siteRules = parsed.siteRules;
                     updates.siteRules = STATE.siteRules;
                 }
 

@@ -72,6 +72,10 @@ h1 {
     padding: 24px;
 }
 
+.card + .card {
+    margin-top: 20px;
+}
+
 h2 {
     margin: 0 0 20px;
     font-size: 20px;
@@ -154,6 +158,67 @@ input[type="range"] {
     background: var(--secondary-hover);
 }
 
+.btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.btn.link {
+    flex: 0 0 auto;
+    padding: 6px 12px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--accent);
+    font-size: 13px;
+}
+
+.btn.link:hover:not(:disabled) {
+    background: var(--secondary);
+}
+
+.site-rule-list {
+    margin: 14px 0 0;
+    padding: 0;
+    list-style: none;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+}
+
+.site-rule-item {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 12px;
+    padding: 10px 12px;
+}
+
+.site-rule-item + .site-rule-item {
+    border-top: 1px solid var(--border);
+}
+
+.site-rule-origin {
+    flex: 1 1 auto;
+    font-weight: 600;
+    word-break: break-all;
+}
+
+.site-rule-value {
+    color: var(--muted);
+    font-size: 13px;
+}
+
+.empty {
+    margin: 10px 0 0;
+    color: var(--muted);
+    font-size: 14px;
+}
+
+.empty[hidden],
+.site-rule-list[hidden] {
+    display: none;
+}
+
 .btn:focus-visible,
 select:focus-visible,
 input[type="range"]:focus-visible {
@@ -226,6 +291,20 @@ input[type="range"]:focus-visible {
     .btn.secondary {
         background: ButtonFace;
         color: ButtonText;
+    }
+
+    .btn.link {
+        background: ButtonFace;
+        color: LinkText;
+        border-color: CanvasText;
+    }
+
+    .site-rule-list {
+        border-color: CanvasText;
+    }
+
+    .site-rule-item + .site-rule-item {
+        border-top-color: CanvasText;
     }
 
     select {
