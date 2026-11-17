@@ -2,7 +2,7 @@
 
 This roadmap tracks the accessibility work planned for Accessibility Text Enhancer. It is a living document: items move between phases as the project learns from real use, and nothing here is a commitment to a date.
 
-**Latest GitHub release:** v1.4.0 · **Chrome Web Store:** v1.2.0 · **Last updated:** 2026-11-16
+**Latest GitHub release:** v1.4.0 · **Chrome Web Store:** v1.4.0 · **Last updated:** 2026-11-17
 
 ## Guiding principles
 
@@ -32,7 +32,7 @@ This roadmap tracks the accessibility work planned for Accessibility Text Enhanc
 
 **v1.4.0 (persistence and control):** moves the theme and reading preferences to `chrome.storage.sync` so they follow the Chrome profile, with a one-time migration from the old local values; versions the settings export as schema 2 (site rules included) and keeps importing older files; adds per-site **Always on** / **Always off** rules from the popup, keyed on the origin and shown on the badge; and adds **Reset page changes** to the toolbar settings dialog, which restores each element's first-seen state, unwraps every selection span, and clears the undo history. The global on/off switch stays per device. No new permissions or network access.
 
-**Distribution:** as of 2026-11-16, v1.4.0 is the latest GitHub release and includes a packaged extension zip. The Chrome Web Store listing still serves v1.2.0, so publishing the current package there is the remaining distribution step.
+**Distribution:** as of 2026-11-17, v1.4.0 is live on both GitHub (packaged zip with a SHA-256 checksum) and the Chrome Web Store, so both channels serve the same code. No new permissions or privacy disclosures were required.
 
 ---
 
