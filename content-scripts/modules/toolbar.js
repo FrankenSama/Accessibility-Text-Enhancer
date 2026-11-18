@@ -2,6 +2,11 @@
 
 import { CONFIG, SHORTCUT_LABELS, STATE, TOGGLE_COMMANDS } from './core.js';
 import { getMountNode } from './dom.js';
+import {
+    FONT_LABELS,
+    HIGHLIGHT_COLORS,
+    SPACING_PRESETS
+} from './style-defaults.js';
 import { showToast } from './toast.js';
 
 let runCommand = () => {};
@@ -28,6 +33,50 @@ export function configureToolbar(handlers = {}) {
 // ==================== TOOLBAR MANAGEMENT ====================
 
 /**
+ * Tooltips that name the saved text styling, so the button says what the
+ * next press will apply instead of the old generic label.
+ * @returns {{fontStyle: string, spacing: string, highlight: string}}
+ */
+function textCommandTooltips() {
+    const defaults = STATE.textDefaults || {};
+    const font = FONT_LABELS[defaults.fontFamily] || FONT_LABELS.sans;
+    const preset = SPACING_PRESETS[defaults.spacingPreset] ||
+        SPACING_PRESETS.comfortable;
+    const color = HIGHLIGHT_COLORS[defaults.highlightColor] ||
+        HIGHLIGHT_COLORS.yellow;
+    const name = color.label.toLowerCase();
+    const highlight = defaults.highlightStyle === 'auto'
+        ? name
+        : `${name} ${defaults.highlightStyle}`;
+
+    return {
+        fontStyle: `Font: ${font} · Shift: selection`,
+        spacing: `Text spacing: ${preset.label} · Shift: selection`,
+        highlight: `Highlight: ${highlight} (${SHORTCUT_LABELS.highlight}) · Shift: paragraph`
+    };
+}
+
+/**
+ * Refresh the text-styling labels on an open toolbar after the defaults
+ * change in storage.
+ */
+export function refreshTextCommandLabels() {
+    const toolbar = document.getElementById(CONFIG.toolbarId);
+    if (!toolbar) {
+        return;
+    }
+
+    const tooltips = textCommandTooltips();
+    Object.entries(tooltips).forEach(([command, label]) => {
+        const button = toolbar.querySelector(`[data-command="${command}"]`);
+        if (button) {
+            button.dataset.tooltip = label;
+            button.setAttribute('aria-label', label);
+        }
+    });
+}
+
+/**
  * Creates and returns the enhanced toolbar element.
  * @returns {HTMLElement|null} The created toolbar element
  */
@@ -37,6 +86,7 @@ export function createToolbar() {
     }
     removeToolbar();
 
+    const tooltips = textCommandTooltips();
     const toolbar = document.createElement('div');
     toolbar.id = CONFIG.toolbarId;
     toolbar.setAttribute('role', 'toolbar');
@@ -58,7 +108,7 @@ export function createToolbar() {
 
         <div class="button-group">
             <button type="button" data-command="bold" data-tooltip="Bold (${SHORTCUT_LABELS.bold}) · Shift: paragraph">Bold</button>
-            <button type="button" data-command="highlight" data-tooltip="Highlight (${SHORTCUT_LABELS.highlight}) · Shift: paragraph">Highlight</button>
+            <button type="button" data-command="highlight" data-tooltip="${tooltips.highlight}">Highlight</button>
         </div>
 
         <div class="button-group">
@@ -67,8 +117,8 @@ export function createToolbar() {
         </div>
 
         <div class="button-group">
-            <button type="button" data-command="fontStyle" class="icon-btn" data-tooltip="Toggle Font Style · Shift: selection">A</button>
-            <button type="button" data-command="spacing" class="icon-btn" data-tooltip="Text Spacing · Shift: selection">↔️</button>
+            <button type="button" data-command="fontStyle" class="icon-btn" data-tooltip="${tooltips.fontStyle}">A</button>
+            <button type="button" data-command="spacing" class="icon-btn" data-tooltip="${tooltips.spacing}">↔️</button>
             <button type="button" data-command="contrast" class="icon-btn" data-tooltip="Fix Contrast · Shift: selection">🎨</button>
             <button type="button" data-command="readAloud" class="icon-btn" data-tooltip="Read Aloud (${SHORTCUT_LABELS.read})">🔊</button>
             <button type="button" data-command="stopReading" class="icon-btn" data-tooltip="Stop Reading" tabindex="-1" hidden>⏹️</button>

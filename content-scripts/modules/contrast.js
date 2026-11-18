@@ -28,6 +28,30 @@ export function parseColor(color) {
 }
 
 /**
+ * Parse a #rgb or #rrggbb colour into channel values.
+ * @param {string} color
+ * @returns {{r: number, g: number, b: number, a: number}|null}
+ */
+export function parseHexColor(color) {
+    const match = typeof color === 'string' &&
+        color.trim().match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
+    if (!match) {
+        return null;
+    }
+
+    const hex = match[1].length === 3
+        ? match[1].split('').map((digit) => digit + digit).join('')
+        : match[1];
+
+    return {
+        r: parseInt(hex.slice(0, 2), 16),
+        g: parseInt(hex.slice(2, 4), 16),
+        b: parseInt(hex.slice(4, 6), 16),
+        a: 1
+    };
+}
+
+/**
  * Relative luminance as defined by WCAG 2.x.
  * @param {{r: number, g: number, b: number}} color
  * @returns {number}
@@ -62,7 +86,7 @@ export function contrastRatio(colorA, colorB) {
  * @param {HTMLElement} element
  * @returns {{r: number, g: number, b: number}}
  */
-function getEffectiveBackgroundColor(element) {
+export function getEffectiveBackgroundColor(element) {
     const layers = [];
     let node = element;
 

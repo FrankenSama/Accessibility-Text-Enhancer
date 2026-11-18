@@ -46,6 +46,8 @@ export const CONFIG = {
     settingsPanelId: 'accessibility-settings-panel',
     settingsOverlayId: 'accessibility-settings-overlay',
     highlightAttr: 'data-accessibility-highlight',
+    fontAttr: 'data-atx-font',
+    spacingAttr: 'data-atx-spacing',
     selectionAttr: 'data-atx-selection',
     selectionDelay: 150,
     toastId: 'accessibility-toast',
@@ -116,11 +118,18 @@ export const TOGGLE_COMMANDS = new Set([
 // block are cleared so the wrappers inherit the block-level result.
 export const COMMAND_PROPERTIES = {
     bold: ['font-weight'],
-    highlight: ['background-color', 'outline'],
+    highlight: [
+        'background-color',
+        'outline',
+        'text-decoration-line',
+        'text-decoration-thickness',
+        'text-decoration-color',
+        'text-underline-offset'
+    ],
     sizeDown: ['font-size'],
     sizeUp: ['font-size'],
     fontStyle: ['font-family'],
-    spacing: ['letter-spacing', 'word-spacing'],
+    spacing: ['letter-spacing', 'word-spacing', 'line-height', 'margin-bottom'],
     contrast: ['color']
 };
 
@@ -130,14 +139,10 @@ export const COMMAND_LABELS = {
     highlight: 'Highlight',
     sizeDown: 'Font size decrease',
     sizeUp: 'Font size increase',
-    fontStyle: 'Font style',
+    fontStyle: 'Font',
     spacing: 'Text spacing',
     contrast: 'Contrast fix'
 };
-
-// Yellow used by the highlight feature. Highlight only paints a background
-// when the current text colour stays readable against it.
-export const HIGHLIGHT_COLOR = { r: 255, g: 235, b: 59 };
 
 // Wrappers are HTML spans, so they can only be inserted around HTML text.
 export const HTML_NAMESPACE = 'http://www.w3.org/1999/xhtml';

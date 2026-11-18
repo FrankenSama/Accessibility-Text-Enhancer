@@ -4,12 +4,7 @@
 // undo history in history.js, so this module stays focused on applying a
 // command to the elements the scope module picked.
 
-import {
-    CONFIG,
-    HIGHLIGHT_COLOR,
-    STATE,
-    TOGGLE_COMMANDS
-} from './core.js';
+import { CONFIG, STATE, TOGGLE_COMMANDS } from './core.js';
 import {
     getBlocksForRange,
     getSelectedTextNodes,
@@ -20,7 +15,20 @@ import { removeToolbar, updateToolbarState } from './toolbar.js';
 import { stopReading, toggleReadAloud } from './reading.js';
 import { showSettingsPanel, toggleToolbarTheme } from './settings.js';
 import { notify } from './feedback.js';
-import { contrastRatio, fixTextContrast, parseColor } from './contrast.js';
+import {
+    contrastRatio,
+    fixTextContrast,
+    getEffectiveBackgroundColor,
+    parseColor,
+    parseHexColor
+} from './contrast.js';
+import {
+    FONT_LABELS,
+    fontStackFor,
+    highlightValuesFor,
+    SPACING_PRESETS,
+    spacingValuesFor
+} from './style-defaults.js';
 import { captureElementState, pushHistory, redo, undo } from './history.js';
 import {
     clearWrapperOverride,
@@ -132,7 +140,7 @@ export function enhanceSelection(command, options = {}) {
         applyCommand(target, command, commandOptions);
         const after = captureElementState(target);
 
-        if (before.style !== after.style || before.highlight !== after.highlight) {
+        if (statesDiffer(before, after)) {
             changes.push({ element: target, before, after });
             return true;
         }
@@ -174,7 +182,7 @@ export function enhanceSelection(command, options = {}) {
             clearWrapperOverride(wrapper, command);
             const after = captureElementState(wrapper);
 
-            if (before.style !== after.style || before.highlight !== after.highlight) {
+            if (statesDiffer(before, after)) {
                 changes.push({ element: wrapper, before, after });
             }
         }
@@ -243,32 +251,142 @@ function toggleBold(element, options = {}) {
     notify(options, isBold ? 'Text unbolded' : 'Text bolded');
 }
 
+const HIGHLIGHT_PROPERTIES = [
+    'background-color',
+    'outline',
+    'text-decoration-line',
+    'text-decoration-thickness',
+    'text-decoration-color',
+    'text-underline-offset'
+];
+
 /**
- * Toggle highlight background or outline.
+ * Whether two captured element states differ in style or in any marker.
+ * @param {Object} before
+ * @param {Object} after
+ * @returns {boolean}
+ */
+function statesDiffer(before, after) {
+    return before.style !== after.style ||
+        before.highlight !== after.highlight ||
+        before.font !== after.font ||
+        before.spacing !== after.spacing;
+}
+
+/**
+ * Whether the browser is in a forced-colours mode, where authored background
+ * colours are suppressed and system colours have to be used instead.
+ * @returns {boolean}
+ */
+function forcedColorsActive() {
+    return Boolean(window.matchMedia &&
+        window.matchMedia('(forced-colors: active)').matches);
+}
+
+/**
+ * Pick a line colour that stays visible against the page, or fall back to
+ * the text colour when the chosen one would disappear.
+ * @param {HTMLElement} element
+ * @param {string} lineColor
+ * @returns {string}
+ */
+function readableLineColor(element, lineColor) {
+    if (forcedColorsActive()) {
+        return 'Highlight';
+    }
+
+    const line = parseHexColor(lineColor);
+    const background = getEffectiveBackgroundColor(element);
+
+    if (!line || !background || contrastRatio(line, background) < 3) {
+        return 'currentColor';
+    }
+
+    return lineColor;
+}
+
+/**
+ * Remove every property and marker the highlight command can set.
+ * @param {HTMLElement} element
+ */
+function removeHighlightStyles(element) {
+    HIGHLIGHT_PROPERTIES.forEach((property) => {
+        element.style.removeProperty(property);
+    });
+    element.removeAttribute(CONFIG.highlightAttr);
+}
+
+/**
+ * @param {HTMLElement} element
+ * @param {string} color
+ */
+function applyBackgroundHighlight(element, color) {
+    element.style.setProperty('background-color', color, 'important');
+    element.setAttribute(CONFIG.highlightAttr, 'background');
+}
+
+/**
+ * @param {HTMLElement} element
+ * @param {string} color
+ */
+function applyOutlineHighlight(element, color) {
+    element.style.setProperty('outline', `2px solid ${color}`, 'important');
+    element.setAttribute(CONFIG.highlightAttr, 'outline');
+}
+
+/**
+ * @param {HTMLElement} element
+ * @param {string} color
+ */
+function applyUnderlineHighlight(element, color) {
+    element.style.setProperty('text-decoration-line', 'underline', 'important');
+    element.style.setProperty('text-decoration-thickness', '2px', 'important');
+    element.style.setProperty('text-decoration-color', color, 'important');
+    element.style.setProperty('text-underline-offset', '2px', 'important');
+    element.setAttribute(CONFIG.highlightAttr, 'underline');
+}
+
+/**
+ * Toggle the saved highlight mode: a background, an outline, or an underline.
  * @param {HTMLElement} element - Element to modify
  * @param {{silent?: boolean, scope?: string, toggleOff?: boolean}} options
  */
 function toggleHighlight(element, options = {}) {
     const mode = element.getAttribute(CONFIG.highlightAttr);
-    const shouldRemove = options.toggleOff ?? (mode === 'background' || mode === 'outline');
+    const shouldRemove = options.toggleOff ?? Boolean(mode);
 
     if (shouldRemove) {
-        if (mode === 'background') {
-            element.style.removeProperty('background-color');
-            notify(options, 'Highlight removed');
-        } else {
-            element.style.removeProperty('outline');
-            notify(options, 'Outline removed');
-        }
+        const message = mode === 'outline'
+            ? 'Outline removed'
+            : mode === 'underline'
+                ? 'Underline removed'
+                : 'Highlight removed';
 
-        element.removeAttribute(CONFIG.highlightAttr);
+        removeHighlightStyles(element);
+        notify(options, message);
         return;
     }
 
     // Part of a mixed selection that is being highlighted: keep the mode
     // it already has instead of stacking a background and an outline.
     if (mode) {
-        notify(options, mode === 'background' ? 'Text highlighted' : 'Outline applied');
+        notify(options,
+            mode === 'background'
+                ? 'Text highlighted'
+                : mode === 'outline' ? 'Outline applied' : 'Underlined');
+        return;
+    }
+
+    const values = highlightValuesFor(STATE.textDefaults);
+
+    if (forcedColorsActive()) {
+        if (values.style === 'underline') {
+            applyUnderlineHighlight(element, 'Highlight');
+            notify(options, 'Underlined (system highlight)');
+        } else {
+            applyOutlineHighlight(element, 'Highlight');
+            notify(options, 'Outline applied (system highlight)');
+        }
         return;
     }
 
@@ -277,20 +395,39 @@ function toggleHighlight(element, options = {}) {
     const clipsBackgroundToText = style.backgroundClip === 'text' ||
         style.webkitBackgroundClip === 'text';
     const textColor = parseColor(style.color) || { r: 0, g: 0, b: 0 };
+    const highlightColor = parseHexColor(values.background);
 
-    // A yellow background only works when the text is dark enough to stay
-    // readable on it. On dark sites (or after a contrast fix made the text
-    // white) outline the element instead of hiding the text behind yellow.
-    const backgroundIsReadable = contrastRatio(textColor, HIGHLIGHT_COLOR) >= 4.5;
+    // A background only works when the text stays readable on it. On dark
+    // sites (or after a contrast fix made the text white) use a line instead
+    // of hiding the text.
+    const backgroundIsReadable = Boolean(highlightColor) &&
+        contrastRatio(textColor, highlightColor) >= 4.5;
+    const canPaintBackground = !background && !clipsBackgroundToText &&
+        backgroundIsReadable;
 
-    if (background || clipsBackgroundToText || !backgroundIsReadable) {
-        element.style.setProperty('outline', '2px solid #ffeb3b', 'important');
-        element.setAttribute(CONFIG.highlightAttr, 'outline');
-        notify(options, 'Outline applied');
-    } else {
-        element.style.setProperty('background-color', '#ffeb3b', 'important');
-        element.setAttribute(CONFIG.highlightAttr, 'background');
+    if (values.style === 'underline') {
+        applyUnderlineHighlight(element, readableLineColor(element, values.line));
+        notify(options, 'Underlined');
+        return;
+    }
+
+    if (values.style === 'background') {
+        if (canPaintBackground) {
+            applyBackgroundHighlight(element, values.background);
+            notify(options, 'Text highlighted');
+        } else {
+            applyUnderlineHighlight(element, readableLineColor(element, values.line));
+            notify(options, 'Underlined: background would hide the text');
+        }
+        return;
+    }
+
+    if (canPaintBackground) {
+        applyBackgroundHighlight(element, values.background);
         notify(options, 'Text highlighted');
+    } else {
+        applyOutlineHighlight(element, readableLineColor(element, values.line));
+        notify(options, 'Outline applied');
     }
 }
 
@@ -313,39 +450,83 @@ function adjustFontSize(element, change, options = {}) {
 }
 
 /**
- * Toggle font family.
+ * Apply the saved font choice, or remove it and reveal the page's own font.
  * @param {HTMLElement} element - Element to modify
  * @param {{silent?: boolean, scope?: string, toggleOff?: boolean}} options
  */
 function toggleFontStyle(element, options = {}) {
-    const isSerif = options.toggleOff ?? isCommandApplied(element, 'fontStyle');
+    const isApplied = options.toggleOff ?? isCommandApplied(element, 'fontStyle');
 
-    if (isSerif) {
-        element.style.setProperty('font-family', 'Arial, sans-serif', 'important');
-        notify(options, 'Font: Sans-serif');
-    } else {
-        element.style.setProperty('font-family', 'Georgia, serif', 'important');
-        notify(options, 'Font: Serif');
+    if (isApplied) {
+        element.style.removeProperty('font-family');
+        element.removeAttribute(CONFIG.fontAttr);
+        notify(options, 'Font reset');
+        return;
     }
+
+    const fontFamily = STATE.textDefaults.fontFamily;
+    element.style.setProperty('font-family', fontStackFor(fontFamily), 'important');
+    element.setAttribute(CONFIG.fontAttr, fontFamily);
+    notify(options, `Font: ${FONT_LABELS[fontFamily] || FONT_LABELS.sans}`);
 }
 
 /**
- * Toggle text spacing.
+ * Whether an element can take a bottom margin without breaking the layout.
+ * Inline selection targets cannot, so paragraph spacing skips them.
+ * @param {HTMLElement} element
+ * @returns {boolean}
+ */
+function isBlockTarget(element) {
+    const display = getComputedStyle(element).display;
+    return display === 'block' || display === 'flow-root' ||
+        display === 'list-item' || display === 'table' ||
+        display === 'table-caption' || display === 'flex' ||
+        display === 'grid';
+}
+
+const SPACING_PROPERTIES = [
+    'letter-spacing',
+    'word-spacing',
+    'line-height',
+    'margin-bottom'
+];
+
+/**
+ * Apply the saved spacing preset, or remove every spacing property again.
  * @param {HTMLElement} element - Element to modify
  * @param {{silent?: boolean, scope?: string, toggleOff?: boolean}} options
  */
 function adjustTextSpacing(element, options = {}) {
-    const isSpaced = options.toggleOff ?? isCommandApplied(element, 'spacing');
+    const isApplied = options.toggleOff ?? isCommandApplied(element, 'spacing');
 
-    if (isSpaced) {
-        element.style.removeProperty('letter-spacing');
-        element.style.removeProperty('word-spacing');
+    if (isApplied) {
+        SPACING_PROPERTIES.forEach((property) => {
+            element.style.removeProperty(property);
+        });
+        element.removeAttribute(CONFIG.spacingAttr);
         notify(options, 'Spacing reset');
-    } else {
-        element.style.setProperty('letter-spacing', '2px', 'important');
-        element.style.setProperty('word-spacing', '4px', 'important');
-        notify(options, 'Spacing increased');
+        return;
     }
+
+    const values = spacingValuesFor(STATE.textDefaults);
+    element.style.setProperty('letter-spacing', `${values.letterSpacing}em`, 'important');
+    element.style.setProperty('word-spacing', `${values.wordSpacing}em`, 'important');
+
+    if (values.lineHeight !== null) {
+        element.style.setProperty('line-height', String(values.lineHeight), 'important');
+    } else {
+        element.style.removeProperty('line-height');
+    }
+
+    if (values.paragraphSpacing !== null && isBlockTarget(element)) {
+        element.style.setProperty('margin-bottom', `${values.paragraphSpacing}em`, 'important');
+    } else {
+        element.style.removeProperty('margin-bottom');
+    }
+
+    const preset = STATE.textDefaults.spacingPreset;
+    element.setAttribute(CONFIG.spacingAttr, preset);
+    notify(options, `Text spacing: ${SPACING_PRESETS[preset].label}`);
 }
 
 /**

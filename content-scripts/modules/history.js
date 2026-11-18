@@ -7,21 +7,25 @@ import { updateToolbarState } from './toolbar.js';
 // ==================== HISTORY MANAGEMENT ====================
 
 /**
- * Capture the inline style and extension marker for an element.
+ * Capture the inline style and extension markers for an element.
  * @param {HTMLElement} element
- * @returns {{style: string|null, highlight: string|null}}
+ * @returns {{style: string|null, highlight: string|null, font: string|null,
+ *     spacing: string|null}}
  */
 export function captureElementState(element) {
     return {
         style: element.getAttribute('style'),
-        highlight: element.getAttribute(CONFIG.highlightAttr)
+        highlight: element.getAttribute(CONFIG.highlightAttr),
+        font: element.getAttribute(CONFIG.fontAttr),
+        spacing: element.getAttribute(CONFIG.spacingAttr)
     };
 }
 
 /**
  * Restore a previously captured element state.
  * @param {HTMLElement} element
- * @param {{style: string|null, highlight: string|null}} state
+ * @param {{style: string|null, highlight: string|null, font: string|null,
+ *     spacing: string|null}} state
  */
 function restoreElementState(element, state) {
     if (state.style === null) {
@@ -30,10 +34,18 @@ function restoreElementState(element, state) {
         element.setAttribute('style', state.style);
     }
 
-    if (state.highlight === null) {
-        element.removeAttribute(CONFIG.highlightAttr);
-    } else {
-        element.setAttribute(CONFIG.highlightAttr, state.highlight);
+    const markers = [
+        [CONFIG.highlightAttr, state.highlight],
+        [CONFIG.fontAttr, state.font],
+        [CONFIG.spacingAttr, state.spacing]
+    ];
+
+    for (const [attribute, value] of markers) {
+        if (value === null || value === undefined) {
+            element.removeAttribute(attribute);
+        } else {
+            element.setAttribute(attribute, value);
+        }
     }
 }
 

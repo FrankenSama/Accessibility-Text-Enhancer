@@ -11,6 +11,7 @@ import {
     focusToolbarForSelection,
     isClickOutsideExtensionUi,
     positionToolbar,
+    refreshTextCommandLabels,
     removeToolbar,
     scheduleToolbarPosition,
     updateToolbarState
@@ -427,6 +428,7 @@ function handleStorageChange(changes, areaName) {
             }
         }
         STATE.textDefaults = normalizeTextDefaults(next);
+        refreshTextCommandLabels();
     }
 
     if (changes.ttsVoice) {

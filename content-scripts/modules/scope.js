@@ -125,14 +125,10 @@ export function isCommandApplied(element, command) {
         }
         case 'highlight':
             return element.hasAttribute(CONFIG.highlightAttr);
-        case 'fontStyle': {
-            const family = getComputedStyle(element).fontFamily.toLowerCase();
-            return family.includes('georgia') ||
-                (family.includes('serif') && !family.includes('sans-serif'));
-        }
+        case 'fontStyle':
+            return element.hasAttribute(CONFIG.fontAttr);
         case 'spacing':
-            return element.style.getPropertyValue('letter-spacing') === '2px' &&
-                   element.style.getPropertyValue('word-spacing') === '4px';
+            return element.hasAttribute(CONFIG.spacingAttr);
         default:
             return false;
     }
@@ -151,5 +147,11 @@ export function clearWrapperOverride(wrapper, command) {
 
     if (command === 'highlight') {
         wrapper.removeAttribute(CONFIG.highlightAttr);
+    }
+    if (command === 'fontStyle') {
+        wrapper.removeAttribute(CONFIG.fontAttr);
+    }
+    if (command === 'spacing') {
+        wrapper.removeAttribute(CONFIG.spacingAttr);
     }
 }
