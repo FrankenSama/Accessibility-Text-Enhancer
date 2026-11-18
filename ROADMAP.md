@@ -2,7 +2,7 @@
 
 This roadmap tracks the accessibility work planned for Accessibility Text Enhancer. It is a living document: items move between phases as the project learns from real use, and nothing here is a commitment to a date.
 
-**Latest GitHub release:** v1.4.1 · **Chrome Web Store:** v1.4.0 · **Last updated:** 2026-11-18
+**Latest GitHub release:** v1.4.1 · **Chrome Web Store:** v1.4.1 · **Last updated:** 2026-11-18
 
 ## Guiding principles
 
@@ -20,7 +20,7 @@ This roadmap tracks the accessibility work planned for Accessibility Text Enhanc
 | 1 | Accessibility correctness | v1.2.0 | ✅ Released |
 | 2 | Reading assistant | v1.3.0–v1.3.2 | ✅ Released |
 | 3 | Persistence and control | v1.4.0 | ✅ Released |
-| 4 | Personalization | v1.5.0 | 📋 Planned |
+| 4 | Personalization | v1.5.0 | 🚧 In progress |
 | 5 | Reading aids | v1.6.0 | 📋 Planned |
 | 6 | Platform and reach | v2.0.0 | 💡 Exploring |
 
@@ -34,7 +34,7 @@ This roadmap tracks the accessibility work planned for Accessibility Text Enhanc
 
 **v1.4.1 (settings hub):** turns the options page into the settings hub. Adds an **Appearance** section for the toolbar theme, a **Site rules** section that lists every rule with a remove button, a rule count against the 100-rule cap, and a **Clear all site rules** action that asks for a second click; and a **Backup and restore** section for export and import. Shares the schema 2 build and parse logic through a new DOM-free `settings-io.js` module. Also renames the popup gear to **Settings**, hides the **This site** control on non-web pages, trims the popup copy for headroom, and labels the reading reset accurately. No new permissions or network access.
 
-**Distribution:** as of 2026-11-17, v1.4.1 is the latest GitHub release with a packaged zip and SHA-256 checksum. The Chrome Web Store still serves v1.4.0 until the v1.4.1 package is uploaded. No new permissions or privacy disclosures are required.
+**Distribution:** v1.4.1 is the latest GitHub release with a packaged zip and SHA-256 checksum, and it was published on the Chrome Web Store on 2026-11-18. No new permissions or privacy disclosures were required. v1.5.0 work is in progress on `main` and is not released.
 
 ---
 
@@ -216,7 +216,7 @@ These are worth investigating but are not scheduled:
 
 ## Release checklist
 
-Use this list for every release. The v1.4.0 and v1.4.1 runs are recorded in the release notes and [`docs/smoke-test.md`](docs/smoke-test.md).
+Use this list for every release. The v1.4.0 and v1.4.1 runs are recorded in the release notes and [`docs/smoke-test.md`](docs/smoke-test.md). The store step was last completed for v1.4.1 on 2026-11-18; the checklist stays unchecked as a template for the next release.
 
 - [ ] Browser harness green (all suites, including real-extension load and command smoke tests)
 - [ ] Keyboard-only harness checks: focus, traversal, apply, undo
