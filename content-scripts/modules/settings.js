@@ -8,6 +8,11 @@ import { applyTheme } from './toolbar.js';
 import { getPageLanguage, pickReadingVoice, populateVoiceSelect } from './reading.js';
 import { saveSyncedPreferences } from './prefs.js';
 import { buildSettingsFile, parseSettingsFile } from './settings-io.js';
+import {
+    normalizeTextDefaults,
+    pickTextDefaults,
+    TEXT_DEFAULT_KEYS
+} from './style-defaults.js';
 import { hasPageChanges, resetPageChanges } from './history.js';
 
 let settingsReturnFocus = null;
@@ -356,6 +361,7 @@ function exportSettings() {
         ttsVoice: STATE.ttsVoice,
         ttsRate: STATE.ttsRate,
         ttsPitch: STATE.ttsPitch,
+        textDefaults: STATE.textDefaults,
         siteRules: STATE.siteRules,
         appVersion: chrome.runtime.getManifest().version
     });
@@ -382,7 +388,13 @@ function exportSettings() {
  * @returns {boolean}
  */
 function applyImportedPreferences(preferences) {
-    const keys = ['darkMode', 'ttsVoice', 'ttsRate', 'ttsPitch'];
+    const keys = [
+        'darkMode',
+        'ttsVoice',
+        'ttsRate',
+        'ttsPitch',
+        ...TEXT_DEFAULT_KEYS
+    ];
     const hasSettings = keys.some((key) => preferences[key] !== undefined);
 
     if (typeof preferences.darkMode === 'boolean') {
@@ -407,6 +419,12 @@ function applyImportedPreferences(preferences) {
             CONFIG.defaultTtsPitch
         );
     }
+
+    const textDefaults = normalizeTextDefaults({
+        ...STATE.textDefaults,
+        ...pickTextDefaults(preferences)
+    });
+    STATE.textDefaults = textDefaults;
 
     return hasSettings;
 }
@@ -447,7 +465,8 @@ function importSettings() {
                     darkMode: STATE.isDarkMode,
                     ttsVoice: STATE.ttsVoice,
                     ttsRate: STATE.ttsRate,
-                    ttsPitch: STATE.ttsPitch
+                    ttsPitch: STATE.ttsPitch,
+                    ...STATE.textDefaults
                 };
 
                 if (hasRules) {

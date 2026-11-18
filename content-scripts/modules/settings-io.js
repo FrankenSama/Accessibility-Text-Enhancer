@@ -4,14 +4,25 @@
 
 import { CONFIG } from './core.js';
 import { normalizeSiteRules } from './prefs.js';
+import {
+    normalizeTextDefaults,
+    pickTextDefaults,
+    TEXT_DEFAULT_KEYS
+} from './style-defaults.js';
 
-const PREFERENCE_KEYS = ['darkMode', 'ttsVoice', 'ttsRate', 'ttsPitch'];
+const PREFERENCE_KEYS = [
+    'darkMode',
+    'ttsVoice',
+    'ttsRate',
+    'ttsPitch',
+    ...TEXT_DEFAULT_KEYS
+];
 
 /**
  * Build the object written to a settings file.
  * @param {{darkMode: boolean, ttsVoice: string, ttsRate: number,
- *     ttsPitch: number, siteRules: Object, appVersion: string,
- *     now?: Date}} settings
+ *     ttsPitch: number, textDefaults?: Object, siteRules: Object,
+ *     appVersion: string, now?: Date}} settings
  * @returns {Object}
  */
 export function buildSettingsFile(settings) {
@@ -25,7 +36,8 @@ export function buildSettingsFile(settings) {
             darkMode: Boolean(settings.darkMode),
             ttsVoice: typeof settings.ttsVoice === 'string' ? settings.ttsVoice : '',
             ttsRate: settings.ttsRate,
-            ttsPitch: settings.ttsPitch
+            ttsPitch: settings.ttsPitch,
+            ...normalizeTextDefaults(settings.textDefaults)
         },
         siteRules: normalizeSiteRules(settings.siteRules)
     };
@@ -35,9 +47,9 @@ export function buildSettingsFile(settings) {
  * Parse a settings file. Files written before schema 2 have no schema field
  * and carry preferences only, so they are treated as schema 1.
  * @param {string} text
- * @returns {{preferences: Object, hasSettings: boolean,
- *     hasRules: boolean, siteRules: Object|null}|null} Null when the file has
- *     no preferences object at all.
+ * @returns {{preferences: Object, textDefaults: Object,
+ *     hasSettings: boolean, hasRules: boolean, siteRules: Object|null}|null}
+ *     Null when the file has no preferences object at all.
  */
 export function parseSettingsFile(text) {
     const settings = JSON.parse(text);
@@ -62,6 +74,7 @@ export function parseSettingsFile(text) {
 
     return {
         preferences,
+        textDefaults: pickTextDefaults(preferences),
         hasSettings,
         hasRules,
         siteRules: hasRules ? normalizeSiteRules(rules) : null

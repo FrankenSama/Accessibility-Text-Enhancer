@@ -10,6 +10,11 @@ import {
     buildSettingsFile,
     parseSettingsFile
 } from '../content-scripts/modules/settings-io.js';
+import {
+    normalizeTextDefaults,
+    pickTextDefaults,
+    TEXT_DEFAULT_KEYS
+} from '../content-scripts/modules/style-defaults.js';
 
 const DEFAULTS = {
     darkMode: true,
@@ -27,6 +32,7 @@ const LIMITS = {
 
 const state = {
     ...DEFAULTS,
+    textDefaults: normalizeTextDefaults(),
     siteRules: {}
 };
 
@@ -333,6 +339,7 @@ function exportSettings() {
         ttsVoice: state.ttsVoice,
         ttsRate: state.ttsRate,
         ttsPitch: state.ttsPitch,
+        textDefaults: state.textDefaults,
         siteRules: state.siteRules,
         appVersion: chrome.runtime.getManifest().version
     });
@@ -390,6 +397,15 @@ function applyImportedPreferences(preferences) {
         applied = true;
     }
 
+    const textDefaults = pickTextDefaults(preferences);
+    if (Object.keys(textDefaults).length > 0) {
+        state.textDefaults = normalizeTextDefaults({
+            ...state.textDefaults,
+            ...textDefaults
+        });
+        applied = true;
+    }
+
     return applied;
 }
 
@@ -428,7 +444,8 @@ function importFileContents(file) {
             darkMode: state.darkMode,
             ttsVoice: state.ttsVoice,
             ttsRate: state.ttsRate,
-            ttsPitch: state.ttsPitch
+            ttsPitch: state.ttsPitch,
+            ...state.textDefaults
         };
 
         if (hasRules) {
@@ -473,6 +490,7 @@ loadSyncedPreferences().then((result) => {
         LIMITS.maxPitch,
         DEFAULTS.ttsPitch
     );
+    state.textDefaults = normalizeTextDefaults(result);
     state.siteRules = normalizeSiteRules(result.siteRules);
 
     loadVoices();
@@ -522,6 +540,16 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
             DEFAULTS.ttsPitch
         );
         changed = true;
+    }
+
+    if (TEXT_DEFAULT_KEYS.some((key) => changes[key])) {
+        const next = { ...state.textDefaults };
+        for (const key of TEXT_DEFAULT_KEYS) {
+            if (changes[key]) {
+                next[key] = changes[key].newValue;
+            }
+        }
+        state.textDefaults = normalizeTextDefaults(next);
     }
 
     if (changes.siteRules) {

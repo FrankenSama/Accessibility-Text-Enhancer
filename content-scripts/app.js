@@ -36,6 +36,10 @@ import {
     normalizeSiteRules,
     siteOrigin
 } from './modules/prefs.js';
+import {
+    normalizeTextDefaults,
+    TEXT_DEFAULT_KEYS
+} from './modules/style-defaults.js';
 
 /**
  * Promise wrapper around chrome.storage.local.get for older Chrome versions.
@@ -128,6 +132,7 @@ async function loadExtensionState() {
         CONFIG.maxTtsPitch,
         CONFIG.defaultTtsPitch
     );
+    STATE.textDefaults = normalizeTextDefaults(synced);
     loadVoices();
 }
 
@@ -412,6 +417,16 @@ function handleStorageChange(changes, areaName) {
     if (changes.darkMode) {
         STATE.isDarkMode = changes.darkMode.newValue !== false;
         applyTheme();
+    }
+
+    if (TEXT_DEFAULT_KEYS.some((key) => changes[key])) {
+        const next = { ...STATE.textDefaults };
+        for (const key of TEXT_DEFAULT_KEYS) {
+            if (changes[key]) {
+                next[key] = changes[key].newValue;
+            }
+        }
+        STATE.textDefaults = normalizeTextDefaults(next);
     }
 
     if (changes.ttsVoice) {

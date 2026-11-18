@@ -1,19 +1,19 @@
 // Shared preferences and per-site rules.
 //
 // chrome.storage.sync is the source of truth for the settings that should
-// follow the user across Chrome profiles: theme, reading preferences, and the
-// site rules. The extension's on/off switch stays in chrome.storage.local
-// because it is a per-device convenience rather than a preference.
+// follow the user across Chrome profiles: theme, reading preferences, text
+// styling, and the site rules. The extension's on/off switch stays in
+// chrome.storage.local because it is a per-device convenience rather than a
+// preference.
 
 import { CONFIG } from './core.js';
+import { TEXT_DEFAULT_KEYS } from './style-defaults.js';
 
-const SYNC_KEYS = [
-    'darkMode',
-    'ttsVoice',
-    'ttsRate',
-    'ttsPitch',
-    'siteRules'
-];
+// These four keys existed in storage.local before v1.4.0. Only they need the
+// lazy migration below; the text defaults have never lived anywhere else.
+const LEGACY_KEYS = ['darkMode', 'ttsVoice', 'ttsRate', 'ttsPitch'];
+
+const SYNC_KEYS = [...LEGACY_KEYS, ...TEXT_DEFAULT_KEYS, 'siteRules'];
 
 /**
  * Promise wrapper around a storage area read that tolerates older Chrome.
@@ -54,7 +54,7 @@ function setArea(area, values) {
  */
 export async function loadSyncedPreferences() {
     const synced = await getArea('sync', SYNC_KEYS);
-    const missing = SYNC_KEYS.filter((key) => synced[key] === undefined);
+    const missing = LEGACY_KEYS.filter((key) => synced[key] === undefined);
 
     if (missing.length > 0) {
         // The old build wrote these keys to storage.local. Migrating lazily

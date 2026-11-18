@@ -1,5 +1,7 @@
 // Shared constants and the single mutable STATE object.
 
+import { DEFAULT_TEXT_DEFAULTS } from './style-defaults.js';
+
 // ==================== STATE MANAGEMENT ====================
 
 const IS_MAC = /mac/i.test(
@@ -28,6 +30,9 @@ export const STATE = {
     ttsVoice: '',
     ttsRate: 0.9,
     ttsPitch: 1,
+    // Font, spacing, and highlight choices used by the next command. The
+    // options page and the in-page dialog write them through storage.sync.
+    textDefaults: { ...DEFAULT_TEXT_DEFAULTS },
     voices: [],
     speech: null,
     // Focus Toolbar is a manifest command. These defaults are replaced with
@@ -51,7 +56,7 @@ export const CONFIG = {
     maxWrapNodes: 200,
     // Version of the exported settings file. Bump it whenever the shape
     // changes so import can migrate older files.
-    settingsSchemaVersion: 2,
+    settingsSchemaVersion: 3,
     // Cap on stored site rules. storage.sync allows 8 KB per item, and 100
     // origin strings stay comfortably under that even for long hostnames.
     maxSiteRules: 100,
