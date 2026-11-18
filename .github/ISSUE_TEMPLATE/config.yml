@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Accessibility documentation
+    url: https://github.com/FrankenSama/accessibility-text-enhancer/blob/main/ACCESSIBILITY.md
+    about: Supported environments, known limitations, testing, and how to report a barrier.
+  - name: Report a security vulnerability
+    url: https://github.com/FrankenSama/accessibility-text-enhancer/security/advisories/new
+    about: Report privately through GitHub Security Advisories. Do not open a public issue.
+  - name: Usage and troubleshooting
+    url: https://github.com/FrankenSama/accessibility-text-enhancer#usage
+    about: Install steps, shortcuts, and how each command behaves.

@@ -1,0 +1,134 @@
+name: Accessibility barrier
+description: Report a keyboard, screen reader, contrast, zoom, or other accessibility barrier.
+title: "[Accessibility] "
+labels: ["accessibility"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a barrier. This form is for problems using the extension itself.
+
+        - Read [ACCESSIBILITY.md](https://github.com/FrankenSama/accessibility-text-enhancer/blob/main/ACCESSIBILITY.md) first: supported environments and known limitations are listed there.
+        - Do not report security or privacy problems here. Use [SECURITY.md](https://github.com/FrankenSama/accessibility-text-enhancer/blob/main/SECURITY.md) instead.
+        - Issues are public. Do not include private page content, account details, or personal information.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Where is the barrier?
+      options:
+        - Toolbar
+        - In-page settings dialog
+        - Options page
+        - Popup
+        - Read aloud
+        - Page enhancement (bold, highlight, size, font, spacing, contrast)
+        - Keyboard shortcut
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: extension-version
+    attributes:
+      label: Extension version
+      description: Shown in the popup footer.
+      placeholder: "1.4.1"
+    validations:
+      required: true
+
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and version
+      placeholder: "Chrome 131.0.6778.86"
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      placeholder: "Windows 11 24H2"
+    validations:
+      required: true
+
+  - type: input
+    id: assistive-tech
+    attributes:
+      label: Assistive technology
+      description: Screen reader, magnification, voice control, or "keyboard only".
+      placeholder: "NVDA 2026.3"
+    validations:
+      required: false
+
+  - type: dropdown
+    id: barrier-type
+    attributes:
+      label: Barrier type
+      options:
+        - Keyboard or focus
+        - Screen reader announcement or navigation
+        - Low vision, contrast, or colour
+        - Zoom or reflow
+        - Motion or animation
+        - Cognitive or reading support
+        - Speech or audio
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Describe the barrier and who it affects.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Number the steps, starting from a fresh page load.
+      placeholder: |
+        1. Open ...
+        2. Select ...
+        3. Press ...
+    validations:
+      required: true
+
+  - type: input
+    id: page-url
+    attributes:
+      label: Page URL or reduced test case
+      description: A public URL is ideal. If the page is private, describe a minimal page that reproduces it.
+    validations:
+      required: false
+
+  - type: textarea
+    id: settings
+    attributes:
+      label: Extension settings in use
+      description: Theme, site rules, reading voice or speed, or anything else that may matter.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: Before submitting
+      options:
+        - label: I checked the known limitations in ACCESSIBILITY.md.
+          required: true
+        - label: This report contains no private page content or personal information.
+          required: true
+        - label: I can retest and answer follow-up questions.
+          required: false

@@ -15,49 +15,25 @@ This is a personal project maintained by Octavio Silva. Forks are welcome under 
 
 ## Code of Conduct
 
-This project and everyone participating in it is governed by our commitment to accessibility and inclusivity. By participating, you are expected to uphold this code. Please report unacceptable behavior by opening an issue or contacting the maintainer through GitHub.
-
-### Our Standards
-
-- Using welcoming and inclusive language
-- Being respectful of differing viewpoints and experiences
-- Gracefully accepting constructive criticism
-- Focusing on what is best for the community
-- Showing empathy towards other community members
+This project follows the [Contributor Covenant, version 2.1](CODE_OF_CONDUCT.md). By participating, you are expected to uphold it. Report unacceptable behavior privately through the contact details on the maintainer's GitHub profile rather than in a public issue.
 
 ## How Can I Contribute?
 
 ### Reporting Bugs
 
-Before creating bug reports, please check the existing issues as you might find that you don't need to create one. When you are creating a bug report, please include as many details as possible:
+Search the existing issues first, then [open a new issue](https://github.com/FrankenSama/accessibility-text-enhancer/issues/new). Include:
 
-**Bug Report Template:**
+- **Describe the bug** - what happened, and what you expected instead.
+- **Steps to reproduce** - numbered, starting from a fresh page load.
+- **Environment** - extension version (shown in the popup footer), browser version, and operating system.
+- **Page** - a public URL, or a minimal test case if the page is private.
+- **Evidence** - console errors and a screenshot if they help.
 
-```markdown
-**Describe the bug**
-A clear and concise description of what the bug is.
+Do not include private page content, account details, or personal information. Security problems go through [SECURITY.md](SECURITY.md), not the public issue tracker.
 
-**To Reproduce**
-Steps to reproduce the behavior:
-1. Go to '...'
-2. Click on '....'
-3. Scroll down to '....'
-4. See error
+### Reporting Accessibility Barriers
 
-**Expected behavior**
-A clear and concise description of what you expected to happen.
-
-**Screenshots**
-If applicable, add screenshots to help explain your problem.
-
-**Environment:**
- - OS: [e.g. Windows 10, macOS 12.0]
- - Browser: [e.g. Chrome 120, Edge 120]
- - Extension Version: [e.g. 1.0.0]
-
-**Additional context**
-Add any other context about the problem here.
-```
+Use the [accessibility barrier template](https://github.com/FrankenSama/accessibility-text-enhancer/issues/new?template=accessibility_barrier.yml). Read [ACCESSIBILITY.md](ACCESSIBILITY.md) first for supported environments and known limitations. Barriers are treated as bugs, not feature requests.
 
 ### Suggesting Enhancements
 
@@ -72,12 +48,13 @@ Enhancement suggestions are tracked as GitHub issues. When creating an enhanceme
 ### Pull Requests
 
 1. Fork the repo and create your branch from `main`
-2. If you've added code that should be tested, add tests
+2. Run the automated checks and the manual steps that cover your change
 3. Ensure your code follows the existing style
-4. Update the README.md with details of changes if needed
-5. The PR will be merged once the maintainer has reviewed it
+4. Update the docs when behavior, settings, or limitations change
+5. Complete the pull request template, including the accessibility impact section
+6. The PR will be merged once the maintainer has reviewed it
 
-Pull requests are optional. If you would rather maintain your own version, fork the repository and follow the attribution guidance below.
+Do not add permissions, host permissions, or network requests. Do not bump the version unless the PR is a release. Pull requests are optional: if you would rather maintain your own version, fork the repository and follow the attribution guidance below.
 
 ## Development Setup
 
@@ -243,10 +220,15 @@ project/
 │       └── feedback.js   # Toast wording shared by commands
 ├── icons/                # Extension icons
 ├── docs/                 # Documentation and research
+├── .github/              # Issue templates and pull request template
 ├── index.html            # GitHub Pages landing page
 ├── styles.css            # Landing page styling
 ├── script.js             # Landing page interactions
+├── ACCESSIBILITY.md      # Commitment, supported environments, limitations
+├── CODE_OF_CONDUCT.md    # Contributor Covenant 2.1
+├── CONTRIBUTING.md       # This file
 ├── ROADMAP.md            # Planned accessibility work
+├── SECURITY.md           # Supported versions and private reporting
 ├── privacy-policy.md     # Privacy policy
 └── LICENSE               # MIT License
 ```
@@ -309,36 +291,16 @@ Add detailed steps for manual installation and troubleshooting.
 
 - [ ] Code follows the project's style guidelines
 - [ ] Comments added for complex logic
-- [ ] No console.log statements (use proper logging)
+- [ ] No `console.log` statements in shipped code (use the existing error and toast paths)
 - [ ] Tested on multiple websites
-- [ ] No breaking changes (or clearly documented if unavoidable)
+- [ ] No breaking changes, or clearly documented if unavoidable
 - [ ] Documentation updated if needed
+- [ ] No new permissions or network requests
+- [ ] Undo, redo, and Reset page still restore the page
 
 ### PR Template
 
-```markdown
-## Description
-Brief description of what this PR does
-
-## Type of Change
-- [ ] Bug fix (non-breaking change which fixes an issue)
-- [ ] New feature (non-breaking change which adds functionality)
-- [ ] Breaking change (fix or feature that would cause existing functionality to not work as expected)
-- [ ] Documentation update
-
-## Testing
-Describe the tests you ran and how to reproduce them
-
-## Screenshots (if applicable)
-Add screenshots showing the changes
-
-## Checklist
-- [ ] My code follows the style guidelines
-- [ ] I have commented my code, particularly in hard-to-understand areas
-- [ ] I have made corresponding changes to the documentation
-- [ ] My changes generate no new warnings
-- [ ] I have tested on multiple websites
-```
+GitHub fills in [the pull request template](.github/pull_request_template.md) automatically. Complete the accessibility impact and testing sections rather than deleting them; write "not applicable" with a reason when a section does not apply.
 
 ### Review Process
 
