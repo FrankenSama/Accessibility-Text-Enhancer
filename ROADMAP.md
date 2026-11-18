@@ -2,7 +2,7 @@
 
 This roadmap tracks the accessibility work planned for Accessibility Text Enhancer. It is a living document: items move between phases as the project learns from real use, and nothing here is a commitment to a date.
 
-**Latest GitHub release:** v1.4.1 · **Chrome Web Store:** v1.4.0 · **Last updated:** 2026-11-17
+**Latest GitHub release:** v1.4.1 · **Chrome Web Store:** v1.4.0 · **Last updated:** 2026-11-18
 
 ## Guiding principles
 
@@ -147,18 +147,20 @@ The toolbar already declares `role="toolbar"`, but it was not operable or unders
 
 ## Phase 4 — Personalization (v1.5.0) 📋
 
+**Plan:** [docs/v1.5.0-plan.md](docs/v1.5.0-plan.md), approved 2026-11-18.
+
 **Problem:** every command uses one fixed value: one highlight colour, two font families, and a single spacing toggle.
 
 **Work:**
 
-- **Font picker.** Sans, serif, monospace, and a bundled OpenDyslexic face.
-- **Spacing presets.** A WCAG 1.4.12 preset (line height 1.5, paragraph spacing 2em, letter spacing 0.12em, word spacing 0.16em) plus a slider.
-- **Highlight options.** Several colours and an underline-only mode for users who cannot rely on a background colour.
-- **Saved defaults.** Persist and sync the chosen font, spacing preset, and highlight style through the v1.4.0 storage layer.
+- **Font picker.** Sans, serif, monospace, and a bundled OpenDyslexic face (regular and bold, SIL OFL 1.1).
+- **Spacing presets.** A WCAG 1.4.12 preset (line height 1.5, paragraph spacing 2em, letter spacing 0.12em, word spacing 0.16em), plus four custom sliders for line height, letter spacing, word spacing, and paragraph spacing.
+- **Highlight options.** Yellow, green, blue, pink, and orange, with an underline-only mode for users who cannot rely on a background colour.
+- **Saved defaults.** Persist and sync the chosen font, spacing preset, and highlight style through the v1.4.0 storage layer. A saved default defines the command's ON state; a second press removes the override.
 
 **Acceptance:** a user can choose a font, spacing preset, and highlight style; the choices apply to new commands, survive a reload, and follow the profile; export/import round-trips them.
 
-**Risks:** a bundled font increases package size; page CSS can override the chosen values; highlight colours must keep WCAG contrast; a saved default for a relative command such as size ± needs a clear definition.
+**Risks:** a bundled font increases package size; page CSS can override the chosen values; highlight colours and underlines need contrast guards against the page background; the font button stops cycling serif/sans and applies the saved font instead, which is a documented behaviour change.
 
 **Effort:** medium · **Impact:** high
 
