@@ -4,7 +4,7 @@
 // undo history in history.js, so this module stays focused on applying a
 // command to the elements the scope module picked.
 
-import { CONFIG, STATE, TOGGLE_COMMANDS } from './core.js';
+import { CONFIG, COMMAND_PROPERTIES, STATE, TOGGLE_COMMANDS } from './core.js';
 import {
     getBlocksForRange,
     getSelectedTextNodes,
@@ -18,9 +18,10 @@ import { notify } from './feedback.js';
 import {
     contrastRatio,
     fixTextContrast,
-    getEffectiveBackgroundColor,
+    forcedColorsActive,
     parseColor,
-    parseHexColor
+    parseHexColor,
+    readableLineColor
 } from './contrast.js';
 import {
     FONT_LABELS,
@@ -252,14 +253,7 @@ function toggleBold(element, options = {}) {
     notify(options, isBold ? 'Text unbolded' : 'Text bolded');
 }
 
-const HIGHLIGHT_PROPERTIES = [
-    'background-color',
-    'outline',
-    'text-decoration-line',
-    'text-decoration-thickness',
-    'text-decoration-color',
-    'text-underline-offset'
-];
+const HIGHLIGHT_PROPERTIES = COMMAND_PROPERTIES.highlight;
 
 /**
  * Whether two captured element states differ in style or in any marker.
@@ -272,38 +266,6 @@ function statesDiffer(before, after) {
         before.highlight !== after.highlight ||
         before.font !== after.font ||
         before.spacing !== after.spacing;
-}
-
-/**
- * Whether the browser is in a forced-colours mode, where authored background
- * colours are suppressed and system colours have to be used instead.
- * @returns {boolean}
- */
-function forcedColorsActive() {
-    return Boolean(window.matchMedia &&
-        window.matchMedia('(forced-colors: active)').matches);
-}
-
-/**
- * Pick a line colour that stays visible against the page, or fall back to
- * the text colour when the chosen one would disappear.
- * @param {HTMLElement} element
- * @param {string} lineColor
- * @returns {string}
- */
-function readableLineColor(element, lineColor) {
-    if (forcedColorsActive()) {
-        return 'Highlight';
-    }
-
-    const line = parseHexColor(lineColor);
-    const background = getEffectiveBackgroundColor(element);
-
-    if (!line || !background || contrastRatio(line, background) < 3) {
-        return 'currentColor';
-    }
-
-    return lineColor;
 }
 
 /**
@@ -488,12 +450,7 @@ function isBlockTarget(element) {
         display === 'grid';
 }
 
-const SPACING_PROPERTIES = [
-    'letter-spacing',
-    'word-spacing',
-    'line-height',
-    'margin-bottom'
-];
+const SPACING_PROPERTIES = COMMAND_PROPERTIES.spacing;
 
 /**
  * Apply the saved spacing preset, or remove every spacing property again.

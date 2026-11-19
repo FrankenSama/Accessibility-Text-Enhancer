@@ -118,6 +118,38 @@ export function getEffectiveBackgroundColor(element) {
 }
 
 /**
+ * Whether the browser is in a forced-colours mode, where authored background
+ * colours are suppressed and system colours have to be used instead.
+ * @returns {boolean}
+ */
+export function forcedColorsActive() {
+    return Boolean(window.matchMedia &&
+        window.matchMedia('(forced-colors: active)').matches);
+}
+
+/**
+ * Pick a line colour that stays visible against the element's background, or
+ * fall back to the text colour when the chosen one would disappear.
+ * @param {HTMLElement} element
+ * @param {string} lineColor
+ * @returns {string}
+ */
+export function readableLineColor(element, lineColor) {
+    if (forcedColorsActive()) {
+        return 'Highlight';
+    }
+
+    const line = parseHexColor(lineColor);
+    const background = getEffectiveBackgroundColor(element);
+
+    if (!line || !background || contrastRatio(line, background) < 3) {
+        return 'currentColor';
+    }
+
+    return lineColor;
+}
+
+/**
  * Force high-contrast text based on the effective background colour.
  * @param {HTMLElement} element - Element to modify
  * @param {{silent?: boolean, scope?: string}} options

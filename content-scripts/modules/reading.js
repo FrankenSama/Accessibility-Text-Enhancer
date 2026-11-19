@@ -23,7 +23,10 @@ export function loadVoices() {
  * Keep the settings panel's voice list in sync when voices finish loading.
  */
 export function populateVoiceSelect() {
-    const select = document.getElementById('tts-voice');
+    // Only touch our own panel. Pages may use these generic ids, and the
+    // voice list can load before the toolbar or dialog is ever created.
+    const panel = document.getElementById(CONFIG.settingsPanelId);
+    const select = panel?.querySelector('#tts-voice');
     if (!select) {
         return;
     }
@@ -392,7 +395,9 @@ export function stopReading(options = {}) {
     const wasReading = Boolean(STATE.speech);
     STATE.speech = null;
 
-    if ('speechSynthesis' in window) {
+    // Only cancel speech we started. Calling cancel() with no session also
+    // stops whatever the page itself is reading aloud.
+    if (wasReading && 'speechSynthesis' in window) {
         window.speechSynthesis.cancel();
     }
 

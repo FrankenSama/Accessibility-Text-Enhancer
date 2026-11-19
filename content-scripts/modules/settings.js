@@ -245,20 +245,25 @@ function setupPageReset(panel) {
  * Refresh the reading controls if the settings dialog is open.
  */
 export function syncReadingSettingsControls() {
-    const rateInput = document.getElementById('tts-rate');
+    const panel = document.getElementById(CONFIG.settingsPanelId);
+    if (!panel) {
+        return;
+    }
+
+    const rateInput = panel.querySelector('#tts-rate');
     if (rateInput) {
         rateInput.value = String(STATE.ttsRate);
     }
-    const rateValue = document.getElementById('tts-rate-value');
+    const rateValue = panel.querySelector('#tts-rate-value');
     if (rateValue) {
         rateValue.textContent = STATE.ttsRate.toFixed(1);
     }
 
-    const pitchInput = document.getElementById('tts-pitch');
+    const pitchInput = panel.querySelector('#tts-pitch');
     if (pitchInput) {
         pitchInput.value = String(STATE.ttsPitch);
     }
-    const pitchValue = document.getElementById('tts-pitch-value');
+    const pitchValue = panel.querySelector('#tts-pitch-value');
     if (pitchValue) {
         pitchValue.textContent = STATE.ttsPitch.toFixed(1);
     }

@@ -90,9 +90,6 @@ export const SHORTCUT_LABELS = {
     read: IS_MAC ? 'Option+Shift+R' : 'Alt+Shift+R'
 };
 
-// A chunk that has to be split should end after punctuation rather than
-// after an arbitrary word. Stopping mid-phrase is what makes the voice
-
 // Commands that change readability, so they apply to the nearest block
 // rather than only the selected words.
 export const BLOCK_COMMANDS = new Set([

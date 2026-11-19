@@ -5,7 +5,7 @@ import {
     normalizeSiteRules,
     saveSyncedPreferences
 } from '../content-scripts/modules/prefs.js';
-import { CONFIG } from '../content-scripts/modules/core.js';
+import { COMMAND_PROPERTIES, CONFIG } from '../content-scripts/modules/core.js';
 import {
     buildSettingsFile,
     parseSettingsFile
@@ -26,24 +26,26 @@ import {
 } from '../content-scripts/modules/style-defaults.js';
 import {
     contrastRatio,
-    getEffectiveBackgroundColor,
+    forcedColorsActive,
     parseColor,
-    parseHexColor
+    parseHexColor,
+    readableLineColor
 } from '../content-scripts/modules/contrast.js';
 import { loadOpenDyslexicFonts } from '../content-scripts/modules/fonts.js';
+import { clampNumber } from '../content-scripts/modules/text.js';
 
 const DEFAULTS = {
     darkMode: true,
     ttsVoice: '',
-    ttsRate: 0.9,
-    ttsPitch: 1
+    ttsRate: CONFIG.defaultTtsRate,
+    ttsPitch: CONFIG.defaultTtsPitch
 };
 
 const LIMITS = {
-    minRate: 0.5,
-    maxRate: 2,
-    minPitch: 0.5,
-    maxPitch: 2
+    minRate: CONFIG.minTtsRate,
+    maxRate: CONFIG.maxTtsRate,
+    minPitch: CONFIG.minTtsPitch,
+    maxPitch: CONFIG.maxTtsPitch
 };
 
 const state = {
@@ -95,22 +97,6 @@ const spacingOutputs = {
     lineHeight: document.getElementById('text-line-height-value'),
     paragraphSpacing: document.getElementById('text-paragraph-spacing-value')
 };
-
-/**
- * Clamp a stored numeric preference to a valid range.
- * @param {unknown} value
- * @param {number} min
- * @param {number} max
- * @param {number} fallback
- * @returns {number}
- */
-function clampNumber(value, min, max, fallback) {
-    const number = typeof value === 'number' ? value : parseFloat(value);
-    if (!Number.isFinite(number)) {
-        return fallback;
-    }
-    return Math.min(max, Math.max(min, number));
-}
 
 /**
  * Show a short status message in the page's live region.
@@ -304,33 +290,13 @@ function formatSpacingValue(key, value) {
 }
 
 /**
- * Pick a preview line colour that stays visible on the preview background.
- * @param {string} lineColor
- * @returns {string}
- */
-function previewLineColor(lineColor) {
-    if (window.matchMedia && window.matchMedia('(forced-colors: active)').matches) {
-        return 'Highlight';
-    }
-
-    const line = parseHexColor(lineColor);
-    const background = getEffectiveBackgroundColor(previewEl);
-
-    if (!line || !background || contrastRatio(line, background) < 3) {
-        return 'currentColor';
-    }
-
-    return lineColor;
-}
-
-/**
  * Draw an underline fallback in the preview.
  * @param {string} lineColor
  */
 function applyPreviewLine(lineColor) {
     previewEl.style.textDecorationLine = 'underline';
     previewEl.style.textDecorationThickness = '2px';
-    previewEl.style.textDecorationColor = previewLineColor(lineColor);
+    previewEl.style.textDecorationColor = readableLineColor(previewEl, lineColor);
     previewEl.style.textUnderlineOffset = '2px';
 }
 
@@ -341,8 +307,7 @@ function updatePreview() {
     const defaults = state.textDefaults;
     const spacing = spacingValuesFor(defaults);
     const highlight = highlightValuesFor(defaults);
-    const forced = Boolean(window.matchMedia &&
-        window.matchMedia('(forced-colors: active)').matches);
+    const forced = forcedColorsActive();
     const style = previewEl.style;
 
     style.fontFamily = fontStackFor(defaults.fontFamily);
@@ -357,14 +322,7 @@ function updatePreview() {
             ? ''
             : `${spacing.paragraphSpacing}em`;
 
-    [
-        'background-color',
-        'outline',
-        'text-decoration-line',
-        'text-decoration-thickness',
-        'text-decoration-color',
-        'text-underline-offset'
-    ].forEach((property) => style.removeProperty(property));
+    COMMAND_PROPERTIES.highlight.forEach((property) => style.removeProperty(property));
 
     const textColor = parseColor(getComputedStyle(previewEl).color) ||
         { r: 0, g: 0, b: 0 };
@@ -387,7 +345,7 @@ function updatePreview() {
         return;
     }
 
-    style.outline = `2px solid ${previewLineColor(highlight.line)}`;
+    style.outline = `2px solid ${readableLineColor(previewEl, highlight.line)}`;
 }
 
 /**

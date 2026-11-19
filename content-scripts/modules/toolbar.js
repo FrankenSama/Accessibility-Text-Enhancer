@@ -290,11 +290,13 @@ export function focusToolbarForSelection() {
         return;
     }
 
-    if (!STATE.savedRange) {
+    if (!STATE.savedRange ||
+        !STATE.savedRange.commonAncestorContainer.isConnected) {
         // Dismissing the toolbar (Escape or the close button) clears the
         // saved range but leaves the page selection alone. Adopt a live
         // selection so Focus Toolbar can bring the toolbar back for text
-        // that is still highlighted on the page.
+        // that is still highlighted on the page. A page re-render can also
+        // detach a saved range, which is no longer worth restoring.
         const selection = window.getSelection();
         if (selection && selection.rangeCount > 0 && !selection.isCollapsed) {
             const live = selection.getRangeAt(0);
