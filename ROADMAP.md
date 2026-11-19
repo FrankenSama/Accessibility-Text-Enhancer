@@ -2,7 +2,7 @@
 
 This roadmap tracks the accessibility work planned for Accessibility Text Enhancer. It is a living document: items move between phases as the project learns from real use, and nothing here is a commitment to a date.
 
-**Latest GitHub release:** v1.4.1 · **Chrome Web Store:** v1.4.1 · **Last updated:** 2026-11-18
+**Latest GitHub release:** v1.5.0 · **Chrome Web Store:** v1.4.1 · **Last updated:** 2026-11-19
 
 ## Guiding principles
 
@@ -20,7 +20,7 @@ This roadmap tracks the accessibility work planned for Accessibility Text Enhanc
 | 1 | Accessibility correctness | v1.2.0 | ✅ Released |
 | 2 | Reading assistant | v1.3.0–v1.3.2 | ✅ Released |
 | 3 | Persistence and control | v1.4.0 | ✅ Released |
-| 4 | Personalization | v1.5.0 | 🚧 In progress |
+| 4 | Personalization | v1.5.0 | ✅ Released |
 | 5 | Reading aids | v1.6.0 | 📋 Planned |
 | 6 | Platform and reach | v2.0.0 | 💡 Exploring |
 
@@ -34,7 +34,9 @@ This roadmap tracks the accessibility work planned for Accessibility Text Enhanc
 
 **v1.4.1 (settings hub):** turns the options page into the settings hub. Adds an **Appearance** section for the toolbar theme, a **Site rules** section that lists every rule with a remove button, a rule count against the 100-rule cap, and a **Clear all site rules** action that asks for a second click; and a **Backup and restore** section for export and import. Shares the schema 2 build and parse logic through a new DOM-free `settings-io.js` module. Also renames the popup gear to **Settings**, hides the **This site** control on non-web pages, trims the popup copy for headroom, and labels the reading reset accurately. No new permissions or network access.
 
-**Distribution:** v1.4.1 is the latest GitHub release with a packaged zip and SHA-256 checksum, and it was published on the Chrome Web Store on 2026-11-18. No new permissions or privacy disclosures were required. v1.5.0 work is in progress on `main` and is not released.
+**v1.5.0 (personalization):** adds a **Text styling** section to the settings page. Choose a font (Sans, Serif, Monospace, or the bundled OpenDyslexic), a spacing preset (Comfortable, WCAG 1.4.12, or four custom sliders), and a highlight colour and style (background, underline, or automatic). The choices save to `chrome.storage.sync`, define the ON state for the Font, Text spacing, and Highlight commands, and update the toolbar labels. Settings exports move to schema 3, while schema 2 and older files still import without resetting the current text defaults. The contrast guard keeps every highlight readable. OpenDyslexic regular and bold ship under the SIL OFL 1.1, load through FontFace only when selected, and fall back to Arial if the resource is blocked. No new permissions or network access.
+
+**Distribution:** v1.5.0 is the latest GitHub release with a packaged zip and SHA-256 checksum. v1.4.1 remains the Chrome Web Store version until the v1.5.0 package is submitted and published; no new permissions or privacy disclosures are required.
 
 ---
 
@@ -145,7 +147,7 @@ The toolbar already declares `role="toolbar"`, but it was not operable or unders
 
 ---
 
-## Phase 4 — Personalization (v1.5.0) 📋
+## Phase 4 — Personalization (v1.5.0) ✅
 
 **Plan:** [docs/v1.5.0-plan.md](docs/v1.5.0-plan.md), approved 2026-11-18.
 
@@ -216,7 +218,7 @@ These are worth investigating but are not scheduled:
 
 ## Release checklist
 
-Use this list for every release. The v1.4.0 and v1.4.1 runs are recorded in the release notes and [`docs/smoke-test.md`](docs/smoke-test.md). The store step was last completed for v1.4.1 on 2026-11-18; the checklist stays unchecked as a template for the next release.
+Use this list for every release. The v1.4.0, v1.4.1, and v1.5.0 runs are recorded in the release notes and [`docs/smoke-test.md`](docs/smoke-test.md). The store step was last completed for v1.4.1 on 2026-11-18; the checklist stays unchecked as a template for the next release.
 
 - [ ] Browser harness green (all suites, including real-extension load and command smoke tests)
 - [ ] Keyboard-only harness checks: focus, traversal, apply, undo

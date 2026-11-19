@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-1.4.1-blue.svg)
+![Version](https://img.shields.io/badge/version-1.5.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Chrome](https://img.shields.io/badge/Chrome-91%2B-yellow.svg)
 
@@ -23,10 +23,12 @@ Originally developed for an MSc dissertation at Solent University, it is now mai
 ## Features
 
 - **Bold** and **highlight** just the selected words
-- **Font size, style, spacing, and contrast** for the nearest paragraph
+- **Font size, contrast, and font choice** for the nearest paragraph: Sans, Serif, Monospace, or the bundled **OpenDyslexic** font
+- **Text spacing** with Comfortable, the WCAG 1.4.12 preset, or four custom sliders, plus **highlight colour and style** (background, underline, or automatic contrast-aware)
 - **Read aloud** with selectable voice, speed, and pitch, sentence highlighting, pause/resume/stop controls, plus voice preview and a dedicated settings page
 - **Undo/redo** for the last 50 changes, plus **Reset page** to remove everything in one action
-- **Dark/light toolbar**, with JSON export/import (schema 2, older files still import), synced preferences, and per-site on/off rules
+- **Saved text defaults** for font, spacing, and highlight that sync with your Chrome profile
+- **Dark/light toolbar**, with JSON export/import (schema 3; older files still import), synced preferences, and per-site on/off rules
 - **High contrast**: the toolbar, popup, and settings pages follow Windows High Contrast / forced-colors
 - **Keyboard and screen reader support**: shortcuts, a single tab stop, arrow-key navigation, and `aria-pressed` state (NVDA-verified on Windows)
 - **Works in** Chrome 91+ and other Chromium-based browsers
@@ -47,11 +49,13 @@ The toolbar opens next to your selection, above it when there is room and below 
 
 Bold and highlight apply to the selected words; font size, style, spacing, and contrast apply to the nearest paragraph. Shift-click flips that scope. If a selection crosses paragraphs, bold and highlight apply paragraph by paragraph and a toast explains the result.
 
-Read aloud follows the same selection rule. With the caret in a paragraph and nothing selected, `Alt+Shift+R` reads that paragraph. While reading, the toolbar's read button pauses and resumes, a stop button appears, and the current sentence is highlighted (in browsers that support the CSS Custom Highlight API). Open **Settings** from the popup (or Settings in the toolbar) to choose a voice, adjust speed and pitch, preview the voice, switch the toolbar theme, manage site rules, or export and import your settings; those preferences survive a reload.
+The Font button now applies your saved font instead of cycling Serif and Sans. **Settings → Text styling** sets the defaults each command uses: font (including OpenDyslexic), a spacing preset or your own letter, word, line, and paragraph spacing, and the highlight colour and style. These defaults are stored with your profile and follow you to other signed-in devices. A second press removes the style; changing a default affects the next command, not text you have already changed. The highlight stays readable: when a background would push contrast below 4.5:1 it falls back to an outline or underline.
+
+Read aloud follows the same selection rule. With the caret in a paragraph and nothing selected, `Alt+Shift+R` reads that paragraph. While reading, the toolbar's read button pauses and resumes, a stop button appears, and the current sentence is highlighted (in browsers that support the CSS Custom Highlight API). Open **Settings** from the popup (or Settings in the toolbar) to choose a voice, adjust speed and pitch, preview the voice, set your text styling, switch the toolbar theme, manage site rules, or export and import your settings; those preferences survive a reload.
 
 The popup's **This site** menu can keep the extension **Always on** or **Always off** for the current site. A site rule wins over the global switch, and the toolbar shows an `OFF` badge on sites you turned off. Open **Settings** from the popup to review or remove site rules. To undo the extension's changes to the current page, choose **Reset page changes** in the toolbar's settings dialog — the button asks for a second click — which removes every change and clears the undo history, leaving the page as it was found.
 
-Theme, reading preferences, and site rules are stored with `chrome.storage.sync`, so they follow your Chrome profile to other devices signed in to the same account. The on/off switch itself stays on this device.
+Theme, reading and text styling preferences, and site rules are stored with `chrome.storage.sync`, so they follow your Chrome profile to other devices signed in to the same account. The on/off switch itself stays on this device.
 
 | Action | Windows/Linux | macOS |
 |---|---|---|
@@ -78,6 +82,10 @@ This is a personal project, and forks are welcome under the MIT License. Bug rep
 ## License
 
 [MIT](LICENSE) © 2025–2026 Octavio Silva. If you fork or republish this project, keep the license and copyright notice, credit the original author, and make it clear that your version is not official.
+
+## Bundled font
+
+OpenDyslexic is © Abbie Gonzalez and is distributed under the [SIL Open Font License 1.1](fonts/OFL.txt). The extension ships the unmodified regular and bold WOFF2 files with the full licence text in `fonts/`.
 
 ---
 

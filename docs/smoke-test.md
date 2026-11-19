@@ -19,13 +19,7 @@ Only the Windows/NVDA path has been run. The macOS and Linux steps below are
 kept so a future tester can complete them, but do not describe the extension as
 VoiceOver- or Orca-verified until those rows are updated.
 
-v1.4.1 turns the options page into the settings hub and shares the settings
-file logic with the in-page dialog. v1.4.0 moved the theme and reading
-preferences to synced storage, added per-site on/off rules, Reset page, and a
-schema 2 settings export, on top of the v1.3.2 toolbar placement, dismiss
-button, and High Contrast styling. Those paths pass the automated
-accessibility-tree and browser harness checks, but the manual NVDA pass has not
-been repeated since v1.3.0.
+v1.5.0 adds a Text styling section to the settings page: the font (including the bundled OpenDyslexic), spacing presets and custom sliders, and highlight colour and style, all saved through the profile. The font, spacing, and highlight commands now apply those saved defaults. v1.4.1 turned the options page into the settings hub and shared the settings file logic with the in-page dialog. v1.4.0 moved the theme and reading preferences to synced storage, added per-site on/off rules, Reset page, and a schema 2 settings export, on top of the v1.3.2 toolbar placement, dismiss button, and High Contrast styling. Those paths pass the automated accessibility-tree and browser harness checks, but the manual NVDA pass has not been repeated since v1.3.0.
 
 ## Setup
 
@@ -109,6 +103,11 @@ Turn on Windows High Contrast (or emulate `forced-colors: active` in DevTools) a
 | O6 | Add two site rules, activate Clear all site rules twice. | The first press arms the button and announces the confirmation prompt; the second removes both rules, announces the result, and disables the button. |
 | O7 | Activate Export settings, then Import settings and choose the exported file. | A versioned JSON file downloads, the import is announced, and the controls keep the same values. |
 | O8 | Import a settings file written before v1.4.0. | The older file imports its preferences, its missing site rules leave the current rules alone, and the result is announced. |
+| O9 | Change Font to OpenDyslexic, then select text on a page and activate Font. | The paragraph uses OpenDyslexic, the announcement names it, and a second press restores the page's own font. |
+| O10 | Set Spacing to Custom, adjust letter spacing, then apply Spacing to text. | The paragraph uses the custom values, the announcement names the preset, and a second press removes them. |
+| O11 | Set Highlight style to Underline and colour to Blue, then highlight text. | The selection is underlined rather than painted, and the announcement names the style. |
+| O12 | Activate Reset text styling. | Font, spacing, and highlight return to the shipped defaults and the reset confirmation is announced. |
+| O13 | Import a schema 2 settings file after changing the text defaults. | The current font, spacing, and highlight defaults are preserved, and the import result is announced. |
 
 ## Notifications
 
@@ -159,6 +158,7 @@ Use **Pass**, **Pass with notes**, or **Fail** for each section.
 | Automated forced-colors and QoL checks | 2026-11-16 | Chrome 156 headless on Windows, real extension build, emulated `forced-colors: active` | 28/28 QoL checks pass; toolbar, settings, popup, and settings page use system colours |
 | Automated v1.4.0 checks | 2026-11-16 | Chrome 156 headless on Windows, real extension build | 27/27 sync, site-rule, reset, and export checks pass |
 | Automated v1.4.1 checks | 2026-11-17 | Chrome 156 headless on Windows, real extension build | 37/37 settings-hub, site-rule, backup/restore, and popup checks pass; options suite 46/46 |
+| Automated v1.5.0 checks | 2026-11-19 | Chrome 156 headless on Windows, real extension build | 57 style-default unit checks; 64 text-default browser checks; 20 font-loading checks over ordinary, strict-CSP, file://, and blocked-font pages; options suite 89/89 |
 | NVDA manual pass | 2026-11-06 | Windows 11 Home 26200, Chrome for Testing 156.0.8078.47 headed with `--force-renderer-accessibility`, NVDA 2026.3 (Portuguese UI) | Pass with notes |
 | VoiceOver manual pass | — | macOS | Not tested — no macOS hardware available |
 | Orca manual pass | — | Linux | Not tested — no Linux environment available |
