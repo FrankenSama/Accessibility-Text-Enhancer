@@ -69,6 +69,15 @@ Single-page apps that re-render can discard an enhancement. Undo skips elements
 that are no longer in the document, and changes are not re-applied after a
 navigation or reload.
 
+### Bundled OpenDyslexic
+
+The OpenDyslexic font ships with the extension and loads from the package
+through the FontFace API. It has been checked on ordinary pages, pages whose
+CSP sets `font-src 'self'`, and local `file://` pages with file access enabled.
+If a browser refuses the resource, the fallback stack keeps the text in Arial;
+the command still applies and is not blocked. Regular and bold ship; the
+browser synthesizes italic.
+
 ### Commands are text-focused
 
 Bold and highlight target selected text nodes; font size, font style, spacing,

@@ -29,6 +29,7 @@ import {
     SPACING_PRESETS,
     spacingValuesFor
 } from './style-defaults.js';
+import { loadOpenDyslexicFonts } from './fonts.js';
 import { captureElementState, pushHistory, redo, undo } from './history.js';
 import {
     clearWrapperOverride,
@@ -465,6 +466,9 @@ function toggleFontStyle(element, options = {}) {
     }
 
     const fontFamily = STATE.textDefaults.fontFamily;
+    if (fontFamily === 'opendyslexic') {
+        loadOpenDyslexicFonts();
+    }
     element.style.setProperty('font-family', fontStackFor(fontFamily), 'important');
     element.setAttribute(CONFIG.fontAttr, fontFamily);
     notify(options, `Font: ${FONT_LABELS[fontFamily] || FONT_LABELS.sans}`);

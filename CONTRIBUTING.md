@@ -215,11 +215,13 @@ project/
 │       ├── scope.js      # Which elements a command affects
 │       ├── commands.js   # Command dispatch and enhancement effects
 │       ├── contrast.js   # WCAG colour math and contrast command
+│       ├── fonts.js      # FontFace loader for bundled OpenDyslexic
 │       ├── history.js    # Undo, redo, and Reset page
 │       ├── prefs.js      # Synced preferences and per-site rules
 │       ├── toast.js      # Single live-region notification
 │       └── feedback.js   # Toast wording shared by commands
 ├── icons/                # Extension icons
+├── fonts/                # OpenDyslexic WOFF2 and its SIL OFL 1.1 licence
 ├── docs/                 # Documentation and research
 ├── .github/              # Issue templates and pull request template
 ├── index.html            # GitHub Pages landing page

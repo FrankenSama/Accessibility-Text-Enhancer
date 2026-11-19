@@ -30,6 +30,7 @@ import {
     parseColor,
     parseHexColor
 } from '../content-scripts/modules/contrast.js';
+import { loadOpenDyslexicFonts } from '../content-scripts/modules/fonts.js';
 
 const DEFAULTS = {
     darkMode: true,
@@ -401,6 +402,10 @@ function syncTextControls() {
     highlightStyleSelect.value = defaults.highlightStyle;
     colorSwatch.style.backgroundColor =
         HIGHLIGHT_COLORS[defaults.highlightColor].background;
+
+    if (defaults.fontFamily === 'opendyslexic') {
+        loadOpenDyslexicFonts();
+    }
 
     customSpacing.hidden = defaults.spacingPreset !== 'custom';
 

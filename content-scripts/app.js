@@ -41,6 +41,7 @@ import {
     normalizeTextDefaults,
     TEXT_DEFAULT_KEYS
 } from './modules/style-defaults.js';
+import { loadOpenDyslexicFonts } from './modules/fonts.js';
 
 /**
  * Promise wrapper around chrome.storage.local.get for older Chrome versions.
@@ -134,6 +135,9 @@ async function loadExtensionState() {
         CONFIG.defaultTtsPitch
     );
     STATE.textDefaults = normalizeTextDefaults(synced);
+    if (STATE.textDefaults.fontFamily === 'opendyslexic') {
+        loadOpenDyslexicFonts();
+    }
     loadVoices();
 }
 
@@ -428,6 +432,10 @@ function handleStorageChange(changes, areaName) {
             }
         }
         STATE.textDefaults = normalizeTextDefaults(next);
+        if (changes.fontFamily &&
+            changes.fontFamily.newValue === 'opendyslexic') {
+            loadOpenDyslexicFonts();
+        }
         refreshTextCommandLabels();
     }
 

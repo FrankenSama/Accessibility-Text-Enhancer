@@ -33,7 +33,8 @@
     {
       "resources": [
         "content-scripts/app.js",
-        "content-scripts/modules/*.js"
+        "content-scripts/modules/*.js",
+        "fonts/*.woff2"
       ],
       "matches": [
         "<all_urls>"
