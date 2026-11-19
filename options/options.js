@@ -11,10 +11,25 @@ import {
     parseSettingsFile
 } from '../content-scripts/modules/settings-io.js';
 import {
+    FONT_LABELS,
+    fontStackFor,
+    HIGHLIGHT_COLORS,
+    HIGHLIGHT_STYLE_LABELS,
+    HIGHLIGHT_STYLES,
+    highlightValuesFor,
     normalizeTextDefaults,
     pickTextDefaults,
+    SPACING_LIMITS,
+    SPACING_PRESETS,
+    spacingValuesFor,
     TEXT_DEFAULT_KEYS
 } from '../content-scripts/modules/style-defaults.js';
+import {
+    contrastRatio,
+    getEffectiveBackgroundColor,
+    parseColor,
+    parseHexColor
+} from '../content-scripts/modules/contrast.js';
 
 const DEFAULTS = {
     darkMode: true,
@@ -45,12 +60,40 @@ const rateInput = document.getElementById('tts-rate');
 const rateValue = document.getElementById('tts-rate-value');
 const pitchInput = document.getElementById('tts-pitch');
 const pitchValue = document.getElementById('tts-pitch-value');
+const fontSelect = document.getElementById('text-font');
+const presetSelect = document.getElementById('text-spacing-preset');
+const customSpacing = document.getElementById('custom-spacing');
+const colorSelect = document.getElementById('text-highlight-color');
+const colorSwatch = document.getElementById('text-highlight-swatch');
+const highlightStyleSelect = document.getElementById('text-highlight-style');
+const previewEl = document.getElementById('text-preview');
 const status = document.getElementById('options-status');
 const siteRuleList = document.getElementById('site-rule-list');
 const siteRuleEmpty = document.getElementById('site-rule-empty');
 const siteRuleCount = document.getElementById('site-rule-count');
 const clearRulesButton = document.getElementById('clear-site-rules');
 const importFile = document.getElementById('import-file');
+
+const SPACING_KEYS = [
+    'letterSpacing',
+    'wordSpacing',
+    'lineHeight',
+    'paragraphSpacing'
+];
+
+const spacingInputs = {
+    letterSpacing: document.getElementById('text-letter-spacing'),
+    wordSpacing: document.getElementById('text-word-spacing'),
+    lineHeight: document.getElementById('text-line-height'),
+    paragraphSpacing: document.getElementById('text-paragraph-spacing')
+};
+
+const spacingOutputs = {
+    letterSpacing: document.getElementById('text-letter-spacing-value'),
+    wordSpacing: document.getElementById('text-word-spacing-value'),
+    lineHeight: document.getElementById('text-line-height-value'),
+    paragraphSpacing: document.getElementById('text-paragraph-spacing-value')
+};
 
 /**
  * Clamp a stored numeric preference to a valid range.
@@ -188,6 +231,220 @@ function syncControls() {
  */
 function syncThemeControl() {
     themeSelect.value = state.darkMode ? 'dark' : 'light';
+}
+
+/**
+ * Append one option to a select.
+ * @param {HTMLSelectElement} select
+ * @param {string} value
+ * @param {string} label
+ */
+function addOption(select, value, label) {
+    const option = document.createElement('option');
+    option.value = value;
+    option.textContent = label;
+    select.appendChild(option);
+}
+
+/**
+ * Build the text-styling selects from the shared labels and give the custom
+ * sliders the ranges from the shared limits.
+ */
+function setupTextControls() {
+    Object.entries(FONT_LABELS).forEach(([value, label]) => {
+        addOption(fontSelect, value, label);
+    });
+    Object.entries(SPACING_PRESETS).forEach(([value, preset]) => {
+        addOption(presetSelect, value, preset.label);
+    });
+    Object.entries(HIGHLIGHT_COLORS).forEach(([value, color]) => {
+        addOption(colorSelect, value, color.label);
+    });
+    HIGHLIGHT_STYLES.forEach((value) => {
+        addOption(highlightStyleSelect, value, HIGHLIGHT_STYLE_LABELS[value]);
+    });
+
+    SPACING_KEYS.forEach((key) => {
+        const limit = SPACING_LIMITS[key];
+        spacingInputs[key].min = String(limit.min);
+        spacingInputs[key].max = String(limit.max);
+        spacingInputs[key].step = String(limit.step);
+    });
+}
+
+/**
+ * Clamp a custom spacing value to its shared range.
+ * @param {string} key
+ * @param {number|string} raw
+ * @returns {number}
+ */
+function clampSpacing(key, raw) {
+    const limit = SPACING_LIMITS[key];
+    const number = typeof raw === 'number' ? raw : parseFloat(raw);
+
+    if (!Number.isFinite(number)) {
+        return limit.min;
+    }
+
+    return Math.round(Math.min(limit.max, Math.max(limit.min, number)) * 1000) / 1000;
+}
+
+/**
+ * Human-readable slider value, with the unit the command applies.
+ * @param {string} key
+ * @param {number} value
+ * @returns {string}
+ */
+function formatSpacingValue(key, value) {
+    if (key === 'lineHeight') {
+        return value.toFixed(1);
+    }
+    return `${Number(value.toFixed(3))}em`;
+}
+
+/**
+ * Pick a preview line colour that stays visible on the preview background.
+ * @param {string} lineColor
+ * @returns {string}
+ */
+function previewLineColor(lineColor) {
+    if (window.matchMedia && window.matchMedia('(forced-colors: active)').matches) {
+        return 'Highlight';
+    }
+
+    const line = parseHexColor(lineColor);
+    const background = getEffectiveBackgroundColor(previewEl);
+
+    if (!line || !background || contrastRatio(line, background) < 3) {
+        return 'currentColor';
+    }
+
+    return lineColor;
+}
+
+/**
+ * Draw an underline fallback in the preview.
+ * @param {string} lineColor
+ */
+function applyPreviewLine(lineColor) {
+    previewEl.style.textDecorationLine = 'underline';
+    previewEl.style.textDecorationThickness = '2px';
+    previewEl.style.textDecorationColor = previewLineColor(lineColor);
+    previewEl.style.textUnderlineOffset = '2px';
+}
+
+/**
+ * Show the saved font, spacing, and highlight on a sample sentence.
+ */
+function updatePreview() {
+    const defaults = state.textDefaults;
+    const spacing = spacingValuesFor(defaults);
+    const highlight = highlightValuesFor(defaults);
+    const forced = Boolean(window.matchMedia &&
+        window.matchMedia('(forced-colors: active)').matches);
+    const style = previewEl.style;
+
+    style.fontFamily = fontStackFor(defaults.fontFamily);
+    style.letterSpacing = `${spacing.letterSpacing}em`;
+    style.wordSpacing = `${spacing.wordSpacing}em`;
+    style.lineHeight = spacing.lineHeight === null
+        ? ''
+        : String(spacing.lineHeight);
+
+    previewEl.querySelector('p').style.marginBottom =
+        spacing.paragraphSpacing === null
+            ? ''
+            : `${spacing.paragraphSpacing}em`;
+
+    [
+        'background-color',
+        'outline',
+        'text-decoration-line',
+        'text-decoration-thickness',
+        'text-decoration-color',
+        'text-underline-offset'
+    ].forEach((property) => style.removeProperty(property));
+
+    const textColor = parseColor(getComputedStyle(previewEl).color) ||
+        { r: 0, g: 0, b: 0 };
+    const highlightColor = parseHexColor(highlight.background);
+    const canPaintBackground = !forced && Boolean(highlightColor) &&
+        contrastRatio(textColor, highlightColor) >= 4.5;
+
+    if (highlight.style === 'underline') {
+        applyPreviewLine(highlight.line);
+        return;
+    }
+
+    if (canPaintBackground) {
+        style.backgroundColor = highlight.background;
+        return;
+    }
+
+    if (highlight.style === 'background') {
+        applyPreviewLine(highlight.line);
+        return;
+    }
+
+    style.outline = `2px solid ${previewLineColor(highlight.line)}`;
+}
+
+/**
+ * Mirror the text styling state into the controls and the preview.
+ */
+function syncTextControls() {
+    const defaults = state.textDefaults;
+
+    fontSelect.value = defaults.fontFamily;
+    presetSelect.value = defaults.spacingPreset;
+    colorSelect.value = defaults.highlightColor;
+    highlightStyleSelect.value = defaults.highlightStyle;
+    colorSwatch.style.backgroundColor =
+        HIGHLIGHT_COLORS[defaults.highlightColor].background;
+
+    customSpacing.hidden = defaults.spacingPreset !== 'custom';
+
+    SPACING_KEYS.forEach((key) => {
+        // A null line height or paragraph spacing leaves the page alone.
+        // The hidden slider still needs a number, so show the neutral value.
+        const value = defaults[key] === null
+            ? (key === 'lineHeight' ? 1 : 0)
+            : defaults[key];
+        spacingInputs[key].value = String(value);
+        spacingOutputs[key].textContent = formatSpacingValue(key, value);
+    });
+
+    updatePreview();
+}
+
+/**
+ * Save text defaults, rolling the controls back from storage if the write
+ * fails.
+ * @param {Object} values
+ */
+function saveTextDefaults(values) {
+    Object.assign(state.textDefaults, values);
+    syncTextControls();
+
+    savePreferences(values, (saved) => {
+        if (saved) {
+            return;
+        }
+
+        loadSyncedPreferences().then((result) => {
+            state.textDefaults = normalizeTextDefaults(result);
+            syncTextControls();
+        }).catch(() => {});
+    });
+}
+
+/**
+ * Restore the shipped font, spacing, and highlight choices.
+ */
+function resetTextStyling() {
+    state.textDefaults = normalizeTextDefaults();
+    saveTextDefaults({ ...state.textDefaults });
+    setStatus('Text styling reset to defaults.');
 }
 
 /**
@@ -460,6 +717,7 @@ function importFileContents(file) {
             loadVoices();
             syncControls();
             syncThemeControl();
+            syncTextControls();
             renderSiteRules();
             setStatus('Settings imported.');
         });
@@ -473,6 +731,8 @@ function importFileContents(file) {
 }
 
 // Load saved preferences.
+setupTextControls();
+
 loadSyncedPreferences().then((result) => {
     state.darkMode = typeof result.darkMode === 'boolean'
         ? result.darkMode
@@ -496,6 +756,7 @@ loadSyncedPreferences().then((result) => {
     loadVoices();
     syncControls();
     syncThemeControl();
+    syncTextControls();
     renderSiteRules();
 }).catch(() => {
     setStatus('Could not load settings. Try reopening this page.');
@@ -550,6 +811,7 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
             }
         }
         state.textDefaults = normalizeTextDefaults(next);
+        syncTextControls();
     }
 
     if (changes.siteRules) {
@@ -575,6 +837,53 @@ themeSelect.addEventListener('change', () => {
     state.darkMode = themeSelect.value !== 'light';
     savePreferences({ darkMode: state.darkMode });
 });
+
+fontSelect.addEventListener('change', () => {
+    saveTextDefaults({ fontFamily: fontSelect.value });
+});
+
+presetSelect.addEventListener('change', () => {
+    const spacingPreset = presetSelect.value;
+    const updates = { spacingPreset };
+
+    // Custom needs four concrete values. Seed the two nullable ones the first
+    // time so the sliders match what the preview shows.
+    if (spacingPreset === 'custom') {
+        if (state.textDefaults.lineHeight === null) {
+            updates.lineHeight = 1.5;
+        }
+        if (state.textDefaults.paragraphSpacing === null) {
+            updates.paragraphSpacing = 1;
+        }
+    }
+
+    saveTextDefaults(updates);
+});
+
+SPACING_KEYS.forEach((key) => {
+    const input = spacingInputs[key];
+
+    input.addEventListener('input', () => {
+        state.textDefaults[key] = clampSpacing(key, input.value);
+        spacingOutputs[key].textContent =
+            formatSpacingValue(key, state.textDefaults[key]);
+        updatePreview();
+    });
+
+    input.addEventListener('change', () => {
+        saveTextDefaults({ [key]: state.textDefaults[key] });
+    });
+});
+
+colorSelect.addEventListener('change', () => {
+    saveTextDefaults({ highlightColor: colorSelect.value });
+});
+
+highlightStyleSelect.addEventListener('change', () => {
+    saveTextDefaults({ highlightStyle: highlightStyleSelect.value });
+});
+
+document.getElementById('reset-text-styling').addEventListener('click', resetTextStyling);
 
 voiceSelect.addEventListener('change', () => {
     state.ttsVoice = voiceSelect.value;
