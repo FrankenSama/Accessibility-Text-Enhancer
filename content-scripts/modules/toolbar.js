@@ -45,9 +45,12 @@ function textCommandTooltips() {
     const color = HIGHLIGHT_COLORS[defaults.highlightColor] ||
         HIGHLIGHT_COLORS.yellow;
     const name = color.label.toLowerCase();
+    const style = defaults.highlightStyle === 'force-background'
+        ? 'forced background'
+        : defaults.highlightStyle;
     const highlight = defaults.highlightStyle === 'auto'
         ? name
-        : `${name} ${defaults.highlightStyle}`;
+        : `${name} ${style}`;
 
     return {
         fontStyle: `Font: ${font} · Shift: selection`,

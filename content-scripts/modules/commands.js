@@ -341,6 +341,7 @@ function toggleHighlight(element, options = {}) {
     }
 
     const values = highlightValuesFor(STATE.textDefaults);
+    const forceBackground = values.style === 'force-background';
 
     if (forcedColorsActive()) {
         if (values.style === 'underline') {
@@ -363,15 +364,27 @@ function toggleHighlight(element, options = {}) {
     // A background only works when the text stays readable on it. An element
     // that paints its own colour is fine to override, but a background image
     // or gradient sits on top of the colour, so painting underneath would
-    // leave the text on the image. In both cases use a line instead.
+    // leave the text on the image. In both cases use a line instead. Force
+    // background skips the contrast check, not the image check.
     const backgroundIsReadable = Boolean(highlightColor) &&
         contrastRatio(textColor, highlightColor) >= 4.5;
     const canPaintBackground = !hasBackgroundImage && !clipsBackgroundToText &&
-        backgroundIsReadable;
+        (forceBackground || backgroundIsReadable);
 
     if (values.style === 'underline') {
         applyUnderlineHighlight(element, readableLineColor(element, values.line));
         notify(options, 'Underlined');
+        return;
+    }
+
+    if (forceBackground) {
+        if (canPaintBackground) {
+            applyBackgroundHighlight(element, values.background);
+            notify(options, 'Text highlighted');
+        } else {
+            applyUnderlineHighlight(element, readableLineColor(element, values.line));
+            notify(options, 'Underlined: the page background hides a fill');
+        }
         return;
     }
 

@@ -327,8 +327,9 @@ function updatePreview() {
     const textColor = parseColor(getComputedStyle(previewEl).color) ||
         { r: 0, g: 0, b: 0 };
     const highlightColor = parseHexColor(highlight.background);
+    const forceBackground = highlight.style === 'force-background';
     const canPaintBackground = !forced && Boolean(highlightColor) &&
-        contrastRatio(textColor, highlightColor) >= 4.5;
+        (forceBackground || contrastRatio(textColor, highlightColor) >= 4.5);
 
     if (highlight.style === 'underline') {
         applyPreviewLine(highlight.line);

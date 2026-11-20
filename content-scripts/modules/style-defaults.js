@@ -47,11 +47,17 @@ export const HIGHLIGHT_COLORS = Object.freeze({
     })
 });
 
-export const HIGHLIGHT_STYLES = Object.freeze(['auto', 'background', 'underline']);
+export const HIGHLIGHT_STYLES = Object.freeze([
+    'auto',
+    'background',
+    'force-background',
+    'underline'
+]);
 
 export const HIGHLIGHT_STYLE_LABELS = Object.freeze({
     auto: 'Auto',
     background: 'Background',
+    'force-background': 'Force background',
     underline: 'Underline'
 });
 
