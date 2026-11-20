@@ -66,11 +66,14 @@ export function resolveScope(range, command, options = {}) {
         return { targets: [wrapper], scope: 'selection', fallback: false };
     }
 
-    const exact = getExactElement(range);
+    const exact = command === 'highlight' ? null : getExactElement(range);
     if (exact) {
         return { targets: [exact], scope: 'selection', fallback: false };
     }
 
+    // Highlight wraps the text instead of styling the block, so selecting a
+    // whole paragraph still paints behind the words rather than the full
+    // width of the paragraph. Other commands can style the block directly.
     const wrappers = wrapRange(range);
     if (wrappers) {
         return { targets: wrappers, scope: 'selection', fallback: false };
