@@ -354,18 +354,19 @@ function toggleHighlight(element, options = {}) {
     }
 
     const style = getComputedStyle(element);
-    const background = parseColor(style.backgroundColor);
+    const hasBackgroundImage = style.backgroundImage !== 'none';
     const clipsBackgroundToText = style.backgroundClip === 'text' ||
         style.webkitBackgroundClip === 'text';
     const textColor = parseColor(style.color) || { r: 0, g: 0, b: 0 };
     const highlightColor = parseHexColor(values.background);
 
-    // A background only works when the text stays readable on it. On dark
-    // sites (or after a contrast fix made the text white) use a line instead
-    // of hiding the text.
+    // A background only works when the text stays readable on it. An element
+    // that paints its own colour is fine to override, but a background image
+    // or gradient sits on top of the colour, so painting underneath would
+    // leave the text on the image. In both cases use a line instead.
     const backgroundIsReadable = Boolean(highlightColor) &&
         contrastRatio(textColor, highlightColor) >= 4.5;
-    const canPaintBackground = !background && !clipsBackgroundToText &&
+    const canPaintBackground = !hasBackgroundImage && !clipsBackgroundToText &&
         backgroundIsReadable;
 
     if (values.style === 'underline') {
