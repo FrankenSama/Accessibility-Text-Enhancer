@@ -23,7 +23,12 @@ import {
     stopReading,
     toggleReadAloud
 } from './modules/reading.js';
-import { removeSettingsPanel, syncReadingSettingsControls } from './modules/settings.js';
+import {
+    removeSettingsPanel,
+    syncReadingSettingsControls,
+    syncSiteRulesControls,
+    syncTextStylingControls
+} from './modules/settings.js';
 import {
     enhanceSelection,
     getToggleStates,
@@ -417,11 +422,13 @@ function handleStorageChange(changes, areaName) {
     if (changes.siteRules) {
         STATE.siteRules = normalizeSiteRules(changes.siteRules.newValue);
         applyEnabledState();
+        syncSiteRulesControls();
     }
 
     if (changes.darkMode) {
         STATE.isDarkMode = changes.darkMode.newValue !== false;
         applyTheme();
+        syncTextStylingControls();
     }
 
     if (TEXT_DEFAULT_KEYS.some((key) => changes[key])) {
@@ -437,6 +444,7 @@ function handleStorageChange(changes, areaName) {
             loadOpenDyslexicFonts();
         }
         refreshTextCommandLabels();
+        syncTextStylingControls();
     }
 
     if (changes.ttsVoice) {

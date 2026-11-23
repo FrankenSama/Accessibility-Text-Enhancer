@@ -163,7 +163,8 @@ input[type="range"] {
     cursor: not-allowed;
 }
 
-.btn.link {
+.btn.link,
+.site-rule-remove {
     flex: 0 0 auto;
     padding: 6px 12px;
     border: 1px solid var(--border);
@@ -172,7 +173,8 @@ input[type="range"] {
     font-size: 13px;
 }
 
-.btn.link:hover:not(:disabled) {
+.btn.link:hover:not(:disabled),
+.site-rule-remove:hover:not(:disabled) {
     background: var(--secondary);
 }
 
@@ -349,7 +351,8 @@ input[type="range"]:focus-visible {
         color: ButtonText;
     }
 
-    .btn.link {
+    .btn.link,
+    .site-rule-remove {
         background: ButtonFace;
         color: LinkText;
         border-color: CanvasText;

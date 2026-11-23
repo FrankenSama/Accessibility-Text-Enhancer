@@ -5,34 +5,19 @@ import {
     normalizeSiteRules,
     saveSyncedPreferences
 } from '../content-scripts/modules/prefs.js';
-import { COMMAND_PROPERTIES, CONFIG } from '../content-scripts/modules/core.js';
+import { CONFIG } from '../content-scripts/modules/core.js';
 import {
     buildSettingsFile,
     parseSettingsFile
 } from '../content-scripts/modules/settings-io.js';
 import {
-    FONT_LABELS,
-    fontStackFor,
-    HIGHLIGHT_COLORS,
-    HIGHLIGHT_STYLE_LABELS,
-    HIGHLIGHT_STYLES,
-    highlightValuesFor,
     normalizeTextDefaults,
     pickTextDefaults,
-    SPACING_LIMITS,
-    SPACING_PRESETS,
-    spacingValuesFor,
     TEXT_DEFAULT_KEYS
 } from '../content-scripts/modules/style-defaults.js';
-import {
-    contrastRatio,
-    forcedColorsActive,
-    parseColor,
-    parseHexColor,
-    readableLineColor
-} from '../content-scripts/modules/contrast.js';
-import { loadOpenDyslexicFonts } from '../content-scripts/modules/fonts.js';
 import { clampNumber } from '../content-scripts/modules/text.js';
+import { initTextStylingControls } from '../content-scripts/modules/text-styling-ui.js';
+import { initSiteRulesControls } from '../content-scripts/modules/site-rules-ui.js';
 
 const DEFAULTS = {
     darkMode: true,
@@ -63,40 +48,8 @@ const rateInput = document.getElementById('tts-rate');
 const rateValue = document.getElementById('tts-rate-value');
 const pitchInput = document.getElementById('tts-pitch');
 const pitchValue = document.getElementById('tts-pitch-value');
-const fontSelect = document.getElementById('text-font');
-const presetSelect = document.getElementById('text-spacing-preset');
-const customSpacing = document.getElementById('custom-spacing');
-const colorSelect = document.getElementById('text-highlight-color');
-const colorSwatch = document.getElementById('text-highlight-swatch');
-const highlightStyleSelect = document.getElementById('text-highlight-style');
-const previewEl = document.getElementById('text-preview');
 const status = document.getElementById('options-status');
-const siteRuleList = document.getElementById('site-rule-list');
-const siteRuleEmpty = document.getElementById('site-rule-empty');
-const siteRuleCount = document.getElementById('site-rule-count');
-const clearRulesButton = document.getElementById('clear-site-rules');
 const importFile = document.getElementById('import-file');
-
-const SPACING_KEYS = [
-    'letterSpacing',
-    'wordSpacing',
-    'lineHeight',
-    'paragraphSpacing'
-];
-
-const spacingInputs = {
-    letterSpacing: document.getElementById('text-letter-spacing'),
-    wordSpacing: document.getElementById('text-word-spacing'),
-    lineHeight: document.getElementById('text-line-height'),
-    paragraphSpacing: document.getElementById('text-paragraph-spacing')
-};
-
-const spacingOutputs = {
-    letterSpacing: document.getElementById('text-letter-spacing-value'),
-    wordSpacing: document.getElementById('text-word-spacing-value'),
-    lineHeight: document.getElementById('text-line-height-value'),
-    paragraphSpacing: document.getElementById('text-paragraph-spacing-value')
-};
 
 /**
  * Show a short status message in the page's live region.
@@ -221,174 +174,12 @@ function syncThemeControl() {
 }
 
 /**
- * Append one option to a select.
- * @param {HTMLSelectElement} select
- * @param {string} value
- * @param {string} label
- */
-function addOption(select, value, label) {
-    const option = document.createElement('option');
-    option.value = value;
-    option.textContent = label;
-    select.appendChild(option);
-}
-
-/**
- * Build the text-styling selects from the shared labels and give the custom
- * sliders the ranges from the shared limits.
- */
-function setupTextControls() {
-    Object.entries(FONT_LABELS).forEach(([value, label]) => {
-        addOption(fontSelect, value, label);
-    });
-    Object.entries(SPACING_PRESETS).forEach(([value, preset]) => {
-        addOption(presetSelect, value, preset.label);
-    });
-    Object.entries(HIGHLIGHT_COLORS).forEach(([value, color]) => {
-        addOption(colorSelect, value, color.label);
-    });
-    HIGHLIGHT_STYLES.forEach((value) => {
-        addOption(highlightStyleSelect, value, HIGHLIGHT_STYLE_LABELS[value]);
-    });
-
-    SPACING_KEYS.forEach((key) => {
-        const limit = SPACING_LIMITS[key];
-        spacingInputs[key].min = String(limit.min);
-        spacingInputs[key].max = String(limit.max);
-        spacingInputs[key].step = String(limit.step);
-    });
-}
-
-/**
- * Clamp a custom spacing value to its shared range.
- * @param {string} key
- * @param {number|string} raw
- * @returns {number}
- */
-function clampSpacing(key, raw) {
-    const limit = SPACING_LIMITS[key];
-    const number = typeof raw === 'number' ? raw : parseFloat(raw);
-
-    if (!Number.isFinite(number)) {
-        return limit.min;
-    }
-
-    return Math.round(Math.min(limit.max, Math.max(limit.min, number)) * 1000) / 1000;
-}
-
-/**
- * Human-readable slider value, with the unit the command applies.
- * @param {string} key
- * @param {number} value
- * @returns {string}
- */
-function formatSpacingValue(key, value) {
-    if (key === 'lineHeight') {
-        return value.toFixed(1);
-    }
-    return `${Number(value.toFixed(3))}em`;
-}
-
-/**
- * Draw an underline fallback in the preview.
- * @param {string} lineColor
- */
-function applyPreviewLine(lineColor) {
-    previewEl.style.textDecorationLine = 'underline';
-    previewEl.style.textDecorationThickness = '2px';
-    previewEl.style.textDecorationColor = readableLineColor(previewEl, lineColor);
-    previewEl.style.textUnderlineOffset = '2px';
-}
-
-/**
- * Show the saved font, spacing, and highlight on a sample sentence.
- */
-function updatePreview() {
-    const defaults = state.textDefaults;
-    const spacing = spacingValuesFor(defaults);
-    const highlight = highlightValuesFor(defaults);
-    const forced = forcedColorsActive();
-    const style = previewEl.style;
-
-    style.fontFamily = fontStackFor(defaults.fontFamily);
-    style.letterSpacing = `${spacing.letterSpacing}em`;
-    style.wordSpacing = `${spacing.wordSpacing}em`;
-    style.lineHeight = spacing.lineHeight === null
-        ? ''
-        : String(spacing.lineHeight);
-
-    previewEl.querySelector('p').style.marginBottom =
-        spacing.paragraphSpacing === null
-            ? ''
-            : `${spacing.paragraphSpacing}em`;
-
-    COMMAND_PROPERTIES.highlight.forEach((property) => style.removeProperty(property));
-
-    const textColor = parseColor(getComputedStyle(previewEl).color) ||
-        { r: 0, g: 0, b: 0 };
-    const highlightColor = parseHexColor(highlight.background);
-    const forceBackground = highlight.style === 'force-background';
-    const canPaintBackground = !forced && Boolean(highlightColor) &&
-        (forceBackground || contrastRatio(textColor, highlightColor) >= 4.5);
-
-    if (highlight.style === 'underline') {
-        applyPreviewLine(highlight.line);
-        return;
-    }
-
-    if (canPaintBackground) {
-        style.backgroundColor = highlight.background;
-        return;
-    }
-
-    if (highlight.style === 'background') {
-        applyPreviewLine(highlight.line);
-        return;
-    }
-
-    style.outline = `2px solid ${readableLineColor(previewEl, highlight.line)}`;
-}
-
-/**
- * Mirror the text styling state into the controls and the preview.
- */
-function syncTextControls() {
-    const defaults = state.textDefaults;
-
-    fontSelect.value = defaults.fontFamily;
-    presetSelect.value = defaults.spacingPreset;
-    colorSelect.value = defaults.highlightColor;
-    highlightStyleSelect.value = defaults.highlightStyle;
-    colorSwatch.style.backgroundColor =
-        HIGHLIGHT_COLORS[defaults.highlightColor].background;
-
-    if (defaults.fontFamily === 'opendyslexic') {
-        loadOpenDyslexicFonts();
-    }
-
-    customSpacing.hidden = defaults.spacingPreset !== 'custom';
-
-    SPACING_KEYS.forEach((key) => {
-        // A null line height or paragraph spacing leaves the page alone.
-        // The hidden slider still needs a number, so show the neutral value.
-        const value = defaults[key] === null
-            ? (key === 'lineHeight' ? 1 : 0)
-            : defaults[key];
-        spacingInputs[key].value = String(value);
-        spacingOutputs[key].textContent = formatSpacingValue(key, value);
-    });
-
-    updatePreview();
-}
-
-/**
  * Save text defaults, rolling the controls back from storage if the write
  * fails.
  * @param {Object} values
  */
 function saveTextDefaults(values) {
     Object.assign(state.textDefaults, values);
-    syncTextControls();
 
     savePreferences(values, (saved) => {
         if (saved) {
@@ -397,65 +188,28 @@ function saveTextDefaults(values) {
 
         loadSyncedPreferences().then((result) => {
             state.textDefaults = normalizeTextDefaults(result);
-            syncTextControls();
+            textControls?.sync();
         }).catch(() => {});
     });
 }
 
-/**
- * Restore the shipped font, spacing, and highlight choices.
- */
-function resetTextStyling() {
-    state.textDefaults = normalizeTextDefaults();
-    saveTextDefaults({ ...state.textDefaults });
-    setStatus('Text styling reset to defaults.');
-}
+/** @type {{sync: (defaults?: Object) => void}|null} */
+let textControls = null;
 
 /**
- * Human-readable label for a stored site rule.
- * @param {'on'|'off'} rule
- * @returns {string}
+ * Build the shared text-styling controls.
  */
-function ruleLabel(rule) {
-    return rule === 'on' ? 'Always on' : 'Always off';
-}
-
-/**
- * Rebuild the site-rule list and its count.
- */
-function renderSiteRules() {
-    const origins = Object.keys(state.siteRules).sort();
-    siteRuleList.innerHTML = '';
-
-    origins.forEach((origin) => {
-        const item = document.createElement('li');
-        item.className = 'site-rule-item';
-
-        const name = document.createElement('span');
-        name.className = 'site-rule-origin';
-        name.textContent = origin;
-
-        const value = document.createElement('span');
-        value.className = 'site-rule-value';
-        value.textContent = ruleLabel(state.siteRules[origin]);
-
-        const remove = document.createElement('button');
-        remove.type = 'button';
-        remove.className = 'btn link';
-        remove.textContent = 'Remove';
-        remove.setAttribute('aria-label', `Remove site rule for ${origin}`);
-        remove.addEventListener('click', () => removeSiteRule(origin));
-
-        item.append(name, value, remove);
-        siteRuleList.appendChild(item);
+function setupTextControls() {
+    textControls = initTextStylingControls({
+        root: document,
+        getDefaults: () => state.textDefaults,
+        save: saveTextDefaults,
+        announce: setStatus
     });
-
-    siteRuleList.hidden = origins.length === 0;
-    siteRuleEmpty.hidden = origins.length > 0;
-    clearRulesButton.disabled = origins.length === 0;
-    siteRuleCount.textContent =
-        `${origins.length} of ${CONFIG.maxSiteRules} site rules used.`;
 }
+
+/** @type {{sync: () => void}|null} */
+let siteRulesControls = null;
 
 /**
  * Save a site-rule map, rolling the list back if the write fails.
@@ -465,12 +219,12 @@ function renderSiteRules() {
 function saveSiteRules(rules, message) {
     const previous = state.siteRules;
     state.siteRules = rules;
-    renderSiteRules();
+    siteRulesControls?.sync();
 
     savePreferences({ siteRules: rules }, (saved) => {
         if (!saved) {
             state.siteRules = previous;
-            renderSiteRules();
+            siteRulesControls?.sync();
             return;
         }
         setStatus(message);
@@ -478,13 +232,15 @@ function saveSiteRules(rules, message) {
 }
 
 /**
- * Remove the rule for one origin.
- * @param {string} origin
+ * Build the shared site-rule list.
  */
-function removeSiteRule(origin) {
-    const rules = { ...state.siteRules };
-    delete rules[origin];
-    saveSiteRules(rules, `Removed the site rule for ${origin}.`);
+function setupSiteRules() {
+    siteRulesControls = initSiteRulesControls({
+        root: document,
+        getRules: () => state.siteRules,
+        save: saveSiteRules,
+        announce: setStatus
+    });
 }
 
 /**
@@ -681,8 +437,8 @@ function importFileContents(file) {
             loadVoices();
             syncControls();
             syncThemeControl();
-            syncTextControls();
-            renderSiteRules();
+            textControls.sync();
+            siteRulesControls.sync();
             setStatus('Settings imported.');
         });
     };
@@ -696,6 +452,7 @@ function importFileContents(file) {
 
 // Load saved preferences.
 setupTextControls();
+setupSiteRules();
 
 loadSyncedPreferences().then((result) => {
     state.darkMode = typeof result.darkMode === 'boolean'
@@ -720,8 +477,8 @@ loadSyncedPreferences().then((result) => {
     loadVoices();
     syncControls();
     syncThemeControl();
-    syncTextControls();
-    renderSiteRules();
+    textControls.sync();
+    siteRulesControls.sync();
 }).catch(() => {
     setStatus('Could not load settings. Try reopening this page.');
 });
@@ -775,12 +532,12 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
             }
         }
         state.textDefaults = normalizeTextDefaults(next);
-        syncTextControls();
+        textControls.sync();
     }
 
     if (changes.siteRules) {
         state.siteRules = normalizeSiteRules(changes.siteRules.newValue);
-        renderSiteRules();
+        siteRulesControls.sync();
     }
 
     if (changed) {
@@ -801,53 +558,6 @@ themeSelect.addEventListener('change', () => {
     state.darkMode = themeSelect.value !== 'light';
     savePreferences({ darkMode: state.darkMode });
 });
-
-fontSelect.addEventListener('change', () => {
-    saveTextDefaults({ fontFamily: fontSelect.value });
-});
-
-presetSelect.addEventListener('change', () => {
-    const spacingPreset = presetSelect.value;
-    const updates = { spacingPreset };
-
-    // Custom needs four concrete values. Seed the two nullable ones the first
-    // time so the sliders match what the preview shows.
-    if (spacingPreset === 'custom') {
-        if (state.textDefaults.lineHeight === null) {
-            updates.lineHeight = 1.5;
-        }
-        if (state.textDefaults.paragraphSpacing === null) {
-            updates.paragraphSpacing = 1;
-        }
-    }
-
-    saveTextDefaults(updates);
-});
-
-SPACING_KEYS.forEach((key) => {
-    const input = spacingInputs[key];
-
-    input.addEventListener('input', () => {
-        state.textDefaults[key] = clampSpacing(key, input.value);
-        spacingOutputs[key].textContent =
-            formatSpacingValue(key, state.textDefaults[key]);
-        updatePreview();
-    });
-
-    input.addEventListener('change', () => {
-        saveTextDefaults({ [key]: state.textDefaults[key] });
-    });
-});
-
-colorSelect.addEventListener('change', () => {
-    saveTextDefaults({ highlightColor: colorSelect.value });
-});
-
-highlightStyleSelect.addEventListener('change', () => {
-    saveTextDefaults({ highlightStyle: highlightStyleSelect.value });
-});
-
-document.getElementById('reset-text-styling').addEventListener('click', resetTextStyling);
 
 voiceSelect.addEventListener('change', () => {
     state.ttsVoice = voiceSelect.value;
@@ -895,37 +605,6 @@ importFile.addEventListener('change', () => {
     if (file) {
         importFileContents(file);
     }
-});
-
-// Clearing every rule asks for a second click, matching the in-page reset.
-let clearArmed = false;
-let clearTimer = null;
-
-function disarmClear() {
-    clearArmed = false;
-    clearRulesButton.textContent = 'Clear all site rules';
-    if (clearTimer) {
-        clearTimeout(clearTimer);
-        clearTimer = null;
-    }
-}
-
-clearRulesButton.addEventListener('click', () => {
-    if (Object.keys(state.siteRules).length === 0) {
-        setStatus('There are no site rules to clear.');
-        return;
-    }
-
-    if (!clearArmed) {
-        clearArmed = true;
-        clearRulesButton.textContent = 'Confirm clear all';
-        clearTimer = setTimeout(disarmClear, 5000);
-        setStatus('Activate Confirm clear all to remove every site rule.');
-        return;
-    }
-
-    disarmClear();
-    saveSiteRules({}, 'All site rules cleared.');
 });
 
 document.getElementById('version').textContent =
