@@ -19,7 +19,7 @@ Only the Windows/NVDA path has been run. The macOS and Linux steps below are
 kept so a future tester can complete them, but do not describe the extension as
 VoiceOver- or Orca-verified until those rows are updated.
 
-v1.5.0 adds a Text styling section to the settings page: the font (including the bundled OpenDyslexic), spacing presets and custom sliders, and highlight colour and style, all saved through the profile. The font, spacing, and highlight commands now apply those saved defaults. v1.4.1 turned the options page into the settings hub and shared the settings file logic with the in-page dialog. v1.4.0 moved the theme and reading preferences to synced storage, added per-site on/off rules, Reset page, and a schema 2 settings export, on top of the v1.3.2 toolbar placement, dismiss button, and High Contrast styling. Those paths pass the automated accessibility-tree and browser harness checks, but the manual NVDA pass has not been repeated since v1.3.0.
+v1.5.1 brings the full settings suite into the toolbar dialog: **Text styling** (font, spacing preset or four custom sliders, highlight colour and style, a live preview, and reset) and **Site rules** (the list, per-rule removal, and a two-step clear-all) now match the options page. v1.5.0 added those controls to the options page and made the font, spacing, and highlight commands apply the saved defaults. v1.4.1 turned the options page into the settings hub and shared the settings file logic with the in-page dialog. v1.4.0 moved the theme and reading preferences to synced storage, added per-site on/off rules, Reset page, and a schema 2 settings export, on top of the v1.3.2 toolbar placement, dismiss button, and High Contrast styling. Those paths pass the automated accessibility-tree and browser harness checks, but the manual NVDA pass has not been repeated since v1.3.0.
 
 ## Setup
 
@@ -82,7 +82,7 @@ Turn on Windows High Contrast (or emulate `forced-colors: active` in DevTools) a
 | # | Step | Expected |
 |---|------|----------|
 | S1 | Open Settings from the toolbar. | Focus moves into the dialog. The dialog name is announced. |
-| S2 | Tab through the controls. | Voice is announced as a combobox or popup button with its current value. Speed and Pitch are announced as sliders with their values. |
+| S2 | Tab through the controls. | Font, Spacing preset, and Highlight colour are announced as comboboxes or popup buttons with their current values; Highlight style is announced with its choice. Letter spacing, Word spacing, Line height, and Paragraph spacing are announced as sliders with their values and units when Custom is selected. Voice is announced as a combobox or popup button with its current value. Speed and Pitch are announced as sliders with their values. |
 | S3 | Change Speed and Pitch. | The new numeric value is announced. |
 | S4 | Change Voice. | The selected voice and language are announced. |
 | S5 | Press `Escape`, or activate Close. | The dialog closes and focus returns to the Settings button. |
@@ -90,6 +90,13 @@ Turn on Windows High Contrast (or emulate `forced-colors: active` in DevTools) a
 | S7 | Activate Reset to defaults. | Voice returns to Automatic, Speed to 0.9, and Pitch to 1.0. A reset confirmation is announced. |
 | S8 | Apply two changes, open Settings, and activate Reset page changes twice. | The first press arms the button and announces "Press Reset page changes again to confirm"; the second removes both changes, closes the dialog, and the toolbar's Undo button is disabled. |
 | S9 | In the popup, set **This site** to Always off, reload, and select text. | No toolbar appears, the badge shows `OFF`, and the global switch stays on. Setting it back to Use global setting restores the toolbar. |
+| S10 | Change Font, Spacing preset, Highlight colour, and Highlight style in the dialog. | The sample sentence in Preview takes the new font, spacing, colour, and style. The choices apply to the next command after closing the dialog. |
+| S11 | Choose the Custom spacing preset, then move each slider. | The four sliders appear and their output labels announce the value with its unit (`em`, or a unitless line height). The values are saved when each slider is released. |
+| S12 | Set Highlight style to Background, then Force background. | Background shows a fill only when the text stays readable, otherwise an underline. Force background paints the fill even at low contrast. |
+| S13 | Activate Reset text styling. | Font, spacing, and highlight return to the shipped defaults, the sample updates, and the reset confirmation is announced. |
+| S14 | Add two site rules in the popup, then open Settings in the toolbar. | Both rules are listed with their origins and Always on/off, and the count reads 2 of 100. Remove one with its Remove button; the list updates and the removal is announced. |
+| S15 | Activate Clear all site rules twice. | The first press arms the button and announces the confirmation prompt; the second removes the remaining rule, announces the result, and disables the button. |
+| S16 | With the dialog open, change text styling or a site rule in the options page in another tab. | The dialog's controls and list update to the new values without closing. |
 
 ## Settings page
 
@@ -159,6 +166,7 @@ Use **Pass**, **Pass with notes**, or **Fail** for each section.
 | Automated v1.4.0 checks | 2026-11-16 | Chrome 156 headless on Windows, real extension build | 27/27 sync, site-rule, reset, and export checks pass |
 | Automated v1.4.1 checks | 2026-11-17 | Chrome 156 headless on Windows, real extension build | 37/37 settings-hub, site-rule, backup/restore, and popup checks pass; options suite 46/46 |
 | Automated v1.5.0 checks | 2026-11-19 | Chrome 156 headless on Windows, real extension build | 57 style-default unit checks; 64 text-default browser checks; 20 font-loading checks over ordinary, strict-CSP, file://, and blocked-font pages; options suite 89/89 |
+| Automated v1.5.1 checks | 2026-11-23 | Chrome 156 headless on Windows, real extension build | 36 in-page settings checks covering text styling, preview, persistence, reset, and site rules; options suite 91/91; full harness 615 pass with only the known bogus `check-coverage` line |
 | NVDA manual pass | 2026-11-06 | Windows 11 Home 26200, Chrome for Testing 156.0.8078.47 headed with `--force-renderer-accessibility`, NVDA 2026.3 (Portuguese UI) | Pass with notes |
 | VoiceOver manual pass | — | macOS | Not tested — no macOS hardware available |
 | Orca manual pass | — | Linux | Not tested — no Linux environment available |

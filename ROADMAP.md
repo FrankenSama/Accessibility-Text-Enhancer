@@ -2,7 +2,7 @@
 
 This roadmap tracks the accessibility work planned for Accessibility Text Enhancer. It is a living document: items move between phases as the project learns from real use, and nothing here is a commitment to a date.
 
-**Latest GitHub release:** v1.5.0 · **Chrome Web Store:** v1.4.1 · **Last updated:** 2026-11-19
+**Latest GitHub release:** v1.5.1 · **Chrome Web Store:** v1.4.1 · **Last updated:** 2026-11-23
 
 ## Guiding principles
 
@@ -20,7 +20,7 @@ This roadmap tracks the accessibility work planned for Accessibility Text Enhanc
 | 1 | Accessibility correctness | v1.2.0 | ✅ Released |
 | 2 | Reading assistant | v1.3.0–v1.3.2 | ✅ Released |
 | 3 | Persistence and control | v1.4.0 | ✅ Released |
-| 4 | Personalization | v1.5.0 | ✅ Released |
+| 4 | Personalization | v1.5.0–v1.5.1 | ✅ Released |
 | 5 | Reading aids | v1.6.0 | 📋 Planned |
 | 6 | Platform and reach | v2.0.0 | 💡 Exploring |
 
@@ -36,7 +36,9 @@ This roadmap tracks the accessibility work planned for Accessibility Text Enhanc
 
 **v1.5.0 (personalization):** adds a **Text styling** section to the settings page. Choose a font (Sans, Serif, Monospace, or the bundled OpenDyslexic), a spacing preset (Comfortable, WCAG 1.4.12, or four custom sliders), and a highlight colour and style (background, underline, or automatic). The choices save to `chrome.storage.sync`, define the ON state for the Font, Text spacing, and Highlight commands, and update the toolbar labels. Settings exports move to schema 3, while schema 2 and older files still import without resetting the current text defaults. The contrast guard keeps every highlight readable. OpenDyslexic regular and bold ship under the SIL OFL 1.1, load through FontFace only when selected, and fall back to Arial if the resource is blocked. No new permissions or network access.
 
-**Distribution:** v1.5.0 is the latest GitHub release with a packaged zip and SHA-256 checksum. v1.4.1 remains the Chrome Web Store version until the v1.5.0 package is submitted and published; no new permissions or privacy disclosures are required.
+**v1.5.1 (settings parity):** brings the full settings suite into the toolbar's in-page dialog, so changing text styling or a site rule no longer means opening the Chrome popup and its options page. The panel now repeats the options page's **Text styling** card — font, spacing preset or four custom sliders, highlight colour and style, a live preview, and reset — and its **Site rules** list with per-rule removal and a two-step clear-all, while keeping reading preferences, page reset, and backup. Both surfaces share new `text-styling-ui.js` and `site-rules-ui.js` controllers, so a control never drifts between them, and a failed storage write rolls the controls back. The preview re-renders when the theme changes so its contrast fallback matches the panel. The options page stays as the fallback: it still owns the **Appearance** theme control and is reachable without a selection or on `chrome://` pages. The popup keeps the global switch and the current-site rule, since turning the extension off from its own toolbar would close the panel. No new permissions or network access.
+
+**Distribution:** v1.5.1 is the latest GitHub release with a packaged zip and SHA-256 checksum. v1.4.1 remains the Chrome Web Store version until a package is submitted and published; no new permissions or privacy disclosures are required.
 
 ---
 
@@ -147,7 +149,7 @@ The toolbar already declares `role="toolbar"`, but it was not operable or unders
 
 ---
 
-## Phase 4 — Personalization (v1.5.0) ✅
+## Phase 4 — Personalization (v1.5.0–v1.5.1) ✅
 
 **Plan:** [docs/v1.5.0-plan.md](docs/v1.5.0-plan.md), approved 2026-11-18.
 
@@ -218,7 +220,7 @@ These are worth investigating but are not scheduled:
 
 ## Release checklist
 
-Use this list for every release. The v1.4.0, v1.4.1, and v1.5.0 runs are recorded in the release notes and [`docs/smoke-test.md`](docs/smoke-test.md). The store step was last completed for v1.4.1 on 2026-11-18; the checklist stays unchecked as a template for the next release.
+Use this list for every release. The v1.4.0, v1.4.1, v1.5.0, and v1.5.1 runs are recorded in the release notes and [`docs/smoke-test.md`](docs/smoke-test.md). The store step was last completed for v1.4.1 on 2026-11-18; the checklist stays unchecked as a template for the next release.
 
 - [ ] Browser harness green (all suites, including real-extension load and command smoke tests)
 - [ ] Keyboard-only harness checks: focus, traversal, apply, undo
