@@ -61,18 +61,31 @@ span[data-atx-selection] {
     border-right: none;
 }
 
-/* Base button styling */
+/* Base button styling. Each button is its own centred flex box so page
+   styles such as `line-height`, `align-items`, or `vertical-align` cannot
+   push the icon or label off-centre. */
 #accessibility-toolbar button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     border: none;
     background: rgba(74, 74, 74, 0.8);
     color: white;
     border-radius: 8px;
     padding: 10px 14px;
+    margin: 0;
     cursor: pointer;
+    font-family: inherit;
     font-size: 13px;
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: normal;
+    text-align: center;
+    text-transform: none;
+    vertical-align: middle;
+    box-sizing: border-box;
     min-width: 70px;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    font-weight: 500;
     position: relative;
 }
 

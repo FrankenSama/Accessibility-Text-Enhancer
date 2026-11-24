@@ -2,7 +2,7 @@
 
 This roadmap tracks the accessibility work planned for Accessibility Text Enhancer. It is a living document: items move between phases as the project learns from real use, and nothing here is a commitment to a date.
 
-**Latest GitHub release:** v1.5.1 · **Chrome Web Store:** v1.4.1 · **Last updated:** 2026-11-23
+**Latest GitHub release:** v1.5.1 · **Chrome Web Store:** v1.4.1 · **Last updated:** 2026-11-24
 
 ## Guiding principles
 
@@ -37,6 +37,8 @@ This roadmap tracks the accessibility work planned for Accessibility Text Enhanc
 **v1.5.0 (personalization):** adds a **Text styling** section to the settings page. Choose a font (Sans, Serif, Monospace, or the bundled OpenDyslexic), a spacing preset (Comfortable, WCAG 1.4.12, or four custom sliders), and a highlight colour and style (background, underline, or automatic). The choices save to `chrome.storage.sync`, define the ON state for the Font, Text spacing, and Highlight commands, and update the toolbar labels. Settings exports move to schema 3, while schema 2 and older files still import without resetting the current text defaults. The contrast guard keeps every highlight readable. OpenDyslexic regular and bold ship under the SIL OFL 1.1, load through FontFace only when selected, and fall back to Arial if the resource is blocked. No new permissions or network access.
 
 **v1.5.1 (settings parity):** brings the full settings suite into the toolbar's in-page dialog, so changing text styling or a site rule no longer means opening the Chrome popup and its options page. The panel now repeats the options page's **Text styling** card — font, spacing preset or four custom sliders, highlight colour and style, a live preview, and reset — and its **Site rules** list with per-rule removal and a two-step clear-all, while keeping reading preferences, page reset, and backup. Both surfaces share new `text-styling-ui.js` and `site-rules-ui.js` controllers, so a control never drifts between them, and a failed storage write rolls the controls back. The preview re-renders when the theme changes so its contrast fallback matches the panel. The options page stays as the fallback: it still owns the **Appearance** theme control and is reachable without a selection or on `chrome://` pages. The popup keeps the global switch and the current-site rule, since turning the extension off from its own toolbar would close the panel. No new permissions or network access.
+
+**Unreleased after v1.5.1 (targeting v1.6.0):** keeps toolbar buttons centred on pages that restyle `<button>` with their own `display`, `align-items`, `line-height`, margins, or font. Each button is now a self-contained centred flex box with its line height, vertical alignment, and text metrics reset, instead of relying on the host page's button defaults; this fixes the bottom-aligned icons seen on Reddit and similar sites. Also completes the High Contrast pass in the settings dialog: the live preview and the per-rule **Remove** button use system colours with a real border. No new permissions or network access.
 
 **Distribution:** v1.5.1 is the latest GitHub release with a packaged zip and SHA-256 checksum. v1.4.1 remains the Chrome Web Store version until a package is submitted and published; no new permissions or privacy disclosures are required.
 
