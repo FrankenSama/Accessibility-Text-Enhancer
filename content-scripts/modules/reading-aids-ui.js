@@ -19,6 +19,8 @@ let focusFrame = null;
 let rulerFrame = null;
 let focusRect = null;
 let pointerY = null;
+let rulerHeight = 0;
+let appliedRulerHeight = '';
 let listenersAttached = false;
 
 // ==================== FOCUS MODE ====================
@@ -125,7 +127,6 @@ function updateFocusOverlay() {
         return;
     }
 
-    const overlay = ensureFocusOverlay();
     let block = STATE.focusBlock;
 
     if (!block || !block.isConnected) {
@@ -149,6 +150,8 @@ function updateFocusOverlay() {
         hideFocusOverlay();
         return;
     }
+
+    const overlay = ensureFocusOverlay();
 
     if (!rectsEqual(focusRect, rect)) {
         overlay.style.top = style.top;
@@ -194,7 +197,7 @@ export function refreshFocusMode() {
         STATE.focusBlock = block;
     }
 
-    updateFocusOverlay();
+    scheduleFocusUpdate();
 }
 
 /**
@@ -214,7 +217,6 @@ export function enableFocusMode() {
 
     STATE.focusBlock = block;
     STATE.focusMode = true;
-    ensureFocusOverlay();
     updateFocusOverlay();
     syncAidListeners();
     updateToolbarState();
@@ -269,6 +271,8 @@ function ensureReadingRuler() {
     ruler.id = CONFIG.readingRulerId;
     ruler.setAttribute('aria-hidden', 'true');
     getMountNode().appendChild(ruler);
+    // A fresh element has no inline height; force the next update to set it.
+    appliedRulerHeight = '';
     return ruler;
 }
 
@@ -284,6 +288,19 @@ function hideReadingRuler() {
 }
 
 /**
+ * Read and cache the ruler height. The root font size only needs to be
+ * measured on enable and on resize, not on every pointer move.
+ * @returns {number}
+ */
+function measureRulerHeight() {
+    const rootSize = parseFloat(
+        getComputedStyle(document.documentElement).fontSize
+    );
+    rulerHeight = rulerHeightFor(rootSize);
+    return rulerHeight;
+}
+
+/**
  * Position the ruler under the pointer, or at the viewport centre before the
  * pointer has moved.
  */
@@ -294,13 +311,14 @@ function updateReadingRuler() {
     }
 
     const ruler = ensureReadingRuler();
-    const rootSize = parseFloat(
-        getComputedStyle(document.documentElement).fontSize
-    );
-    const height = rulerHeightFor(rootSize);
+    const height = rulerHeight || measureRulerHeight();
     const top = clampRulerTop(pointerY, height, window.innerHeight);
 
-    ruler.style.height = `${height}px`;
+    const heightValue = `${height}px`;
+    if (appliedRulerHeight !== heightValue) {
+        ruler.style.height = heightValue;
+        appliedRulerHeight = heightValue;
+    }
     ruler.style.top = `${top}px`;
     ruler.classList.add('visible');
 }
@@ -328,7 +346,7 @@ export function enableReadingRuler() {
     }
 
     STATE.readingRuler = true;
-    ensureReadingRuler();
+    measureRulerHeight();
     updateReadingRuler();
     syncAidListeners();
     updateToolbarState();
@@ -386,9 +404,17 @@ function handlePointerMove(event) {
  * Reposition the spotlight after scrolling or resizing. The ruler follows
  * the pointer in viewport coordinates and needs no scroll update.
  */
-function handleViewportChange() {
+function handleViewportChange(event) {
     if (STATE.focusMode) {
         scheduleFocusUpdate();
+    }
+
+    if (event.type === 'resize' && STATE.readingRuler) {
+        rulerHeight = 0;
+        const ruler = document.getElementById(CONFIG.readingRulerId);
+        if (ruler && ruler.classList.contains('visible')) {
+            scheduleRulerUpdate();
+        }
     }
 }
 
@@ -402,7 +428,10 @@ function syncAidListeners() {
         listenersAttached = true;
         window.addEventListener('scroll', handleViewportChange, { passive: true });
         window.addEventListener('resize', handleViewportChange);
-        document.addEventListener('pointermove', handlePointerMove, { passive: true });
+        document.addEventListener('pointermove', handlePointerMove, {
+            passive: true,
+            capture: true
+        });
         document.documentElement.addEventListener('pointerleave', hideReadingRuler);
         window.addEventListener('blur', hideReadingRuler);
         return;
@@ -412,7 +441,9 @@ function syncAidListeners() {
         listenersAttached = false;
         window.removeEventListener('scroll', handleViewportChange);
         window.removeEventListener('resize', handleViewportChange);
-        document.removeEventListener('pointermove', handlePointerMove);
+        document.removeEventListener('pointermove', handlePointerMove, {
+            capture: true
+        });
         document.documentElement.removeEventListener('pointerleave', hideReadingRuler);
         window.removeEventListener('blur', hideReadingRuler);
 

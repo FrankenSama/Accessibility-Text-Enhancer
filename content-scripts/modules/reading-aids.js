@@ -7,9 +7,9 @@ export const FOCUS_INSET = 2;
 
 // The ruler is about one comfortably spaced line tall, with a floor and a
 // ceiling so very small or very large root fonts stay useful.
-export const RULER_HEIGHT_EM = 2.2;
-export const RULER_MIN_HEIGHT = 28;
-export const RULER_MAX_HEIGHT = 56;
+const RULER_HEIGHT_EM = 2.2;
+const RULER_MIN_HEIGHT = 28;
+const RULER_MAX_HEIGHT = 56;
 
 /**
  * Height of the reading ruler for a root font size, clamped to a readable

@@ -29,8 +29,8 @@ That is a target, not a certification:
 | Chromium-based browsers (Edge, Brave, Opera) | Best effort; not part of the release checks |
 | Chrome on Android or iOS | Not supported; mobile Chrome does not run extensions |
 | Keyboard-only use | Supported: shortcuts, a single toolbar tab stop, arrow-key navigation, and `aria-pressed` state |
-| Windows High Contrast / forced-colors | Supported for the toolbar, dialog, popup, and options page |
-| NVDA on Windows | Verified for v1.3.0 on 2026-11-06. v1.4.x has automated accessibility-tree coverage; the manual pass has not been repeated |
+| Windows High Contrast / forced-colors | Supported for the toolbar, dialog, popup, options page, and reading aids |
+| NVDA on Windows | Verified for v1.3.0 on 2026-11-06. A v1.6.0 Speech Viewer pass on 2026-11-24 covered the toolbar, settings, reading, focus mode, and ruler (37/37); a live listening pass has not been repeated since v1.3.0 |
 | VoiceOver on macOS | Not tested - no macOS hardware available |
 | Orca on Linux | Not tested - no Linux environment available |
 | Browser zoom and reflow | The toolbar is repositioned to stay inside the viewport, but 400% reflow has not been formally tested |

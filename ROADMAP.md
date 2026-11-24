@@ -43,7 +43,7 @@ This roadmap tracks the accessibility work planned for Accessibility Text Enhanc
 
 **Distribution:** v1.5.1 is the latest GitHub release with a packaged zip and SHA-256 checksum. v1.4.1 remains the Chrome Web Store version until a package is submitted and published; no new permissions or privacy disclosures are required.
 
-**Next:** v1.6.0 adds the Phase 5 reading aids — focus mode and the reading ruler; the [plan](docs/v1.6.0-plan.md) is implemented and the automated harness is green, with the manual NVDA pass, version bump, and package still to do. v1.7.0 adds selection translation in a read-only panel; the [plan](docs/v1.7.0-plan.md) is drafted and no translation code has shipped yet.
+**Next:** v1.6.0 adds the Phase 5 reading aids — focus mode and the reading ruler; the [plan](docs/v1.6.0-plan.md) is implemented, the automated harness and the NVDA Speech Viewer pass are green, and the version bump, package, and release notes remain. v1.7.0 adds selection translation in a read-only panel; the [plan](docs/v1.7.0-plan.md) is drafted and no translation code has shipped yet.
 
 ---
 

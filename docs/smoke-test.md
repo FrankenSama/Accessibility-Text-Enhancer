@@ -11,7 +11,7 @@ or the reading assistant.
 
 | Platform | Screen reader | Status |
 |----------|---------------|--------|
-| Windows | NVDA 2026.3 | Verified for v1.3.0 on 2026-11-06 |
+| Windows | NVDA 2026.3 | Verified for v1.3.0 on 2026-11-06; v1.6.0 Speech Viewer pass on 2026-11-24 (37/37) |
 | macOS | VoiceOver | Not tested — no macOS hardware available |
 | Linux | Orca | Not tested — no Linux environment available |
 
@@ -19,7 +19,7 @@ Only the Windows/NVDA path has been run. The macOS and Linux steps below are
 kept so a future tester can complete them, but do not describe the extension as
 VoiceOver- or Orca-verified until those rows are updated.
 
-v1.5.1 brings the full settings suite into the toolbar dialog: **Text styling** (font, spacing preset or four custom sliders, highlight colour and style, a live preview, and reset) and **Site rules** (the list, per-rule removal, and a two-step clear-all) now match the options page. v1.5.0 added those controls to the options page and made the font, spacing, and highlight commands apply the saved defaults. v1.4.1 turned the options page into the settings hub and shared the settings file logic with the in-page dialog. v1.4.0 moved the theme and reading preferences to synced storage, added per-site on/off rules, Reset page, and a schema 2 settings export, on top of the v1.3.2 toolbar placement, dismiss button, and High Contrast styling. v1.6.0 adds focus mode and the reading ruler as transient overlays. Those paths pass the automated accessibility-tree and browser harness checks, but the manual NVDA pass has not been repeated since v1.3.0.
+v1.5.1 brings the full settings suite into the toolbar dialog: **Text styling** (font, spacing preset or four custom sliders, highlight colour and style, a live preview, and reset) and **Site rules** (the list, per-rule removal, and a two-step clear-all) now match the options page. v1.5.0 added those controls to the options page and made the font, spacing, and highlight commands apply the saved defaults. v1.4.1 turned the options page into the settings hub and shared the settings file logic with the in-page dialog. v1.4.0 moved the theme and reading preferences to synced storage, added per-site on/off rules, Reset page, and a schema 2 settings export, on top of the v1.3.2 toolbar placement, dismiss button, and High Contrast styling. v1.6.0 adds focus mode and the reading ruler as transient overlays. The v1.6.0 NVDA pass captured the toolbar, settings, reading, focus mode, and ruler through the Speech Viewer (37/37); a live listening pass has not been repeated since v1.3.0.
 
 ## Setup
 

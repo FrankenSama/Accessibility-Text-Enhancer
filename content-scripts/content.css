@@ -14,28 +14,29 @@ span[data-atx-selection] {
 /* Focus mode. The transparent box is the hole; its very large shadow dims
    everything around the focused block. No page element is styled. */
 #accessibility-focus-overlay {
-    position: fixed;
-    z-index: 2147483644;
-    display: none;
-    pointer-events: none;
+    position: fixed !important;
+    z-index: 2147483643 !important;
+    display: none !important;
+    pointer-events: none !important;
     box-sizing: border-box;
     border-radius: 4px;
     outline: 1px solid rgba(128, 128, 128, 0.35);
-    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.55);
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.55) !important;
 }
 
 #accessibility-focus-overlay.visible {
-    display: block;
+    display: block !important;
 }
 
-/* Reading ruler. A translucent band that follows the pointer. */
+/* Reading ruler. A translucent band that follows the pointer. It sits above
+   the focus scrim and below the toolbar. */
 #accessibility-reading-ruler {
-    position: fixed;
+    position: fixed !important;
     left: 0;
     right: 0;
-    z-index: 2147483644;
-    display: none;
-    pointer-events: none;
+    z-index: 2147483644 !important;
+    display: none !important;
+    pointer-events: none !important;
     box-sizing: border-box;
     background: linear-gradient(
         to bottom,
@@ -43,13 +44,13 @@ span[data-atx-selection] {
         rgba(255, 235, 59, 0.28) 18%,
         rgba(255, 235, 59, 0.28) 82%,
         rgba(255, 235, 59, 0) 100%
-    );
+    ) !important;
     border-top: 1px solid rgba(255, 235, 59, 0.55);
     border-bottom: 1px solid rgba(255, 235, 59, 0.55);
 }
 
 #accessibility-reading-ruler.visible {
-    display: block;
+    display: block !important;
 }
 
 /* Toolbar container styling */
@@ -200,14 +201,6 @@ span[data-atx-selection] {
 #accessibility-toolbar .icon-btn {
     min-width: 48px;
     font-size: 18px;
-}
-
-/* Reading-aid buttons stay compact so two more controls do not push the
-   toolbar onto a third row at narrow widths. */
-#accessibility-toolbar .aids-btn {
-    min-width: 36px;
-    padding: 8px;
-    font-size: 16px;
 }
 
 /* The reading group carries six controls now. Tighten its gaps and icon
@@ -864,22 +857,25 @@ span[data-atx-selection] {
     /* Translucent shadows disappear in forced-colors, so identify the
        focused block with a system-colour outline instead. */
     #accessibility-focus-overlay {
-        box-shadow: none;
-        outline: 2px solid Highlight;
+        box-shadow: none !important;
+        outline: 2px solid Highlight !important;
     }
 
     /* The band becomes two system-colour rules around the reading line. */
     #accessibility-reading-ruler {
-        background: transparent;
-        border-top: 2px solid Highlight;
-        border-bottom: 2px solid Highlight;
+        background: transparent !important;
+        border-top: 2px solid Highlight !important;
+        border-bottom: 2px solid Highlight !important;
     }
 }
 
-/* Overlays are screen-only. */
+/* Overlays are screen-only. Match .visible specificity so the print rule
+   wins over the on-screen display rule. */
 @media print {
     #accessibility-focus-overlay,
-    #accessibility-reading-ruler {
+    #accessibility-focus-overlay.visible,
+    #accessibility-reading-ruler,
+    #accessibility-reading-ruler.visible {
         display: none !important;
     }
 }
