@@ -21,7 +21,7 @@ This roadmap tracks the accessibility work planned for Accessibility Text Enhanc
 | 2 | Reading assistant | v1.3.0–v1.3.2 | ✅ Released |
 | 3 | Persistence and control | v1.4.0 | ✅ Released |
 | 4 | Personalization | v1.5.0–v1.5.1 | ✅ Released |
-| 5 | Reading aids | v1.6.0 | 📋 Planned |
+| 5 | Reading aids | v1.6.0 | 🚧 In progress |
 | 6 | Comprehension | v1.7.0 | 📋 Planned |
 | 7 | Platform and reach | v2.0.0 | 💡 Exploring |
 
@@ -43,7 +43,7 @@ This roadmap tracks the accessibility work planned for Accessibility Text Enhanc
 
 **Distribution:** v1.5.1 is the latest GitHub release with a packaged zip and SHA-256 checksum. v1.4.1 remains the Chrome Web Store version until a package is submitted and published; no new permissions or privacy disclosures are required.
 
-**Next:** v1.6.0 adds the Phase 5 reading aids. v1.7.0 adds selection translation in a read-only panel; the [plan](docs/v1.7.0-plan.md) is drafted and no translation code has shipped yet.
+**Next:** v1.6.0 adds the Phase 5 reading aids — focus mode and the reading ruler; the [plan](docs/v1.6.0-plan.md) is drafted and implementation has started. v1.7.0 adds selection translation in a read-only panel; the [plan](docs/v1.7.0-plan.md) is drafted and no translation code has shipped yet.
 
 ---
 
@@ -175,18 +175,20 @@ The toolbar already declares `role="toolbar"`, but it was not operable or unders
 
 ---
 
-## Phase 5 — Reading aids (v1.6.0) 📋
+## Phase 5 — Reading aids (v1.6.0) 🚧
+
+**Plan:** [docs/v1.6.0-plan.md](docs/v1.6.0-plan.md), draft for implementation.
 
 **Problem:** the extension can restyle text, but it cannot reduce visual noise or help a reader keep their place.
 
 **Work:**
 
-- **Focus mode.** Dim every block except the one under the caret or selection, reusing `closestBlock()`.
+- **Focus mode.** Dim every block except the one under the caret or selection, resolving the block with `closestBlock()`. One fixed overlay, not per-element styles.
 - **Reading ruler.** A translucent horizontal band that follows the pointer.
-- **Line and paragraph spacing.** Independent controls from the existing letter/word spacing.
-- Both aids are overlays: no DOM mutation, no history entries, `Escape` exits.
+- **Spacing note.** Independent line-height and paragraph-spacing controls shipped in v1.5.0 as separate values under the **Custom** spacing preset. v1.6.0 verifies them rather than adding a second spacing model.
+- Both aids are overlays: no DOM mutation, no history entries, `Escape` exits, and they keep working after the toolbar is dismissed.
 
-**Acceptance:** focus mode and the ruler can be toggled independently; neither changes the page DOM or appears in undo history; both work with the toolbar hidden.
+**Acceptance:** focus mode and the ruler toggle independently; neither changes page content, page styles, or undo history; focus follows the selection or caret and repositions on scroll/resize; the ruler follows the pointer without stealing clicks; both work with the toolbar hidden; dark, light, forced-colors, keyboard-only, 200% zoom, and a 320 px viewport pass; the full harness is green.
 
 **Effort:** small–medium · **Impact:** high for dyslexia, ADHD, and low vision
 
