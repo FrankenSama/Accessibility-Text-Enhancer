@@ -729,6 +729,21 @@ span[data-atx-selection] {
         border-color: ButtonText;
     }
 
+    /* The preview and the per-rule Remove button are new in v1.5.1. Without
+       these rules their translucent and transparent fills survive forced-colors
+       and stop matching the other controls. */
+    #accessibility-settings-panel .text-preview {
+        background: Canvas;
+        color: CanvasText;
+        border-color: CanvasText;
+    }
+
+    #accessibility-settings-panel .site-rule-remove {
+        background: ButtonFace;
+        color: ButtonText;
+        border: 1px solid ButtonText;
+    }
+
     #accessibility-settings-panel .close-btn,
     #accessibility-settings-panel .action-btn {
         background: ButtonFace;
