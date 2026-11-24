@@ -7,7 +7,8 @@ short, and how to report a barrier.
 ## Conformance target
 
 The extension's own interface - the toolbar, the in-page settings dialog, the
-options page, and the popup - targets **WCAG 2.2 Level AA**.
+options page, the popup, and the reading-aid overlays - targets **WCAG 2.2 Level
+AA**.
 
 That is a target, not a certification:
 
@@ -94,6 +95,20 @@ overlap your screen reader. Sentence highlighting requires the CSS Custom
 Highlight API (Chrome 105+); on Chrome 91-104 the text is still read without the
 highlight.
 
+### Reading aids
+
+Focus mode and the reading ruler are visual overlays. They are `aria-hidden`,
+ignore the pointer, and never change page content, page styles, the tab order, or
+reading order. Focus mode follows the selection or caret and spotlights one
+block; a selection that spans blocks uses the block where it starts. The ruler
+follows the pointer, is hidden on touch input and when the pointer leaves the
+page, and sits behind the toolbar and settings dialog. Both aids are
+session-only, `Escape` exits them, and the toolbar's ✕ button clears them with
+the toolbar. In forced-colors the spotlight becomes a system-colour outline and
+the ruler uses system-colour rules rather than a translucent fill. Because the
+aids are visual, they do not replace a screen reader or describe the page's
+structure.
+
 ### Limits
 
 - 50 undo steps per page.
@@ -106,8 +121,9 @@ highlight.
 
 Every release is checked with an automated browser harness before packaging. It
 exercises accessible names, roles, and states; keyboard paths; forced-colors
-rendering; the toolbar, popup, options page, and settings dialog; settings
-import and export; and undo, redo, and Reset page.
+rendering; the toolbar, popup, options page, and settings dialog; the focus-mode
+and reading-ruler overlays; settings import and export; and undo, redo, and Reset
+page.
 
 The harness cannot hear what a screen reader announces. A manual NVDA pass
 against `docs/smoke-test.md` is required after any change to the toolbar, the

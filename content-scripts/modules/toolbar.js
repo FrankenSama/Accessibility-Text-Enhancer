@@ -1,6 +1,12 @@
 // Toolbar rendering, positioning, keyboard navigation, and visual state.
 
-import { CONFIG, SHORTCUT_LABELS, STATE, TOGGLE_COMMANDS } from './core.js';
+import {
+    CONFIG,
+    SHORTCUT_ARIA,
+    SHORTCUT_LABELS,
+    STATE,
+    TOGGLE_COMMANDS
+} from './core.js';
 import { getMountNode } from './dom.js';
 import {
     FONT_LABELS,
@@ -119,10 +125,12 @@ export function createToolbar() {
             <button type="button" data-command="sizeUp" class="size-btn" data-tooltip="Increase Size · Shift: selection">A+</button>
         </div>
 
-        <div class="button-group">
+        <div class="button-group reading-group">
             <button type="button" data-command="fontStyle" class="icon-btn" data-tooltip="${tooltips.fontStyle}">A</button>
             <button type="button" data-command="spacing" class="icon-btn" data-tooltip="${tooltips.spacing}">↔️</button>
             <button type="button" data-command="contrast" class="icon-btn" data-tooltip="Fix Contrast · Shift: selection">🎨</button>
+            <button type="button" data-command="focusMode" class="icon-btn aids-btn" data-tooltip="Focus mode (${SHORTCUT_LABELS.focusMode})" data-aria-label="Focus mode" aria-keyshortcuts="${SHORTCUT_ARIA.focusMode}" aria-pressed="false">🎯</button>
+            <button type="button" data-command="readingRuler" class="icon-btn aids-btn" data-tooltip="Reading ruler (${SHORTCUT_LABELS.readingRuler})" data-aria-label="Reading ruler" aria-keyshortcuts="${SHORTCUT_ARIA.readingRuler}" aria-pressed="false">📏</button>
             <button type="button" data-command="readAloud" class="icon-btn" data-tooltip="Read Aloud (${SHORTCUT_LABELS.read})">🔊</button>
             <button type="button" data-command="stopReading" class="icon-btn" data-tooltip="Stop Reading" tabindex="-1" hidden>⏹️</button>
         </div>
@@ -136,7 +144,7 @@ export function createToolbar() {
 
     // Add accessible names and event listeners to all buttons.
     toolbar.querySelectorAll('button').forEach((btn) => {
-        const label = btn.dataset.tooltip;
+        const label = btn.dataset.ariaLabel || btn.dataset.tooltip;
         if (label) {
             btn.setAttribute('aria-label', label);
         }
@@ -538,6 +546,16 @@ export function updateToolbarState() {
             button.setAttribute('aria-pressed', String(state));
         }
     });
+
+    // Reading aids are session state, not page commands, so they are not in
+    // TOGGLE_COMMANDS. Mirror their state the same way.
+    [['focusMode', STATE.focusMode], ['readingRuler', STATE.readingRuler]]
+        .forEach(([command, on]) => {
+            const button = toolbar.querySelector(`[data-command="${command}"]`);
+            if (button) {
+                button.setAttribute('aria-pressed', String(Boolean(on)));
+            }
+        });
 
     updateToolbarReadingState();
 

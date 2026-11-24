@@ -35,6 +35,11 @@ export const STATE = {
     textDefaults: { ...DEFAULT_TEXT_DEFAULTS },
     voices: [],
     speech: null,
+    // Transient reading aids. They live for this page session only and never
+    // touch the undo history.
+    focusMode: false,
+    readingRuler: false,
+    focusBlock: null,
     // Focus Toolbar is a manifest command. These defaults are replaced with
     // the user's actual binding once the background worker responds.
     focusToolbarShortcut: IS_MAC ? 'Cmd+Shift+F' : 'Ctrl+Shift+F',
@@ -45,6 +50,8 @@ export const CONFIG = {
     toolbarId: 'accessibility-toolbar',
     settingsPanelId: 'accessibility-settings-panel',
     settingsOverlayId: 'accessibility-settings-overlay',
+    focusOverlayId: 'accessibility-focus-overlay',
+    readingRulerId: 'accessibility-reading-ruler',
     highlightAttr: 'data-accessibility-highlight',
     fontAttr: 'data-atx-font',
     spacingAttr: 'data-atx-spacing',
@@ -87,7 +94,16 @@ export const SHORTCUT_LABELS = {
     redo: IS_MAC ? 'Cmd+Y' : 'Ctrl+Y',
     bold: IS_MAC ? 'Option+Shift+B' : 'Alt+Shift+B',
     highlight: IS_MAC ? 'Option+Shift+H' : 'Alt+Shift+H',
-    read: IS_MAC ? 'Option+Shift+R' : 'Alt+Shift+R'
+    read: IS_MAC ? 'Option+Shift+R' : 'Alt+Shift+R',
+    focusMode: IS_MAC ? 'Option+Shift+D' : 'Alt+Shift+D',
+    readingRuler: IS_MAC ? 'Option+Shift+L' : 'Alt+Shift+L'
+};
+
+// ARIA keyshortcuts use the platform-neutral Alt name; on macOS the Option
+// key is the Alt key.
+export const SHORTCUT_ARIA = {
+    focusMode: 'Alt+Shift+D',
+    readingRuler: 'Alt+Shift+L'
 };
 
 // Commands that change readability, so they apply to the nearest block

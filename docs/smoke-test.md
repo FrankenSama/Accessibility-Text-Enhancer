@@ -19,7 +19,7 @@ Only the Windows/NVDA path has been run. The macOS and Linux steps below are
 kept so a future tester can complete them, but do not describe the extension as
 VoiceOver- or Orca-verified until those rows are updated.
 
-v1.5.1 brings the full settings suite into the toolbar dialog: **Text styling** (font, spacing preset or four custom sliders, highlight colour and style, a live preview, and reset) and **Site rules** (the list, per-rule removal, and a two-step clear-all) now match the options page. v1.5.0 added those controls to the options page and made the font, spacing, and highlight commands apply the saved defaults. v1.4.1 turned the options page into the settings hub and shared the settings file logic with the in-page dialog. v1.4.0 moved the theme and reading preferences to synced storage, added per-site on/off rules, Reset page, and a schema 2 settings export, on top of the v1.3.2 toolbar placement, dismiss button, and High Contrast styling. Those paths pass the automated accessibility-tree and browser harness checks, but the manual NVDA pass has not been repeated since v1.3.0.
+v1.5.1 brings the full settings suite into the toolbar dialog: **Text styling** (font, spacing preset or four custom sliders, highlight colour and style, a live preview, and reset) and **Site rules** (the list, per-rule removal, and a two-step clear-all) now match the options page. v1.5.0 added those controls to the options page and made the font, spacing, and highlight commands apply the saved defaults. v1.4.1 turned the options page into the settings hub and shared the settings file logic with the in-page dialog. v1.4.0 moved the theme and reading preferences to synced storage, added per-site on/off rules, Reset page, and a schema 2 settings export, on top of the v1.3.2 toolbar placement, dismiss button, and High Contrast styling. v1.6.0 adds focus mode and the reading ruler as transient overlays. Those paths pass the automated accessibility-tree and browser harness checks, but the manual NVDA pass has not been repeated since v1.3.0.
 
 ## Setup
 
@@ -66,6 +66,21 @@ These should already be green before the manual pass:
 | T6 | Press `Escape` while the toolbar has focus. | The toolbar closes and focus returns to the page sensibly. |
 | T7 | Move to the last toolbar button with `End` and activate it, or click the ✕ button. | The toolbar closes, “Toolbar dismissed” is announced, and the page selection is left in place. Pressing `Ctrl+Shift+F` (`Cmd+Shift+F`) brings the toolbar back for the same selection. |
 | T8 | Select text near the top of the page, then text in the middle of the viewport, then text at the bottom. | The toolbar appears below the selection when there is no room above, and above it otherwise. It stays fully inside the viewport at both edges and never covers the selected text. |
+
+## Reading aids
+
+| # | Step | Expected |
+|---|------|----------|
+| A1 | Select a paragraph and activate **Focus mode**. | Everything except the paragraph dims, the button reports pressed, and “Focus mode on” is announced. The page text and the paragraph's own styling are unchanged. |
+| A2 | Click into another paragraph, then scroll and resize the window. | The spotlight follows the caret or selection and stays aligned with the block. Moving to a block that has scrolled completely out of view hides the spotlight rather than dimming an unrelated page. |
+| A3 | Activate **Reading ruler**. | A translucent band appears and follows the pointer, the button reports pressed, and “Reading ruler on” is announced. The band ignores clicks. |
+| A4 | Press `Escape` with both aids on. | Both aids turn off, “Reading aids off” is announced, and the toolbar stays open. A second `Escape` closes the toolbar. |
+| A5 | Turn both aids on, then activate the toolbar's ✕ button. | Both aids and the toolbar are removed, and “Reading aids off” is announced once. |
+| A6 | Turn both aids on, open Settings, then close it. | The dialog sits above the aids; closing it leaves the aids and the toolbar in place. |
+| A7 | Toggle focus mode and the ruler with `Alt+Shift+D` and `Alt+Shift+L` (`Option+Shift` on macOS), then repeat inside a text field. | The shortcuts toggle the aids and are ignored in inputs, text areas, and editable regions. |
+| A8 | Turn both aids on, then disable the extension from the popup. | Both overlays and the toolbar disappear. |
+| A9 | With a screen reader running, turn both aids on. | The buttons announce their names and pressed state; the overlays add no stop, no name, and no page text to the accessibility tree. |
+| A10 | Turn on Windows High Contrast and repeat A1, A3, and A6. | The spotlight becomes a visible system-colour outline, the ruler uses system-colour rules, and the settings dialog remains above both. |
 
 ## High contrast
 

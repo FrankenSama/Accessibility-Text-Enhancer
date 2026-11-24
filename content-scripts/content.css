@@ -11,6 +11,47 @@ span[data-atx-selection] {
     color: #000000;
 }
 
+/* Focus mode. The transparent box is the hole; its very large shadow dims
+   everything around the focused block. No page element is styled. */
+#accessibility-focus-overlay {
+    position: fixed;
+    z-index: 2147483644;
+    display: none;
+    pointer-events: none;
+    box-sizing: border-box;
+    border-radius: 4px;
+    outline: 1px solid rgba(128, 128, 128, 0.35);
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.55);
+}
+
+#accessibility-focus-overlay.visible {
+    display: block;
+}
+
+/* Reading ruler. A translucent band that follows the pointer. */
+#accessibility-reading-ruler {
+    position: fixed;
+    left: 0;
+    right: 0;
+    z-index: 2147483644;
+    display: none;
+    pointer-events: none;
+    box-sizing: border-box;
+    background: linear-gradient(
+        to bottom,
+        rgba(255, 235, 59, 0) 0%,
+        rgba(255, 235, 59, 0.28) 18%,
+        rgba(255, 235, 59, 0.28) 82%,
+        rgba(255, 235, 59, 0) 100%
+    );
+    border-top: 1px solid rgba(255, 235, 59, 0.55);
+    border-bottom: 1px solid rgba(255, 235, 59, 0.55);
+}
+
+#accessibility-reading-ruler.visible {
+    display: block;
+}
+
 /* Toolbar container styling */
 #accessibility-toolbar {
     position: fixed;
@@ -159,6 +200,34 @@ span[data-atx-selection] {
 #accessibility-toolbar .icon-btn {
     min-width: 48px;
     font-size: 18px;
+}
+
+/* Reading-aid buttons stay compact so two more controls do not push the
+   toolbar onto a third row at narrow widths. */
+#accessibility-toolbar .aids-btn {
+    min-width: 36px;
+    padding: 8px;
+    font-size: 16px;
+}
+
+/* The reading group carries six controls now. Tighten its gaps and icon
+   widths so the settings group still shares the second row at 480 px,
+   while keeping every target above the 24 px minimum. */
+#accessibility-toolbar .reading-group {
+    gap: 2px;
+    padding: 0 2px;
+}
+
+#accessibility-toolbar .reading-group .icon-btn {
+    min-width: 38px;
+    padding: 8px;
+    font-size: 16px;
+}
+
+#accessibility-toolbar .reading-group .aids-btn {
+    min-width: 30px;
+    padding: 7px;
+    font-size: 15px;
 }
 
 /* Settings button */
@@ -649,6 +718,12 @@ span[data-atx-selection] {
     #accessibility-toolbar button:hover {
         transform: none;
     }
+
+    #accessibility-focus-overlay,
+    #accessibility-reading-ruler {
+        transition: none !important;
+        animation: none !important;
+    }
 }
 
 /* Windows High Contrast / forced-colors mode. Gradients and translucent
@@ -784,5 +859,27 @@ span[data-atx-selection] {
     ::highlight(atx-reading) {
         background-color: Highlight;
         color: CanvasText;
+    }
+
+    /* Translucent shadows disappear in forced-colors, so identify the
+       focused block with a system-colour outline instead. */
+    #accessibility-focus-overlay {
+        box-shadow: none;
+        outline: 2px solid Highlight;
+    }
+
+    /* The band becomes two system-colour rules around the reading line. */
+    #accessibility-reading-ruler {
+        background: transparent;
+        border-top: 2px solid Highlight;
+        border-bottom: 2px solid Highlight;
+    }
+}
+
+/* Overlays are screen-only. */
+@media print {
+    #accessibility-focus-overlay,
+    #accessibility-reading-ruler {
+        display: none !important;
     }
 }

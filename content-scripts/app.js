@@ -37,6 +37,12 @@ import {
 import { getScopeOverride } from './modules/scope.js';
 import { redo, undo } from './modules/history.js';
 import {
+    disableReadingAids,
+    refreshFocusMode,
+    toggleFocusMode,
+    toggleReadingRuler
+} from './modules/reading-aids-ui.js';
+import {
     isEnabledForOrigin,
     loadSyncedPreferences,
     normalizeSiteRules,
@@ -265,6 +271,10 @@ function handleSelectionChange() {
         return;
     }
 
+    // Focus mode follows the caret even when the toolbar is about to be
+    // removed for an empty selection, so update it before that teardown.
+    refreshFocusMode();
+
     if (STATE.toolbarTimeout) {
         clearTimeout(STATE.toolbarTimeout);
         STATE.toolbarTimeout = null;
@@ -315,6 +325,14 @@ function setupKeyboardShortcuts() {
             // Let Escape reach the page while the user is editing text.
             if (STATE.speech && !isEditableTarget(event.target)) {
                 stopReading();
+                event.preventDefault();
+                return;
+            }
+
+            // Reading aids are page-level, so they exit before the toolbar.
+            if ((STATE.focusMode || STATE.readingRuler) &&
+                !isEditableTarget(event.target)) {
+                disableReadingAids();
                 event.preventDefault();
                 return;
             }
@@ -397,6 +415,22 @@ function setupKeyboardShortcuts() {
             (event.code === 'KeyR' || key === 'r')) {
             event.preventDefault();
             toggleReadAloud();
+            return;
+        }
+
+        // Alt/Option + Shift + D = dim everything but the focused block.
+        if (altShift && !editable &&
+            (event.code === 'KeyD' || key === 'd')) {
+            event.preventDefault();
+            toggleFocusMode();
+            return;
+        }
+
+        // Alt/Option + Shift + L = line ruler under the pointer.
+        if (altShift && !editable &&
+            (event.code === 'KeyL' || key === 'l')) {
+            event.preventDefault();
+            toggleReadingRuler();
         }
     });
 }
@@ -499,6 +533,7 @@ function applyEnabledState() {
 
     if (!next) {
         STATE.savedRange = null;
+        disableReadingAids({ silent: true });
         stopReading({ silent: true });
         removeToolbar();
         removeSettingsPanel();

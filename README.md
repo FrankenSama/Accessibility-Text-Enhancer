@@ -25,6 +25,7 @@ Originally developed for an MSc dissertation at Solent University, it is now mai
 - **Bold** and **highlight** just the selected words
 - **Font size, contrast, and font choice** for the nearest paragraph: Sans, Serif, Monospace, or the bundled **OpenDyslexic** font
 - **Text spacing** with Comfortable, the WCAG 1.4.12 preset, or four custom sliders, plus **highlight colour and style** (background, underline, or automatic contrast-aware)
+- **Focus mode and reading ruler**: dim everything except the paragraph you are reading, or lay a translucent ruler under the pointer. Both are visual, session-only aids that change nothing on the page
 - **Read aloud** with selectable voice, speed, and pitch, sentence highlighting, pause/resume/stop controls, plus voice preview and a dedicated settings page
 - **Undo/redo** for the last 50 changes, plus **Reset page** to remove everything in one action
 - **Saved text defaults** for font, spacing, and highlight that sync with your Chrome profile
@@ -53,6 +54,8 @@ The Font button now applies your saved font instead of cycling Serif and Sans. *
 
 Read aloud follows the same selection rule. With the caret in a paragraph and nothing selected, `Alt+Shift+R` reads that paragraph. While reading, the toolbar's read button pauses and resumes, a stop button appears, and the current sentence is highlighted (in browsers that support the CSS Custom Highlight API). **Settings** in the toolbar holds the full suite — text styling, reading voice and speed, site rules, page reset, and backup — so you can adjust it without leaving the page. The options page, opened from the popup, adds the toolbar theme and is also available on pages where the toolbar cannot open, such as `chrome://` pages; those preferences survive a reload.
 
+**Focus mode** dims every block except the one under your selection or caret, so the paragraph you are reading stands out. **Reading ruler** lays a translucent band under the pointer to help you keep your line. Both are visual, session-only aids: they add no page styles, no undo entries, and no settings, they are hidden from screen readers, and they keep working after the toolbar is dismissed. Press `Escape` to turn them off before it closes the toolbar, or use the toolbar's ✕ button to clear everything at once. In Windows High Contrast the spotlight becomes a system-colour outline and the ruler uses system-colour rules instead of translucency.
+
 The popup's **This site** menu can keep the extension **Always on** or **Always off** for the current site. A site rule wins over the global switch, and the toolbar shows an `OFF` badge on sites you turned off. **Settings** in the toolbar lists every site rule with a remove button and a two-step clear-all action; the popup keeps the global switch and the rule for the current site. To undo the extension's changes to the current page, choose **Reset page changes** in the toolbar's settings dialog — the button asks for a second click — which removes every change and clears the undo history, leaving the page as it was found.
 
 Theme, reading and text styling preferences, and site rules are stored with `chrome.storage.sync`, so they follow your Chrome profile to other devices signed in to the same account. The on/off switch itself stays on this device.
@@ -65,9 +68,11 @@ Theme, reading and text styling preferences, and site rules are stored with `chr
 | Bold | `Alt+Shift+B` | `Option+Shift+B` |
 | Highlight | `Alt+Shift+H` | `Option+Shift+H` |
 | Read selection or paragraph | `Alt+Shift+R` | `Option+Shift+R` |
+| Focus mode | `Alt+Shift+D` | `Option+Shift+D` |
+| Reading ruler | `Alt+Shift+L` | `Option+Shift+L` |
 | Undo / redo | `Ctrl+Z` / `Ctrl+Y` | `Cmd+Z` / `Cmd+Y` |
 
-Focus Toolbar can be rebound at `chrome://extensions/shortcuts` (also linked from the popup). Bold, highlight, and read aloud are ignored in inputs, text areas, and editable regions. Undo and redo are only captured while the toolbar is visible and there is a change to undo. On Windows, `Alt+Shift` is also the default layout-switch shortcut; if it conflicts, use the toolbar buttons or rebind Focus Toolbar.
+Focus Toolbar can be rebound at `chrome://extensions/shortcuts` (also linked from the popup). Bold, highlight, read aloud, focus mode, and the reading ruler are ignored in inputs, text areas, and editable regions. Undo and redo are only captured while the toolbar is visible and there is a change to undo. On Windows, `Alt+Shift` is also the default layout-switch shortcut; if it conflicts, use the toolbar buttons or rebind Focus Toolbar.
 
 Screen-reader announcements are verified with NVDA on Windows. VoiceOver on macOS and Orca on Linux have not been tested; see [`docs/smoke-test.md`](docs/smoke-test.md) for the manual checklist and current coverage. [ACCESSIBILITY.md](ACCESSIBILITY.md) lists supported environments, known limitations, and how to report a barrier.
 

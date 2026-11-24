@@ -13,6 +13,11 @@ import {
 import { showToast } from './toast.js';
 import { removeToolbar, updateToolbarState } from './toolbar.js';
 import { stopReading, toggleReadAloud } from './reading.js';
+import {
+    disableReadingAids,
+    toggleFocusMode,
+    toggleReadingRuler
+} from './reading-aids-ui.js';
 import { showSettingsPanel, toggleToolbarTheme } from './settings.js';
 import { notify } from './feedback.js';
 import {
@@ -68,6 +73,12 @@ export function handleCommand(command, options = {}) {
         case 'stopReading':
             stopReading();
             return;
+        case 'focusMode':
+            toggleFocusMode();
+            return;
+        case 'readingRuler':
+            toggleReadingRuler();
+            return;
         case 'close':
             closeToolbar();
             return;
@@ -82,13 +93,16 @@ export function handleCommand(command, options = {}) {
  * alone, so Focus Toolbar can bring the toolbar back for it.
  */
 function closeToolbar() {
+    const hadAids = STATE.focusMode || STATE.readingRuler;
+
     if (STATE.speech) {
         stopReading({ silent: true });
     }
 
+    disableReadingAids({ silent: true });
     STATE.savedRange = null;
     removeToolbar();
-    showToast('Toolbar dismissed');
+    showToast(hadAids ? 'Reading aids off' : 'Toolbar dismissed');
 }
 
 /**
