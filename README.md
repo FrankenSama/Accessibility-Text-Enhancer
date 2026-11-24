@@ -5,6 +5,7 @@
 ![Version](https://img.shields.io/badge/version-1.6.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Chrome](https://img.shields.io/badge/Chrome-91%2B-yellow.svg)
+[![Downloads](https://img.shields.io/github/downloads/FrankenSama/Accessibility-Text-Enhancer/total.svg)](https://tooomm.github.io/github-release-stats/?username=FrankenSama&repository=Accessibility-Text-Enhancer)
 
 **Read the web on your terms.**
 
