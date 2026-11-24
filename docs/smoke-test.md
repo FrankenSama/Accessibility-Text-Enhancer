@@ -169,6 +169,7 @@ what identifies the defect.
 | Build | OS | Chrome | Screen reader | Tester | Date | Toolbar | Settings | Reading | Page | Notes |
 |-------|----|--------|---------------|--------|------|---------|----------|---------|------|-------|
 | v1.3.0 | Windows 11 Home 26200 | 156.0.8078.47 | NVDA 2026.3 (Portuguese UI) | Maintainer | 2026-11-06 | Pass with notes | Pass | Pass with notes | Not run | NVDA covered T1–T4, S1–S5, and R1–R5. Page integrity was covered by the automated harness, not by NVDA. |
+| v1.6.0 (Speech Viewer) | Windows 11 Home 26200 | 156.0.8078.47 | NVDA 2026.3 (Portuguese UI) | Maintainer | 2026-11-24 | Pass | Pass | Pass | Not run | 37/37 captured announcements covering the toolbar, settings, reading, focus mode, ruler, shortcuts, and Escape order. Page integrity was covered by the automated harness, not by NVDA. |
 
 Use **Pass**, **Pass with notes**, or **Fail** for each section.
 
@@ -182,6 +183,8 @@ Use **Pass**, **Pass with notes**, or **Fail** for each section.
 | Automated v1.4.1 checks | 2026-11-17 | Chrome 156 headless on Windows, real extension build | 37/37 settings-hub, site-rule, backup/restore, and popup checks pass; options suite 46/46 |
 | Automated v1.5.0 checks | 2026-11-19 | Chrome 156 headless on Windows, real extension build | 57 style-default unit checks; 64 text-default browser checks; 20 font-loading checks over ordinary, strict-CSP, file://, and blocked-font pages; options suite 89/89 |
 | Automated v1.5.1 checks | 2026-11-23 | Chrome 156 headless on Windows, real extension build | 36 in-page settings checks covering text styling, preview, persistence, reset, and site rules; options suite 91/91; full harness 615 pass with only the known bogus `check-coverage` line |
+| Automated v1.6.0 checks | 2026-11-24 | Chrome 156 headless on Windows, real extension build | 105 focus-mode, ruler, toolbar, accessibility-tree, forced-colors, and regression checks pass; full harness 815 pass, 0 fail |
+| NVDA pass (Speech Viewer) | 2026-11-24 | Windows 11 Home 26200, Chrome for Testing 156.0.8078.47 headed with `--force-renderer-accessibility`, NVDA 2026.3 (Portuguese UI) | 37/37 captured announcements pass; toolbar, settings, reading, focus mode, ruler, shortcuts, and Escape order |
 | NVDA manual pass | 2026-11-06 | Windows 11 Home 26200, Chrome for Testing 156.0.8078.47 headed with `--force-renderer-accessibility`, NVDA 2026.3 (Portuguese UI) | Pass with notes |
 | VoiceOver manual pass | — | macOS | Not tested — no macOS hardware available |
 | Orca manual pass | — | Linux | Not tested — no Linux environment available |

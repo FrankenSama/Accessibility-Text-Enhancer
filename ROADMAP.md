@@ -21,11 +21,11 @@ This roadmap tracks the accessibility work planned for Accessibility Text Enhanc
 | 2 | Reading assistant | v1.3.0–v1.3.2 | ✅ Released |
 | 3 | Persistence and control | v1.4.0 | ✅ Released |
 | 4 | Personalization | v1.5.0–v1.5.1 | ✅ Released |
-| 5 | Reading aids | v1.6.0 | 🚧 In progress |
+| 5 | Reading aids | v1.6.0 | 📦 Packaged |
 | 6 | Comprehension | v1.7.0 | 📋 Planned |
 | 7 | Platform and reach | v2.0.0 | 💡 Exploring |
 
-**Status key:** ✅ Done · 🚧 In progress · 📋 Planned · 💡 Exploring · ⏸️ Deferred
+**Status key:** ✅ Done · 🚧 In progress · 📦 Packaged · 📋 Planned · 💡 Exploring · ⏸️ Deferred
 
 **v1.3.1 (maintenance):** keeps the toolbar on two rows so it covers less page text, fixes the toolbar focus fallback, queues the next speech chunk so reading no longer pauses between chunks, reads a paragraph as one utterance, keeps words apart across line breaks and block boundaries, names the command in undo/redo feedback, reuses a single notification live region, adds a Reading settings page with voice preview, compacts the popup shortcut list, and splits the content script into ES modules. No new permissions or network access.
 
@@ -39,11 +39,11 @@ This roadmap tracks the accessibility work planned for Accessibility Text Enhanc
 
 **v1.5.1 (settings parity):** brings the full settings suite into the toolbar's in-page dialog, so changing text styling or a site rule no longer means opening the Chrome popup and its options page. The panel now repeats the options page's **Text styling** card — font, spacing preset or four custom sliders, highlight colour and style, a live preview, and reset — and its **Site rules** list with per-rule removal and a two-step clear-all, while keeping reading preferences, page reset, and backup. Both surfaces share new `text-styling-ui.js` and `site-rules-ui.js` controllers, so a control never drifts between them, and a failed storage write rolls the controls back. The preview re-renders when the theme changes so its contrast fallback matches the panel. The options page stays as the fallback: it still owns the **Appearance** theme control and is reachable without a selection or on `chrome://` pages. The popup keeps the global switch and the current-site rule, since turning the extension off from its own toolbar would close the panel. No new permissions or network access.
 
-**Unreleased after v1.5.1 (targeting v1.6.0):** keeps toolbar buttons centred on pages that restyle `<button>` with their own `display`, `align-items`, `line-height`, margins, or font. Each button is now a self-contained centred flex box with its line height, vertical alignment, and text metrics reset, instead of relying on the host page's button defaults; this fixes the bottom-aligned icons seen on Reddit and similar sites. Also completes the High Contrast pass in the settings dialog: the live preview and the per-rule **Remove** button use system colours with a real border. v1.6.0 adds the Phase 5 reading aids: **focus mode** dims everything except the block under the selection or caret, and the **reading ruler** follows the pointer. Both are transient overlays with no page mutation, no history entries, and no new storage keys; they are hidden from assistive technology, follow forced-colors, and exit with `Escape`. No new permissions or network access.
+**Unreleased after v1.5.1 (v1.6.0, packaged and awaiting release):** keeps toolbar buttons centred on pages that restyle `<button>` with their own `display`, `align-items`, `line-height`, margins, or font. Each button is now a self-contained centred flex box with its line height, vertical alignment, and text metrics reset, instead of relying on the host page's button defaults; this fixes the bottom-aligned icons seen on Reddit and similar sites. Also completes the High Contrast pass in the settings dialog: the live preview and the per-rule **Remove** button use system colours with a real border. v1.6.0 adds the Phase 5 reading aids: **focus mode** dims everything except the block under the selection or caret, and the **reading ruler** follows the pointer. Both are transient overlays with no page mutation, no history entries, and no new storage keys; they are hidden from assistive technology, follow forced-colors, and exit with `Escape`. No new permissions or network access.
 
 **Distribution:** v1.5.1 is the latest GitHub release with a packaged zip and SHA-256 checksum. v1.4.1 remains the Chrome Web Store version until a package is submitted and published; no new permissions or privacy disclosures are required.
 
-**Next:** v1.6.0 adds the Phase 5 reading aids — focus mode and the reading ruler; the [plan](docs/v1.6.0-plan.md) is implemented, the automated harness and the NVDA Speech Viewer pass are green, and the version bump, package, and release notes remain. v1.7.0 adds selection translation in a read-only panel; the [plan](docs/v1.7.0-plan.md) is drafted and no translation code has shipped yet.
+**Next:** v1.6.0 is packaged and verified, with the tag and GitHub release still to publish. v1.7.0 adds selection translation in a read-only panel; the [plan](docs/v1.7.0-plan.md) is drafted and no translation code has shipped yet.
 
 ---
 
@@ -175,9 +175,9 @@ The toolbar already declares `role="toolbar"`, but it was not operable or unders
 
 ---
 
-## Phase 5 — Reading aids (v1.6.0) 🚧
+## Phase 5 — Reading aids (v1.6.0) 📦
 
-**Plan:** [docs/v1.6.0-plan.md](docs/v1.6.0-plan.md), draft for implementation.
+**Plan:** [docs/v1.6.0-plan.md](docs/v1.6.0-plan.md), implemented and packaged.
 
 **Problem:** the extension can restyle text, but it cannot reduce visual noise or help a reader keep their place.
 
