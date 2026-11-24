@@ -22,7 +22,8 @@ This roadmap tracks the accessibility work planned for Accessibility Text Enhanc
 | 3 | Persistence and control | v1.4.0 | ✅ Released |
 | 4 | Personalization | v1.5.0–v1.5.1 | ✅ Released |
 | 5 | Reading aids | v1.6.0 | 📋 Planned |
-| 6 | Platform and reach | v2.0.0 | 💡 Exploring |
+| 6 | Comprehension | v1.7.0 | 📋 Planned |
+| 7 | Platform and reach | v2.0.0 | 💡 Exploring |
 
 **Status key:** ✅ Done · 🚧 In progress · 📋 Planned · 💡 Exploring · ⏸️ Deferred
 
@@ -41,6 +42,8 @@ This roadmap tracks the accessibility work planned for Accessibility Text Enhanc
 **Unreleased after v1.5.1 (targeting v1.6.0):** keeps toolbar buttons centred on pages that restyle `<button>` with their own `display`, `align-items`, `line-height`, margins, or font. Each button is now a self-contained centred flex box with its line height, vertical alignment, and text metrics reset, instead of relying on the host page's button defaults; this fixes the bottom-aligned icons seen on Reddit and similar sites. Also completes the High Contrast pass in the settings dialog: the live preview and the per-rule **Remove** button use system colours with a real border. No new permissions or network access.
 
 **Distribution:** v1.5.1 is the latest GitHub release with a packaged zip and SHA-256 checksum. v1.4.1 remains the Chrome Web Store version until a package is submitted and published; no new permissions or privacy disclosures are required.
+
+**Next:** v1.6.0 adds the Phase 5 reading aids. v1.7.0 adds selection translation in a read-only panel; the [plan](docs/v1.7.0-plan.md) is drafted and no translation code has shipped yet.
 
 ---
 
@@ -189,7 +192,28 @@ The toolbar already declares `role="toolbar"`, but it was not operable or unders
 
 ---
 
-## Phase 6 — Platform and reach (v2.0.0) 💡
+## Phase 6 — Comprehension (v1.7.0) 📋
+
+**Plan:** [docs/v1.7.0-plan.md](docs/v1.7.0-plan.md), draft for review.
+
+**Problem:** Chrome's page translation is page-level, prompts automatically, and replaces the original. That is awkward when the reader only needs a word, sentence, or paragraph, and it hides the source text they are trying to understand.
+
+**Work:**
+
+- **Translate selection.** A toolbar button translates the current selection into a read-only panel; Shift translates the containing paragraph.
+- **On-device translation.** Use Chrome's built-in Translator API (Chrome 138+ desktop). No cloud service, API key, or extension-originated network request; show language-pack progress and cancellation.
+- **Accessible result.** Set `lang` and `dir` on the result, announce progress and errors, and offer copy plus read-aloud in the target language.
+- **No page mutation.** The original stays intact, so there is no undo entry, layout change, or RTL risk.
+
+**Acceptance:** selection and paragraph scopes work; the target language is saved and synced; unsupported pairs, download failures, and the character cap are explained; the panel is keyboard-operable, forced-colors ready, and announced correctly; the page DOM and undo history are unchanged; the full harness is green.
+
+**Risks:** Chrome 138+ only; incomplete language-pair coverage; first-use model download; machine-translation quality; toolbar crowding.
+
+**Effort:** small–medium · **Impact:** high for multilingual readers and anyone reading outside their first language
+
+---
+
+## Phase 7 — Platform and reach (v2.0.0) 💡
 
 - **Context-menu commands.** A `chrome.contextMenus` submenu for Bold, Highlight, Read Aloud, Contrast, and Spacing, available on a selection or a right-clicked paragraph. Gives discoverability and a keyboard path through the context-menu key.
 - **Frame support.** Enable `all_frames`, keep the UI in the top frame, and coordinate commands with `chrome.runtime` messaging.
