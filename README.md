@@ -48,17 +48,40 @@ To load it manually, clone this repository, open `chrome://extensions/`, turn on
 
 The toolbar opens next to your selection, above it when there is room and below it otherwise, and always stays inside the viewport. Its ✕ button dismisses the toolbar without clearing the page selection, as does `Escape`; `Ctrl+Shift+F` (`Cmd+Shift+F`) brings it back for the same text.
 
+### Toolbar at a glance
+
+The symbols match the toolbar buttons:
+
+| Symbol | Action | What it does |
+|---|---|---|
+| ↶ / ↷ | Undo / Redo | Steps through the last 50 changes on this page. |
+| **Bold** | Bold | Bolds the selected words; Shift-click applies it to the whole paragraph. |
+| **Highlight** | Highlight | Paints or outlines the selection with the saved colour and style; Shift-click applies it to the paragraph. |
+| `A-` / `A+` | Decrease / increase size | Changes the paragraph font size by 2 px; Shift-click changes only the selection. |
+| `A` | Font | Applies the saved font (Sans, Serif, Monospace, or OpenDyslexic) to the paragraph. A second press restores the page font. |
+| ↔️ | Text spacing | Applies the saved spacing preset (Comfortable, WCAG 1.4.12, or Custom). A second press removes it. |
+| 🎨 | Fix contrast | Adjusts the paragraph text colour until it is readable against its background. |
+| 🎯 | Focus mode | Dims every block except the one under the selection or caret. Session-only; `Escape` exits. |
+| 📏 | Reading ruler | Shows a translucent band under the pointer to keep your place. Session-only; `Escape` exits. |
+| 🔊 | Read Aloud | Reads the selection, or the paragraph at the caret; turns into pause/resume while reading. |
+| ⏹️ | Stop Reading | Stops speech; appears only while reading. |
+| ⚙️ | Settings | Opens the in-page dialog for text styling, reading, site rules, page reset, and backup. |
+| ☀️ / 🌙 | Toggle theme | Switches the toolbar and dialog between dark and light. |
+| ✕ | Dismiss | Closes the toolbar; if a reading aid is active, it turns the aids off too. |
+
 Bold and highlight apply to the selected words; font size, style, spacing, and contrast apply to the nearest paragraph. Shift-click flips that scope. If a selection crosses paragraphs, bold and highlight apply paragraph by paragraph and a toast explains the result.
 
-The Font button now applies your saved font instead of cycling Serif and Sans. **Settings → Text styling** sets the defaults each command uses: font (including OpenDyslexic), a spacing preset or your own letter, word, line, and paragraph spacing, and the highlight colour and style. These defaults are stored with your profile and follow you to other signed-in devices. A second press removes the style; changing a default affects the next command, not text you have already changed. The highlight stays readable: when a background would push contrast below 4.5:1 it falls back to an outline or underline, unless you choose **Force background**, which paints the fill anyway.
+The Font button (`A`) now applies your saved font instead of cycling Serif and Sans. **Settings → Text styling** sets the defaults each command uses: font (including OpenDyslexic), a spacing preset or your own letter, word, line, and paragraph spacing, and the highlight colour and style. These defaults are stored with your profile and follow you to other signed-in devices. A second press removes the style; changing a default affects the next command, not text you have already changed. The highlight stays readable: when a background would push contrast below 4.5:1 it falls back to an outline or underline, unless you choose **Force background**, which paints the fill anyway.
 
-Read aloud follows the same selection rule. With the caret in a paragraph and nothing selected, `Alt+Shift+R` reads that paragraph. While reading, the toolbar's read button pauses and resumes, a stop button appears, and the current sentence is highlighted (in browsers that support the CSS Custom Highlight API). **Settings** in the toolbar holds the full suite — text styling, reading voice and speed, site rules, page reset, and backup — so you can adjust it without leaving the page. The options page, opened from the popup, adds the toolbar theme and is also available on pages where the toolbar cannot open, such as `chrome://` pages; those preferences survive a reload.
+Read aloud follows the same selection rule. With the caret in a paragraph and nothing selected, `Alt+Shift+R` reads that paragraph. While reading, the toolbar's read button (🔊) pauses and resumes, a stop button (⏹️) appears, and the current sentence is highlighted (in browsers that support the CSS Custom Highlight API). **Settings** (⚙️) in the toolbar holds the full suite — text styling, reading voice and speed, site rules, page reset, and backup — so you can adjust it without leaving the page. The options page, opened from the popup, adds the toolbar theme and is also available on pages where the toolbar cannot open, such as `chrome://` pages; those preferences survive a reload.
 
-**Focus mode** dims every block except the one under your selection or caret, so the paragraph you are reading stands out. **Reading ruler** lays a translucent band under the pointer to help you keep your line. Both are visual, session-only aids: they add no page styles, no undo entries, and no settings, they are hidden from screen readers, and they keep working after the toolbar is dismissed. Press `Escape` to turn them off before it closes the toolbar, or use the toolbar's ✕ button to clear everything at once. In Windows High Contrast the spotlight becomes a system-colour outline and the ruler uses system-colour rules instead of translucency.
+**Focus mode** (🎯) dims every block except the one under your selection or caret, so the paragraph you are reading stands out. **Reading ruler** (📏) lays a translucent band under the pointer to help you keep your line. Both are visual, session-only aids: they add no page styles, no undo entries, and no settings, they are hidden from screen readers, and they keep working after the toolbar is dismissed. Press `Escape` to turn them off before it closes the toolbar, or use the toolbar's ✕ button to clear everything at once. In Windows High Contrast the spotlight becomes a system-colour outline and the ruler uses system-colour rules instead of translucency.
 
-The popup's **This site** menu can keep the extension **Always on** or **Always off** for the current site. A site rule wins over the global switch, and the toolbar shows an `OFF` badge on sites you turned off. **Settings** in the toolbar lists every site rule with a remove button and a two-step clear-all action; the popup keeps the global switch and the rule for the current site. To undo the extension's changes to the current page, choose **Reset page changes** in the toolbar's settings dialog — the button asks for a second click — which removes every change and clears the undo history, leaving the page as it was found.
+The popup's **This site** menu can keep the extension **Always on** or **Always off** for the current site. A site rule wins over the global switch, and the toolbar shows an `OFF` badge on sites you turned off. **Settings** (⚙️) in the toolbar lists every site rule with a remove button and a two-step clear-all action; the popup keeps the global switch and the rule for the current site. To undo the extension's changes to the current page, choose **Reset page changes** in the toolbar's settings dialog — the button asks for a second click — which removes every change and clears the undo history, leaving the page as it was found.
 
 Theme, reading and text styling preferences, and site rules are stored with `chrome.storage.sync`, so they follow your Chrome profile to other devices signed in to the same account. The on/off switch itself stays on this device.
+
+The shortcuts below cover the toolbar and extension actions:
 
 | Action | Windows/Linux | macOS |
 |---|---|---|
