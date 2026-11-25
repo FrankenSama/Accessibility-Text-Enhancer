@@ -248,11 +248,11 @@ These are worth investigating but are not scheduled:
 
 ## Release checklist
 
-Use this list for every release. The v1.4.0, v1.4.1, v1.5.0, and v1.5.1 runs are recorded in the release notes and [`docs/smoke-test.md`](docs/smoke-test.md). The store step was last completed for v1.4.1 on 2026-11-18; the checklist stays unchecked as a template for the next release.
+Use this list for every release. The v1.4.0, v1.4.1, v1.5.0, v1.5.1, and v1.6.0 runs are recorded in the release notes and [`docs/smoke-test.md`](docs/smoke-test.md). The store step was last completed for v1.4.1 on 2026-11-18; the checklist stays unchecked as a template for the next release.
 
 - [ ] Browser harness green (all suites, including real-extension load and command smoke tests)
 - [ ] Keyboard-only harness checks: focus, traversal, apply, undo
-- [ ] NVDA smoke test on Windows when the toolbar, settings, or reading changes — see [`docs/smoke-test.md`](docs/smoke-test.md). Last full pass: v1.3.0
+- [ ] NVDA smoke test on Windows when the toolbar, settings, or reading changes — see [`docs/smoke-test.md`](docs/smoke-test.md). Last full pass: v1.6.0
 - [ ] VoiceOver (macOS) and Orca (Linux) smoke tests — not blocking, but still untested; no macOS or Linux hardware available
 - [ ] Dark and light toolbar themes
 - [ ] Version bumped in `manifest.json`, `popup/popup.html`, and the README badge
