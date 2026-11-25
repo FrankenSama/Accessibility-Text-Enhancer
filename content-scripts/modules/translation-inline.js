@@ -222,7 +222,6 @@ export function translateSelection(scope = 'selection') {
             target,
             range: replacement.range,
             scope,
-            firstUse: false,
             errorMessage: tooLongMessage(prepared, scope),
             retry: false
         });
@@ -236,8 +235,7 @@ export function translateSelection(scope = 'selection') {
             detected: '',
             target,
             range: replacement.range,
-            scope,
-            firstUse
+            scope
         });
         return;
     }
@@ -250,7 +248,6 @@ export function translateSelection(scope = 'selection') {
             target,
             range: replacement.range,
             scope,
-            firstUse: false,
             errorMessage: translationMessage('same', {
                 source: detected,
                 target
@@ -266,8 +263,7 @@ export function translateSelection(scope = 'selection') {
         detected,
         target,
         range: replacement.range,
-        scope,
-        firstUse
+        scope
     });
 
     if (!firstUse) {
@@ -279,7 +275,7 @@ export function translateSelection(scope = 'selection') {
  * Build the compact language/progress/error bubble.
  * @param {{mode: 'setup'|'progress'|'error', prepared: Object,
  *     detected: string, target: string, range: Range, scope: string,
- *     firstUse: boolean, errorMessage?: string, retry?: boolean}} options
+ *     errorMessage?: string, retry?: boolean}} options
  */
 function openBubble(options) {
     if (bubbleState) {
@@ -293,7 +289,6 @@ function openBubble(options) {
         target,
         range,
         scope,
-        firstUse,
         errorMessage = '',
         retry = false
     } = options;
@@ -347,7 +342,6 @@ function openBubble(options) {
         target,
         range,
         scope,
-        firstUse,
         busy: false,
         creating: false,
         createController: null,
@@ -618,8 +612,7 @@ function finishRequest(result) {
             state.range,
             result.text,
             result.source,
-            result.target,
-            state.firstUse
+            result.target
         );
         closeTranslationBubble();
         return;
@@ -642,9 +635,8 @@ function finishRequest(result) {
  * @param {string} text
  * @param {string} source
  * @param {string} target
- * @param {boolean} firstUse
  */
-function applyTranslation(range, text, source, target, firstUse) {
+function applyTranslation(range, text, source, target) {
     if (!range || !range.commonAncestorContainer.isConnected) {
         showToast('The selection is no longer on the page.', { error: true });
         return;
