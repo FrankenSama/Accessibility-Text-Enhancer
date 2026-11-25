@@ -16,6 +16,7 @@ import {
 import { initTextStylingControls } from './text-styling-ui.js';
 import { initSiteRulesControls } from './site-rules-ui.js';
 import { closeTranslationPanel } from './translation-ui.js';
+import { normalizeTranslationTarget } from './translation.js';
 import { hasPageChanges, resetPageChanges } from './history.js';
 
 let settingsReturnFocus = null;
@@ -559,6 +560,7 @@ function exportSettings() {
         ttsVoice: STATE.ttsVoice,
         ttsRate: STATE.ttsRate,
         ttsPitch: STATE.ttsPitch,
+        translationTarget: STATE.translationTarget,
         textDefaults: STATE.textDefaults,
         siteRules: STATE.siteRules,
         appVersion: chrome.runtime.getManifest().version
@@ -593,7 +595,14 @@ function applyImportedPreferences(preferences) {
         'ttsPitch',
         ...TEXT_DEFAULT_KEYS
     ];
-    const hasSettings = keys.some((key) => preferences[key] !== undefined);
+    let hasSettings = keys.some((key) => preferences[key] !== undefined);
+
+    if (typeof preferences.translationTarget === 'string') {
+        STATE.translationTarget = normalizeTranslationTarget(
+            preferences.translationTarget
+        );
+        hasSettings = true;
+    }
 
     if (typeof preferences.darkMode === 'boolean') {
         STATE.isDarkMode = preferences.darkMode;
@@ -666,6 +675,10 @@ function importSettings() {
                     ttsPitch: STATE.ttsPitch,
                     ...STATE.textDefaults
                 };
+
+                if (typeof parsed.preferences.translationTarget === 'string') {
+                    updates.translationTarget = STATE.translationTarget;
+                }
 
                 if (hasRules) {
                     STATE.siteRules = parsed.siteRules;

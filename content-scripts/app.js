@@ -47,7 +47,7 @@ import {
     positionTranslationPanel,
     syncTranslationReadingState
 } from './modules/translation-ui.js';
-import { defaultTranslationTarget } from './modules/translation.js';
+import { defaultTranslationTarget, normalizeTranslationTarget } from './modules/translation.js';
 import {
     isEnabledForOrigin,
     loadSyncedPreferences,
@@ -152,7 +152,9 @@ async function loadExtensionState() {
         CONFIG.defaultTtsPitch
     );
     STATE.textDefaults = normalizeTextDefaults(synced);
-    STATE.translationTarget = defaultTranslationTarget(navigator.language);
+    STATE.translationTarget = synced.translationTarget === undefined
+        ? defaultTranslationTarget(navigator.language)
+        : normalizeTranslationTarget(synced.translationTarget);
     if (STATE.textDefaults.fontFamily === 'opendyslexic') {
         loadOpenDyslexicFonts();
     }
@@ -525,6 +527,12 @@ function handleStorageChange(changes, areaName) {
         }
         refreshTextCommandLabels();
         syncTextStylingControls();
+    }
+
+    if (changes.translationTarget) {
+        STATE.translationTarget = normalizeTranslationTarget(
+            changes.translationTarget.newValue
+        );
     }
 
     if (changes.ttsVoice) {

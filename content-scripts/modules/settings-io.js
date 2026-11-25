@@ -9,19 +9,22 @@ import {
     pickTextDefaults,
     TEXT_DEFAULT_KEYS
 } from './style-defaults.js';
+import { normalizeTranslationTarget } from './translation.js';
 
 const PREFERENCE_KEYS = [
     'darkMode',
     'ttsVoice',
     'ttsRate',
     'ttsPitch',
+    'translationTarget',
     ...TEXT_DEFAULT_KEYS
 ];
 
 /**
  * Build the object written to a settings file.
  * @param {{darkMode: boolean, ttsVoice: string, ttsRate: number,
- *     ttsPitch: number, textDefaults?: Object, siteRules: Object,
+ *     ttsPitch: number, translationTarget?: string,
+ *     textDefaults?: Object, siteRules: Object,
  *     appVersion: string, now?: Date}} settings
  * @returns {Object}
  */
@@ -37,6 +40,9 @@ export function buildSettingsFile(settings) {
             ttsVoice: typeof settings.ttsVoice === 'string' ? settings.ttsVoice : '',
             ttsRate: settings.ttsRate,
             ttsPitch: settings.ttsPitch,
+            translationTarget: normalizeTranslationTarget(
+                settings.translationTarget
+            ),
             ...normalizeTextDefaults(settings.textDefaults)
         },
         siteRules: normalizeSiteRules(settings.siteRules)

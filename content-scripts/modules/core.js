@@ -70,7 +70,7 @@ export const CONFIG = {
     maxWrapNodes: 200,
     // Version of the exported settings file. Bump it whenever the shape
     // changes so import can migrate older files.
-    settingsSchemaVersion: 3,
+    settingsSchemaVersion: 4,
     // Cap on stored site rules. storage.sync allows 8 KB per item, and 100
     // origin strings stay comfortably under that even for long hostnames.
     maxSiteRules: 100,

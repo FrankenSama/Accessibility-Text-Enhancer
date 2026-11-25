@@ -2,9 +2,9 @@
 //
 // chrome.storage.sync is the source of truth for the settings that should
 // follow the user across Chrome profiles: theme, reading preferences, text
-// styling, and the site rules. The extension's on/off switch stays in
-// chrome.storage.local because it is a per-device convenience rather than a
-// preference.
+// styling, the translation target, and the site rules. The extension's on/off
+// switch stays in chrome.storage.local because it is a per-device convenience
+// rather than a preference.
 
 import { CONFIG } from './core.js';
 import { TEXT_DEFAULT_KEYS } from './style-defaults.js';
@@ -13,7 +13,12 @@ import { TEXT_DEFAULT_KEYS } from './style-defaults.js';
 // lazy migration below; the text defaults have never lived anywhere else.
 const LEGACY_KEYS = ['darkMode', 'ttsVoice', 'ttsRate', 'ttsPitch'];
 
-const SYNC_KEYS = [...LEGACY_KEYS, ...TEXT_DEFAULT_KEYS, 'siteRules'];
+const SYNC_KEYS = [
+    ...LEGACY_KEYS,
+    ...TEXT_DEFAULT_KEYS,
+    'siteRules',
+    'translationTarget'
+];
 
 /**
  * Promise wrapper around a storage area read that tolerates older Chrome.

@@ -16,6 +16,10 @@ import {
     TEXT_DEFAULT_KEYS
 } from '../content-scripts/modules/style-defaults.js';
 import { clampNumber } from '../content-scripts/modules/text.js';
+import {
+    defaultTranslationTarget,
+    normalizeTranslationTarget
+} from '../content-scripts/modules/translation.js';
 import { initTextStylingControls } from '../content-scripts/modules/text-styling-ui.js';
 import { initSiteRulesControls } from '../content-scripts/modules/site-rules-ui.js';
 
@@ -23,7 +27,8 @@ const DEFAULTS = {
     darkMode: true,
     ttsVoice: '',
     ttsRate: CONFIG.defaultTtsRate,
-    ttsPitch: CONFIG.defaultTtsPitch
+    ttsPitch: CONFIG.defaultTtsPitch,
+    translationTarget: defaultTranslationTarget(navigator.language)
 };
 
 const LIMITS = {
@@ -316,6 +321,7 @@ function exportSettings() {
         ttsVoice: state.ttsVoice,
         ttsRate: state.ttsRate,
         ttsPitch: state.ttsPitch,
+        translationTarget: state.translationTarget,
         textDefaults: state.textDefaults,
         siteRules: state.siteRules,
         appVersion: chrome.runtime.getManifest().version
@@ -374,6 +380,13 @@ function applyImportedPreferences(preferences) {
         applied = true;
     }
 
+    if (typeof preferences.translationTarget === 'string') {
+        state.translationTarget = normalizeTranslationTarget(
+            preferences.translationTarget
+        );
+        applied = true;
+    }
+
     const textDefaults = pickTextDefaults(preferences);
     if (Object.keys(textDefaults).length > 0) {
         state.textDefaults = normalizeTextDefaults({
@@ -425,6 +438,10 @@ function importFileContents(file) {
             ...state.textDefaults
         };
 
+        if (typeof parsed.preferences.translationTarget === 'string') {
+            updates.translationTarget = state.translationTarget;
+        }
+
         if (hasRules) {
             state.siteRules = parsed.siteRules;
             updates.siteRules = state.siteRules;
@@ -473,6 +490,9 @@ loadSyncedPreferences().then((result) => {
     );
     state.textDefaults = normalizeTextDefaults(result);
     state.siteRules = normalizeSiteRules(result.siteRules);
+    state.translationTarget = result.translationTarget === undefined
+        ? DEFAULTS.translationTarget
+        : normalizeTranslationTarget(result.translationTarget);
 
     loadVoices();
     syncControls();
@@ -538,6 +558,14 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
     if (changes.siteRules) {
         state.siteRules = normalizeSiteRules(changes.siteRules.newValue);
         siteRulesControls.sync();
+    }
+
+    // The options page has no target control, but an import or another page
+    // can change it while this page is open. Keep the export value fresh.
+    if (changes.translationTarget) {
+        state.translationTarget = normalizeTranslationTarget(
+            changes.translationTarget.newValue
+        );
     }
 
     if (changed) {

@@ -3,6 +3,7 @@
 
 import { CONFIG, STATE } from './core.js';
 import { buildTextMap, closestBlock, getMountNode } from './dom.js';
+import { saveSyncedPreferences } from './prefs.js';
 import { showToast } from './toast.js';
 import {
     getPageLanguage,
@@ -346,9 +347,17 @@ function handleLanguageChange() {
         return;
     }
 
+    const previousTarget = panelState.target;
+    const nextTarget = normalizeTranslationTarget(panelState.targetSelect.value);
+
     panelState.sourceMode = panelState.sourceSelect.value;
-    panelState.target = normalizeTranslationTarget(panelState.targetSelect.value);
-    STATE.translationTarget = panelState.target;
+    panelState.target = nextTarget;
+
+    if (nextTarget !== previousTarget) {
+        STATE.translationTarget = nextTarget;
+        saveSyncedPreferences({ translationTarget: nextTarget });
+    }
+
     requestTranslation();
 }
 
