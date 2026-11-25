@@ -445,7 +445,7 @@ export function scheduleToolbarPosition() {
 }
 
 /**
- * Removes the toolbar, closes the translation panel, and cancels any pending
+ * Removes the toolbar, closes the translation bubble, and cancels any pending
  * placement work.
  */
 export function removeToolbar() {

@@ -17,7 +17,7 @@ import { initTextStylingControls } from './text-styling-ui.js';
 import { initSiteRulesControls } from './site-rules-ui.js';
 import { closeTranslationBubble } from './translation-inline.js';
 import {
-    normalizeTranslationTarget,
+    normalizeStoredTranslationTarget,
     translationLanguageName,
     TRANSLATION_LANGUAGES
 } from './translation.js';
@@ -474,7 +474,7 @@ function setupTranslationSettings(panel) {
 
     select.value = STATE.translationTarget || '';
     select.addEventListener('change', () => {
-        const value = select.value ? normalizeTranslationTarget(select.value) : '';
+        const value = normalizeStoredTranslationTarget(select.value);
         STATE.translationTarget = value;
         saveSyncedPreferences({ translationTarget: value });
         showToast(value
@@ -663,7 +663,7 @@ function applyImportedPreferences(preferences) {
     let hasSettings = keys.some((key) => preferences[key] !== undefined);
 
     if (typeof preferences.translationTarget === 'string') {
-        STATE.translationTarget = normalizeTranslationTarget(
+        STATE.translationTarget = normalizeStoredTranslationTarget(
             preferences.translationTarget
         );
         hasSettings = true;

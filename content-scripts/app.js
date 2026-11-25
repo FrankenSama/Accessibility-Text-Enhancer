@@ -48,7 +48,7 @@ import {
     positionTranslationBubble,
     syncTranslationButton
 } from './modules/translation-inline.js';
-import { normalizeTranslationTarget } from './modules/translation.js';
+import { normalizeStoredTranslationTarget } from './modules/translation.js';
 import {
     isEnabledForOrigin,
     loadSyncedPreferences,
@@ -153,9 +153,9 @@ async function loadExtensionState() {
         CONFIG.defaultTtsPitch
     );
     STATE.textDefaults = normalizeTextDefaults(synced);
-    STATE.translationTarget = synced.translationTarget === undefined
-        ? ''
-        : normalizeTranslationTarget(synced.translationTarget);
+    STATE.translationTarget = normalizeStoredTranslationTarget(
+        synced.translationTarget
+    );
     if (STATE.textDefaults.fontFamily === 'opendyslexic') {
         loadOpenDyslexicFonts();
     }
@@ -266,17 +266,6 @@ function handleSelectionChange() {
         return;
     }
 
-    // Ignore selection changes caused by interacting with the toolbar or the
-    // settings dialog. The translation panel is handled below so a new page
-    // selection can close it even while focus is still inside the panel.
-    const activeElement = document.activeElement;
-    if (activeElement && activeElement.closest(
-        `#${CONFIG.toolbarId}, #${CONFIG.settingsPanelId}, ` +
-        `#${CONFIG.translationBubbleId}`
-    )) {
-        return;
-    }
-
     const selection = window.getSelection();
     const range = selection && selection.rangeCount > 0 && !selection.isCollapsed
         ? selection.getRangeAt(0)
@@ -289,21 +278,39 @@ function handleSelectionChange() {
         return;
     }
 
+    const activeElement = document.activeElement;
+
     // The language/progress bubble belongs to one selection. A new page
-    // selection or a collapsed selection closes and cancels it; the toolbar
-    // then follows the new range. A translation already in the page stays.
+    // selection dismisses it; a collapsed selection (clicking the bubble's own
+    // note, status, or error text) leaves it open. The toolbar then follows
+    // the new range.
     if (STATE.translationBubbleOpen) {
         const bubble = document.getElementById(CONFIG.translationBubbleId);
         const insideBubble = Boolean(
             bubble && range && bubble.contains(range.commonAncestorContainer)
         );
 
-        if (!insideBubble) {
+        if (range && !insideBubble) {
             closeTranslationBubble({ restoreFocus: false });
         }
-        if (insideBubble) {
+        if (!range || insideBubble) {
             return;
         }
+    }
+
+    // Ignore selection changes caused by interacting with the toolbar or the
+    // settings dialog when they do not carry a real page range. A programmatic
+    // page selection still updates the toolbar while focus is in the toolbar.
+    const activeInChrome = Boolean(activeElement && activeElement.closest(
+        `#${CONFIG.toolbarId}, #${CONFIG.settingsPanelId}`
+    ));
+    const rangeInChrome = Boolean(range && [
+        document.getElementById(CONFIG.toolbarId),
+        document.getElementById(CONFIG.settingsPanelId)
+    ].some((element) => element && element.contains(range.commonAncestorContainer)));
+
+    if (rangeInChrome || (activeInChrome && !range)) {
+        return;
     }
 
     // Focus mode follows the caret even when the toolbar is about to be
@@ -536,10 +543,9 @@ function handleStorageChange(changes, areaName) {
     }
 
     if (changes.translationTarget) {
-        const value = changes.translationTarget.newValue;
-        STATE.translationTarget = typeof value === 'string' && value !== ''
-            ? normalizeTranslationTarget(value)
-            : '';
+        STATE.translationTarget = normalizeStoredTranslationTarget(
+            changes.translationTarget.newValue
+        );
         syncTranslationSettingsControls();
         syncTranslationButton();
     }

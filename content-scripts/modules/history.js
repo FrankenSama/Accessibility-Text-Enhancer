@@ -142,6 +142,41 @@ function selectTranslationSide(record, state) {
 }
 
 /**
+ * Put a translation record's original nodes back in place of its wrapper.
+ * Shared by the Translate toggle and Reset page so both use the same DOM
+ * contract. Detached wrappers, or parents the page removed, are left alone so
+ * a re-render cannot be "restored" into a fragment.
+ * @param {Object} record
+ * @returns {boolean} Whether the page was updated
+ */
+export function restoreTranslationNodes(record) {
+    if (!record || !record.wrapper || !Array.isArray(record.originalNodes)) {
+        return false;
+    }
+
+    const wrapper = record.wrapper;
+    if (!wrapper.isConnected) {
+        return false;
+    }
+
+    const parent = wrapper.parentNode;
+    if (!parent || !parent.isConnected) {
+        return false;
+    }
+
+    const next = wrapper.nextSibling;
+    wrapper.remove();
+
+    const fragment = document.createDocumentFragment();
+    for (const node of record.originalNodes) {
+        fragment.appendChild(node);
+    }
+    parent.insertBefore(fragment, next);
+    record.translated = false;
+    return true;
+}
+
+/**
  * Show either the translation or its original. Shared by the Translate
  * toggle and the history, so both paths apply exactly the same DOM state.
  * @param {Object} record
@@ -165,6 +200,15 @@ export function setTranslationState(record, state) {
             return false;
         }
 
+        // A page re-render can detach the originals while keeping their old
+        // parent around. Redo must not inject the translation over new content.
+        const originalsInPlace = record.originalNodes.length > 0 &&
+            record.originalNodes.every((node) =>
+                node.isConnected && node.parentNode === parent);
+        if (!originalsInPlace) {
+            return false;
+        }
+
         for (const node of record.originalNodes) {
             if (node.parentNode) {
                 node.parentNode.removeChild(node);
@@ -181,24 +225,10 @@ export function setTranslationState(record, state) {
     }
 
     if (state === 'original') {
-        if (!wrapper.isConnected) {
+        if (!restoreTranslationNodes(record)) {
             return false;
         }
 
-        const parent = wrapper.parentNode;
-        if (!parent) {
-            return false;
-        }
-
-        const next = wrapper.nextSibling;
-        wrapper.remove();
-
-        const fragment = document.createDocumentFragment();
-        for (const node of record.originalNodes) {
-            fragment.appendChild(node);
-        }
-        parent.insertBefore(fragment, next);
-        record.translated = false;
         selectTranslationSide(record, 'original');
         return true;
     }
@@ -336,20 +366,12 @@ export function resetPageChanges() {
     STATE.originals.clear();
 
     // Put every translated range back before unwrapping selection wrappers,
-    // because an original fragment can contain those wrappers.
+    // because an original fragment can contain those wrappers. Only records
+    // still attached to the page can be restored; a detached wrapper or a
+    // parent the page removed is a re-render, not a change to undo.
     for (const [wrapper, record] of STATE.translations) {
         if (record.translated) {
-            const parent = wrapper.parentNode;
-            if (parent) {
-                const next = wrapper.nextSibling;
-                wrapper.remove();
-                const fragment = document.createDocumentFragment();
-                for (const node of record.originalNodes) {
-                    fragment.appendChild(node);
-                }
-                parent.insertBefore(fragment, next);
-            }
-            record.translated = false;
+            restoreTranslationNodes(record);
         } else if (wrapper.isConnected) {
             wrapper.remove();
         }

@@ -5,7 +5,7 @@
 import { CONFIG } from './core.js';
 import { normalizeSiteRules } from './prefs.js';
 import { normalizeTextDefaults } from './style-defaults.js';
-import { normalizeTranslationTarget } from './translation.js';
+import { normalizeStoredTranslationTarget } from './translation.js';
 
 /**
  * Build the object written to a settings file.
@@ -27,7 +27,7 @@ export function buildSettingsFile(settings) {
             ttsVoice: typeof settings.ttsVoice === 'string' ? settings.ttsVoice : '',
             ttsRate: settings.ttsRate,
             ttsPitch: settings.ttsPitch,
-            translationTarget: normalizeTranslationTarget(
+            translationTarget: normalizeStoredTranslationTarget(
                 settings.translationTarget
             ),
             ...normalizeTextDefaults(settings.textDefaults)

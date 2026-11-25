@@ -184,12 +184,43 @@ export function normalizeTranslationTarget(value) {
 }
 
 /**
+ * A stored target. The empty string means "not chosen yet", so the first-use
+ * bubble reappears; anything else resolves to a supported language.
+ * @param {unknown} value
+ * @returns {string}
+ */
+export function normalizeStoredTranslationTarget(value) {
+    return typeof value === 'string' && value !== ''
+        ? normalizeTranslationTarget(value)
+        : '';
+}
+
+/**
  * Pick the target from the browser language when the user has not chosen one.
  * @param {unknown} browserLanguage
  * @returns {string}
  */
 export function defaultTranslationTarget(browserLanguage) {
     return normalizeLanguageTag(browserLanguage) || 'en';
+}
+
+/**
+ * Propose a target for the first-use bubble. When the browser default is the
+ * page's own language, translate into English (or Spanish on an English page)
+ * so Translate does not immediately fail with a same-language error.
+ * @param {unknown} detected
+ * @param {unknown} browserLanguage
+ * @returns {string}
+ */
+export function suggestTranslationTarget(detected, browserLanguage) {
+    const source = normalizeLanguageTag(detected);
+    const proposed = defaultTranslationTarget(browserLanguage);
+
+    if (!source || !isSameLanguage(source, proposed)) {
+        return proposed;
+    }
+
+    return source === 'en' ? 'es' : 'en';
 }
 
 /**

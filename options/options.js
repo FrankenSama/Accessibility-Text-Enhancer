@@ -17,8 +17,7 @@ import {
 } from '../content-scripts/modules/style-defaults.js';
 import { clampNumber } from '../content-scripts/modules/text.js';
 import {
-    defaultTranslationTarget,
-    normalizeTranslationTarget,
+    normalizeStoredTranslationTarget,
     translationLanguageName,
     TRANSLATION_LANGUAGES
 } from '../content-scripts/modules/translation.js';
@@ -29,8 +28,7 @@ const DEFAULTS = {
     darkMode: true,
     ttsVoice: '',
     ttsRate: CONFIG.defaultTtsRate,
-    ttsPitch: CONFIG.defaultTtsPitch,
-    translationTarget: defaultTranslationTarget(navigator.language)
+    ttsPitch: CONFIG.defaultTtsPitch
 };
 
 const LIMITS = {
@@ -412,7 +410,7 @@ function applyImportedPreferences(preferences) {
     }
 
     if (typeof preferences.translationTarget === 'string') {
-        state.translationTarget = normalizeTranslationTarget(
+        state.translationTarget = normalizeStoredTranslationTarget(
             preferences.translationTarget
         );
         applied = true;
@@ -522,11 +520,9 @@ loadSyncedPreferences().then((result) => {
     );
     state.textDefaults = normalizeTextDefaults(result);
     state.siteRules = normalizeSiteRules(result.siteRules);
-    state.translationTarget = result.translationTarget === undefined
-        ? DEFAULTS.translationTarget
-        : (result.translationTarget === ''
-            ? ''
-            : normalizeTranslationTarget(result.translationTarget));
+    state.translationTarget = normalizeStoredTranslationTarget(
+        result.translationTarget
+    );
 
     loadVoices();
     populateTranslationSelect();
@@ -599,10 +595,9 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
     // Keep the target select and the export value fresh when another page
     // changes the language.
     if (changes.translationTarget) {
-        const value = changes.translationTarget.newValue;
-        state.translationTarget = typeof value === 'string' && value !== ''
-            ? normalizeTranslationTarget(value)
-            : '';
+        state.translationTarget = normalizeStoredTranslationTarget(
+            changes.translationTarget.newValue
+        );
         syncTranslationControl();
     }
 
@@ -626,9 +621,7 @@ themeSelect.addEventListener('change', () => {
 });
 
 translationSelect.addEventListener('change', () => {
-    const value = translationSelect.value
-        ? normalizeTranslationTarget(translationSelect.value)
-        : '';
+    const value = normalizeStoredTranslationTarget(translationSelect.value);
     state.translationTarget = value;
     savePreferences({ translationTarget: value });
     setStatus(value

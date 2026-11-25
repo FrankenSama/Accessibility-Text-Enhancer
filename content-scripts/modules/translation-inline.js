@@ -9,7 +9,7 @@ import {
     getBlocksForRange,
     getMountNode
 } from './dom.js';
-import { pushHistory, setTranslationState } from './history.js';
+import { pushHistory, restoreTranslationNodes, setTranslationState } from './history.js';
 import { saveSyncedPreferences } from './prefs.js';
 import { getPageLanguage } from './reading.js';
 import { showToast } from './toast.js';
@@ -20,11 +20,11 @@ import {
 } from './toolbar.js';
 import {
     createTranslationService,
-    defaultTranslationTarget,
     isTranslationAvailable,
     normalizeLanguageTag,
     normalizeTranslationTarget,
     prepareTranslationText,
+    suggestTranslationTarget,
     translationLanguageName,
     translationMessage,
     TRANSLATION_LANGUAGES
@@ -51,6 +51,57 @@ function translationWrapperFor(range) {
     const node = range.commonAncestorContainer;
     const element = node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
     return element?.closest?.(`[${CONFIG.translationAttr}]`) || null;
+}
+
+/**
+ * Put any translated wrapper inside a range back to its original text before
+ * that range is replaced. Without this a new translation can capture a live
+ * wrapper, leaving nested records that Reset page cannot classify.
+ * @param {Range} range
+ */
+function restoreTranslationsInRange(range) {
+    const node = range.commonAncestorContainer;
+    const element = node.nodeType === Node.ELEMENT_NODE
+        ? node
+        : node.parentElement;
+    if (!element) {
+        return;
+    }
+
+    const wrappers = [];
+    if (element.matches?.(`[${CONFIG.translationAttr}]`)) {
+        wrappers.push(element);
+    }
+    element.querySelectorAll?.(`[${CONFIG.translationAttr}]`).forEach((wrapper) => {
+        if (range.intersectsNode(wrapper)) {
+            wrappers.push(wrapper);
+        }
+    });
+
+    for (const wrapper of wrappers) {
+        const record = STATE.translations.get(wrapper);
+        if (!record || !record.translated) {
+            continue;
+        }
+
+        const startInside = wrapper.contains(range.startContainer);
+        const endInside = wrapper.contains(range.endContainer);
+        if (!restoreTranslationNodes(record)) {
+            continue;
+        }
+
+        // Move a boundary that sat inside the restored wrapper to the
+        // original nodes, so the following extractContents still sees the
+        // whole selection.
+        const first = record.originalNodes[0];
+        const last = record.originalNodes[record.originalNodes.length - 1];
+        if (startInside && first) {
+            range.setStartBefore(first);
+        }
+        if (endInside && last) {
+            range.setEndAfter(last);
+        }
+    }
 }
 
 /**
@@ -160,6 +211,12 @@ export function translateSelection(scope = 'selection') {
     }
 
     if (STATE.translationBubbleOpen) {
+        // A second activation while the request is in flight must not look
+        // like a silent no-op: keep the bubble and its progress, and let
+        // Cancel or Escape be the way out.
+        if (bubbleState?.busy) {
+            return;
+        }
         closeTranslationBubble();
         return;
     }
@@ -193,9 +250,9 @@ export function translateSelection(scope = 'selection') {
 
     const replacement = replacementFor(saved, scope);
     if (!replacement) {
-        showToast(
-            'Select text within one paragraph, or Shift-click to translate the paragraph.'
-        );
+        showToast(scope === 'block'
+            ? 'Select text within a paragraph to translate.'
+            : 'Select text within one paragraph, or Shift-click to translate the paragraph.');
         return;
     }
 
@@ -209,10 +266,10 @@ export function translateSelection(scope = 'selection') {
     }
 
     const detected = detectSource(sourceNodeFor(saved, scope));
-    const target = STATE.translationTarget
-        ? normalizeTranslationTarget(STATE.translationTarget)
-        : defaultTranslationTarget(navigator.language);
     const firstUse = !STATE.translationTarget;
+    const target = firstUse
+        ? suggestTranslationTarget(detected, navigator.language)
+        : normalizeTranslationTarget(STATE.translationTarget);
 
     if (prepared.tooLong) {
         openBubble({
@@ -222,8 +279,7 @@ export function translateSelection(scope = 'selection') {
             target,
             range: replacement.range,
             scope,
-            errorMessage: tooLongMessage(prepared, scope),
-            retry: false
+            errorMessage: tooLongMessage(prepared, scope)
         });
         return;
     }
@@ -251,8 +307,7 @@ export function translateSelection(scope = 'selection') {
             errorMessage: translationMessage('same', {
                 source: detected,
                 target
-            }),
-            retry: false
+            })
         });
         return;
     }
@@ -275,13 +330,9 @@ export function translateSelection(scope = 'selection') {
  * Build the compact language/progress/error bubble.
  * @param {{mode: 'setup'|'progress'|'error', prepared: Object,
  *     detected: string, target: string, range: Range, scope: string,
- *     errorMessage?: string, retry?: boolean}} options
+ *     errorMessage?: string}} options
  */
 function openBubble(options) {
-    if (bubbleState) {
-        closeTranslationBubble({ restoreFocus: false });
-    }
-
     const {
         mode,
         prepared,
@@ -289,8 +340,7 @@ function openBubble(options) {
         target,
         range,
         scope,
-        errorMessage = '',
-        retry = false
+        errorMessage = ''
     } = options;
     const returnFocus = document.getElementById(CONFIG.toolbarId)
         ?.querySelector('[data-command="translate"]') || document.activeElement;
@@ -335,7 +385,6 @@ function openBubble(options) {
 
     bubbleState = {
         bubble,
-        mode,
         prepared,
         detectedSource: detected,
         sourceMode: 'auto',
@@ -366,7 +415,7 @@ function openBubble(options) {
         bubbleState.submit.hidden = true;
         bubbleState.cancel.hidden = false;
     } else if (mode === 'error') {
-        showBubbleError(errorMessage, retry);
+        showBubbleError(errorMessage, false);
     }
 
     STATE.translationBubbleOpen = true;
@@ -376,8 +425,6 @@ function openBubble(options) {
 
     if (mode === 'progress') {
         bubbleState.cancel.focus({ preventScroll: true });
-    } else if (retry) {
-        bubbleState.submit.focus({ preventScroll: true });
     } else if (mode === 'error') {
         bubbleState.close.focus({ preventScroll: true });
     } else {
@@ -561,15 +608,14 @@ function requestTranslation() {
 }
 
 /**
- * Abort the request in flight. A finished creation keeps its translator, so
- * only an in-progress creation aborts the create signal.
+ * Abort the in-flight creation and translation, if any.
+ * @param {Object} state
  */
-function abortCurrent() {
-    if (!bubbleState) {
+function abortState(state) {
+    if (!state) {
         return;
     }
 
-    const state = bubbleState;
     if (state.creating && state.createController) {
         try {
             state.createController.abort();
@@ -591,6 +637,14 @@ function abortCurrent() {
 }
 
 /**
+ * Abort the request in flight. A finished creation keeps its translator, so
+ * only an in-progress creation aborts the create signal.
+ */
+function abortCurrent() {
+    abortState(bubbleState);
+}
+
+/**
  * Apply a finished translation or a mapped failure.
  * @param {Object} result
  */
@@ -604,6 +658,7 @@ function finishRequest(result) {
     state.createController = null;
     state.requestController = null;
     setBusy(false);
+    setStatus('');
     state.cancel.hidden = true;
     state.languages.hidden = false;
 
@@ -612,7 +667,8 @@ function finishRequest(result) {
             state.range,
             result.text,
             result.source,
-            result.target
+            result.target,
+            state.prepared
         );
         closeTranslationBubble();
         return;
@@ -635,22 +691,39 @@ function finishRequest(result) {
  * @param {string} text
  * @param {string} source
  * @param {string} target
+ * @param {{text: string}} prepared
  */
-function applyTranslation(range, text, source, target) {
+function applyTranslation(range, text, source, target, prepared) {
     if (!range || !range.commonAncestorContainer.isConnected) {
         showToast('The selection is no longer on the page.', { error: true });
         return;
     }
 
+    // A slow language-pack download can outlive the text the bubble was opened
+    // for. Replacing different text would destroy content the user never asked
+    // to translate, so compare before touching the page.
+    const current = prepareTranslationText(
+        buildTextMap(range).text,
+        CONFIG.translationMaxChars
+    ).text;
+    if (prepared && current !== prepared.text) {
+        showToast('The page text changed while translating. Select it again.',
+            { error: true });
+        return;
+    }
+
     STATE.isApplyingCommand = true;
+    let wrapper = null;
+    let originalNodes = [];
     try {
+        restoreTranslationsInRange(range);
         const fragment = range.extractContents();
-        const originalNodes = Array.from(fragment.childNodes);
+        originalNodes = Array.from(fragment.childNodes);
         if (originalNodes.length === 0) {
             throw new Error('empty selection');
         }
 
-        const wrapper = document.createElement('span');
+        wrapper = document.createElement('span');
         wrapper.setAttribute(CONFIG.translationAttr, target);
         wrapper.setAttribute('lang', target);
         wrapper.setAttribute('dir', 'auto');
@@ -695,6 +768,37 @@ function applyTranslation(range, text, source, target) {
         );
     } catch (error) {
         console.error('Translation could not be applied:', error);
+        if (wrapper) {
+            STATE.translations.delete(wrapper);
+            if (wrapper.isConnected) {
+                wrapper.remove();
+            }
+        }
+        if (originalNodes.length > 0 && range.startContainer.isConnected) {
+            const restore = document.createDocumentFragment();
+            for (const node of originalNodes) {
+                restore.appendChild(node);
+            }
+            try {
+                range.insertNode(restore);
+                const selection = window.getSelection();
+                if (selection) {
+                    const restored = document.createRange();
+                    restored.setStartBefore(originalNodes[0]);
+                    restored.setEndAfter(
+                        originalNodes[originalNodes.length - 1]
+                    );
+                    selection.removeAllRanges();
+                    selection.addRange(restored);
+                    STATE.savedRange = restored.cloneRange();
+                }
+            } catch (restoreError) {
+                console.error(
+                    'The original text could not be restored:',
+                    restoreError
+                );
+            }
+        }
         showToast('The translation could not be applied to the page.',
             { error: true });
     } finally {
@@ -871,20 +975,7 @@ export function closeTranslationBubble(options = {}) {
     }
 
     const state = bubbleState;
-    if (state.creating && state.createController) {
-        try {
-            state.createController.abort();
-        } catch (error) {
-            // The controller is already aborted.
-        }
-    }
-    if (state.requestController) {
-        try {
-            state.requestController.abort();
-        } catch (error) {
-            // The controller is already aborted.
-        }
-    }
+    abortState(state);
 
     state.bubble.remove();
     bubbleState = null;
