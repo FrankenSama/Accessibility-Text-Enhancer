@@ -43,9 +43,9 @@ This roadmap tracks the accessibility work planned for Accessibility Text Enhanc
 
 **v1.7.0 (in-place selection translation, implemented on main):** adds a **Translate** toolbar button and `Alt+Shift+G` shortcut. The selection, or the paragraph on Shift-click, is replaced in place by its translation using Chrome's built-in Translator API. The wrapper carries `lang` and `dir="auto"` with a dotted underline; pressing Translate again, Undo/Redo, or Reset page restores the original. A compact first-use/progress/error bubble detects the source, saves and syncs the target, shows language-pack progress with Cancel, and offers Try again. The target is changed in Settings or the options page. Multi-block selections are rejected; links or emphasis containing the whole selection stay around the translation, while internal markup is flattened and restored by undo. The page change is undoable and read aloud uses the target language. Needs Chrome 138+ on desktop and an HTTPS page. Adds `translationTarget` to schema 4 settings exports. No new permissions.
 
-**Distribution:** v1.6.0 is the latest GitHub release with a packaged zip and SHA-256 checksum. v1.4.1 remains the Chrome Web Store version until a package is submitted and published. v1.7.0 is implemented on `main` and is waiting for its manual NVDA pass, version bump, package, and release.
+**Distribution:** v1.6.0 is the latest GitHub release with a packaged zip and SHA-256 checksum. v1.4.1 remains the Chrome Web Store version until a package is submitted and published. v1.7.0 is implemented, version-bumped, and packaged (zip + SHA-256); it is waiting for its manual NVDA pass and release.
 
-**Next:** v1.7.0 is code-complete on `main`. The remaining work is the manual NVDA translation rows, the v1.7.0 version bump and package, the GitHub release, and the Chrome Web Store submission.
+**Next:** v1.7.0 is code-complete and packaged on `main`. The remaining work is the manual NVDA in-place rows, the GitHub release, and the Chrome Web Store submission.
 
 ---
 
