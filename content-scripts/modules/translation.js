@@ -67,7 +67,7 @@ const LANGUAGE_ALIASES = Object.freeze({
     nn: 'no'
 });
 
-export const TRANSLATION_AVAILABILITY = Object.freeze({
+const TRANSLATION_AVAILABILITY = Object.freeze({
     available: 'available',
     downloadable: 'downloadable',
     downloading: 'downloading',
@@ -80,7 +80,7 @@ export const DEFAULT_TRANSLATION_MAX_CHARS = 5000;
 
 // Every failure the panel can show. `cancelled` stays silent because the user
 // asked for it, and `same` is checked before the API is called.
-export const TRANSLATION_ERROR_CODES = Object.freeze({
+const TRANSLATION_ERROR_CODES = Object.freeze({
     missing: 'missing',
     blocked: 'blocked',
     unsupported: 'unsupported',
@@ -295,7 +295,7 @@ export function translationMessage(code, context = {}) {
  * @param {string} code
  * @returns {boolean}
  */
-export function translationErrorRetry(code) {
+function translationErrorRetry(code) {
     return RETRY_CODES.has(code);
 }
 
@@ -345,6 +345,15 @@ function translationFailure(code, context) {
  */
 export function isTranslatorAvailable() {
     return typeof globalThis.Translator === 'function';
+}
+
+/**
+ * Whether this page can run translation: the constructor exists and the page
+ * is a secure context. Safe to call in Node, where both checks are false.
+ * @returns {boolean}
+ */
+export function isTranslationAvailable() {
+    return isTranslatorAvailable() && globalThis.isSecureContext === true;
 }
 
 /**
@@ -513,6 +522,15 @@ export function createTranslationService(options = {}) {
             target: to,
             destroyed: false
         };
+
+        // Two concurrent creates for the same pair can race. Keep the newest
+        // and destroy the older instance instead of leaking it. The panel
+        // issues one request at a time, so this is a defensive guard.
+        const previous = cache.get(key);
+        if (previous && previous !== entry && !previous.destroyed) {
+            evict(key, previous);
+        }
+
         cache.set(key, entry);
 
         if (typeof createSignal?.addEventListener === 'function') {
@@ -625,8 +643,8 @@ export function createTranslationService(options = {}) {
     }
 
     /**
-     * Destroy every cached translator. Used when the page unloads, not when
-     * the panel closes, so a reopened panel can reuse the downloaded model.
+     * Destroy every cached translator. The panel keeps its cache across
+     * close/reopen; this is a teardown helper for callers and tests.
      */
     function clear() {
         for (const [key, entry] of [...cache]) {

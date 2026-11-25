@@ -265,10 +265,12 @@ function handleSelectionChange() {
         return;
     }
 
-    // Ignore selection changes caused by interacting with the extension UI.
+    // Ignore selection changes caused by interacting with the toolbar or the
+    // settings dialog. The translation panel is handled below so a new page
+    // selection can close it even while focus is still inside the panel.
     const activeElement = document.activeElement;
     if (activeElement && activeElement.closest(
-        `#${CONFIG.toolbarId}, #${CONFIG.settingsPanelId}, #${CONFIG.translationPanelId}`
+        `#${CONFIG.toolbarId}, #${CONFIG.settingsPanelId}`
     )) {
         return;
     }
@@ -328,7 +330,8 @@ function handleSelectionChange() {
     STATE.toolbarTimeout = setTimeout(() => {
         STATE.toolbarTimeout = null;
 
-        if (!STATE.isExtensionEnabled || !STATE.savedRange) {
+        if (!STATE.isExtensionEnabled || !STATE.savedRange ||
+            STATE.translationOpen) {
             return;
         }
 

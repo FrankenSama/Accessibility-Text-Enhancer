@@ -5,6 +5,7 @@ import { CONFIG, STATE } from './core.js';
 import { buildTextMap, closestBlock, getMountNode } from './dom.js';
 import { saveSyncedPreferences } from './prefs.js';
 import { showToast } from './toast.js';
+import { createToolbar, positionToolbar } from './toolbar.js';
 import {
     getPageLanguage,
     startReadingText,
@@ -14,7 +15,7 @@ import {
 import {
     createTranslationService,
     defaultTranslationTarget,
-    isTranslatorAvailable,
+    isTranslationAvailable,
     normalizeLanguageTag,
     normalizeTranslationTarget,
     prepareTranslationText,
@@ -29,15 +30,6 @@ const service = createTranslationService({
 
 // Everything about the open panel lives here. A null value means no panel.
 let panelState = null;
-
-/**
- * Whether translation can run on this page: Chrome exposes the API and the
- * page is a secure context. The button is hidden when either is false.
- * @returns {boolean}
- */
-export function canTranslate() {
-    return isTranslatorAvailable() && window.isSecureContext;
-}
 
 /**
  * Find the nearest declared language for a node, falling back to the page
@@ -117,11 +109,8 @@ export function openTranslationPanel(scope = 'selection') {
         return;
     }
 
-    if (!canTranslate()) {
-        showToast(
-            'Translation needs Chrome 138 or newer on desktop, on an HTTPS page.',
-            { error: true }
-        );
+    if (!isTranslationAvailable()) {
+        showToast(translationMessage('missing'), { error: true });
         return;
     }
 
@@ -132,6 +121,22 @@ export function openTranslationPanel(scope = 'selection') {
         !saved.toString().trim()) {
         showToast('Select text or a paragraph to translate.');
         return;
+    }
+
+    // A shortcut can arrive before the 150 ms toolbar timer fires. Cancel it
+    // and create the toolbar now, so the panel has an anchor and the pending
+    // timer cannot recreate the toolbar and tear the panel down.
+    if (STATE.toolbarTimeout) {
+        clearTimeout(STATE.toolbarTimeout);
+        STATE.toolbarTimeout = null;
+    }
+
+    if (!document.getElementById(CONFIG.toolbarId)) {
+        const toolbar = createToolbar();
+        if (!toolbar) {
+            return;
+        }
+        positionToolbar(toolbar, saved);
     }
 
     const map = resolveTextMap(scope);
@@ -155,9 +160,24 @@ export function openTranslationPanel(scope = 'selection') {
 }
 
 /**
+ * The over-cap message, with a suggestion that matches the chosen scope.
+ * @param {{characters: number, maxChars: number}} prepared
+ * @param {'block'|'selection'} scope
+ * @returns {string}
+ */
+function tooLongMessage(prepared, scope) {
+    const suggestion = scope === 'block'
+        ? 'Select less text and try again.'
+        : 'Select less text, or Shift-click to translate one paragraph.';
+
+    return `That selection is ${prepared.characters} characters; the limit is ` +
+        `${prepared.maxChars}. ${suggestion}`;
+}
+
+/**
  * Build the panel markup and wire its controls.
  * @param {{prepared: Object, detected: string, target: string,
- *     scope: string}} options
+ *     scope: 'block'|'selection'}} options
  */
 function buildPanel({ prepared, detected, target, scope }) {
     const returnFocus = document.getElementById(CONFIG.toolbarId)
@@ -214,12 +234,13 @@ function buildPanel({ prepared, detected, target, scope }) {
         </div>
 
         <button type="button" class="translation-close"
-            aria-label="Close translation" data-tooltip="Close translation">✕</button>
+            aria-label="Close translation">✕</button>
     `;
 
     panelState = {
         panel,
         prepared,
+        scope,
         detectedSource: detected,
         sourceMode: 'auto',
         target,
@@ -257,12 +278,7 @@ function buildPanel({ prepared, detected, target, scope }) {
 
     if (prepared.tooLong) {
         setStatus('');
-        showPanelError(
-            `That selection is ${prepared.characters} characters; the limit is ` +
-            `${prepared.maxChars}. Select less text, or Shift-click to translate ` +
-            'one paragraph.',
-            false
-        );
+        showPanelError(tooLongMessage(prepared, scope), false);
         return;
     }
 
@@ -387,6 +403,13 @@ function requestTranslation() {
     hidePanelError();
     hideRetry();
 
+    if (state.prepared.tooLong) {
+        setStatus('');
+        showPanelError(tooLongMessage(state.prepared, state.scope), false);
+        setBusy(false);
+        return;
+    }
+
     if (!source) {
         setStatus('Choose the source language to translate.');
         setBusy(false);
@@ -402,6 +425,7 @@ function requestTranslation() {
 
     const createController = new AbortController();
     const requestController = new AbortController();
+    let lastProgressBucket = -1;
     state.createController = createController;
     state.requestController = requestController;
     state.creating = true;
@@ -419,7 +443,14 @@ function requestTranslation() {
                 state.requestController !== requestController) {
                 return;
             }
-            setStatus(`Preparing language pack… ${Math.round(loaded * 100)}%`);
+
+            const percent = Math.round(loaded * 100);
+            const bucket = Math.floor(percent / 25) * 25;
+            if (bucket === lastProgressBucket) {
+                return;
+            }
+            lastProgressBucket = bucket;
+            setStatus(`Preparing language pack… ${percent}%`);
         },
         onReady() {
             if (panelState !== state ||
@@ -593,6 +624,10 @@ function showPanelError(message, retry) {
     panelState.error.textContent = message;
     panelState.error.hidden = false;
     showRetry(retry);
+
+    if (retry) {
+        panelState.retry.focus({ preventScroll: true });
+    }
 }
 
 function hidePanelError() {
@@ -612,7 +647,28 @@ function showRetry(visible) {
 }
 
 function hideRetry() {
+    if (!panelState) {
+        return;
+    }
+
+    const hadFocus = document.activeElement === panelState.retry;
     showRetry(false);
+    if (hadFocus) {
+        panelState.panel.focus({ preventScroll: true });
+    }
+}
+
+/**
+ * Mirror the busy state onto the toolbar button. Kept separate so closing the
+ * panel can clear it even after the panel state is gone.
+ * @param {boolean} busy
+ */
+function setToolbarBusy(busy) {
+    const button = document.getElementById(CONFIG.toolbarId)
+        ?.querySelector('[data-command="translate"]');
+    if (button) {
+        button.setAttribute('aria-busy', String(busy));
+    }
 }
 
 /**
@@ -624,14 +680,14 @@ function setBusy(busy) {
         return;
     }
 
+    const cancelHadFocus = !busy && document.activeElement === panelState.cancel;
     panelState.busy = busy;
     panelState.panel.setAttribute('aria-busy', String(busy));
     panelState.cancel.hidden = !busy;
+    setToolbarBusy(busy);
 
-    const button = document.getElementById(CONFIG.toolbarId)
-        ?.querySelector('[data-command="translate"]');
-    if (button) {
-        button.setAttribute('aria-busy', String(busy));
+    if (cancelHadFocus) {
+        panelState.panel.focus({ preventScroll: true });
     }
 }
 
@@ -649,6 +705,9 @@ function cancelTranslation() {
     setStatus('Translation cancelled.');
     hidePanelError();
     showRetry(true);
+    // The Cancel button is mouse-down protected and may not hold focus, so
+    // move focus to the next useful action explicitly.
+    panelState.retry.focus({ preventScroll: true });
     positionTranslationPanel();
 }
 
@@ -680,9 +739,13 @@ function copyResult() {
 
     if (navigator.clipboard &&
         typeof navigator.clipboard.writeText === 'function') {
-        navigator.clipboard.writeText(text)
-            .then(() => setStatus('Copied to clipboard.'))
-            .catch(fallback);
+        try {
+            navigator.clipboard.writeText(text)
+                .then(() => setStatus('Copied to clipboard.'))
+                .catch(fallback);
+        } catch (error) {
+            fallback();
+        }
         return;
     }
 
@@ -742,15 +805,18 @@ export function positionTranslationPanel() {
         return;
     }
 
-    const toolbar = document.getElementById(CONFIG.toolbarId);
-    if (!toolbar) {
-        return;
-    }
-
     const margin = 15;
     const gap = 10;
     const panel = panelState.panel;
-    const toolbarRect = toolbar.getBoundingClientRect();
+    const toolbar = document.getElementById(CONFIG.toolbarId);
+    const toolbarRect = toolbar
+        ? toolbar.getBoundingClientRect()
+        : STATE.savedRange?.getBoundingClientRect();
+
+    if (!toolbarRect) {
+        return;
+    }
+
     const width = panel.offsetWidth || 360;
     const height = panel.offsetHeight || 0;
     const viewportWidth = window.innerWidth;
@@ -798,6 +864,7 @@ export function closeTranslationPanel(options = {}) {
             stray.remove();
         }
         STATE.translationOpen = false;
+        setToolbarBusy(false);
         updateTranslateExpanded(false);
         return;
     }
@@ -822,6 +889,7 @@ export function closeTranslationPanel(options = {}) {
     state.panel.remove();
     panelState = null;
     STATE.translationOpen = false;
+    setToolbarBusy(false);
     updateTranslateExpanded(false);
 
     if (restoreFocus && state.returnFocus && state.returnFocus.isConnected) {

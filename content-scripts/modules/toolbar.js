@@ -13,7 +13,7 @@ import {
     HIGHLIGHT_COLORS,
     SPACING_PRESETS
 } from './style-defaults.js';
-import { isTranslatorAvailable } from './translation.js';
+import { isTranslationAvailable } from './translation.js';
 import { showToast } from './toast.js';
 
 let runCommand = () => {};
@@ -101,15 +101,6 @@ export function refreshTextCommandLabels() {
 }
 
 /**
- * Whether this page can show the Translate button. The API needs a secure
- * context; the panel explains a Permissions-Policy block later.
- * @returns {boolean}
- */
-function translationAvailable() {
-    return isTranslatorAvailable() && window.isSecureContext;
-}
-
-/**
  * Creates and returns the enhanced toolbar element.
  * @returns {HTMLElement|null} The created toolbar element
  */
@@ -120,7 +111,7 @@ export function createToolbar() {
     removeToolbar();
 
     const tooltips = textCommandTooltips();
-    const translateButton = translationAvailable()
+    const translateButton = isTranslationAvailable()
         ? `<button type="button" data-command="translate" class="icon-btn translate-btn" data-tooltip="Translate selection (${SHORTCUT_LABELS.translate}) · Shift-click: paragraph" data-aria-label="Translate" aria-keyshortcuts="${SHORTCUT_ARIA.translate}" aria-haspopup="dialog" aria-expanded="false">文A</button>`
         : '';
     const toolbar = document.createElement('div');
@@ -504,6 +495,10 @@ export function isClickOutsideExtensionUi(event) {
  * becomes play/pause, and a stop button appears while reading.
  */
 export function updateToolbarReadingState() {
+    // The translation panel mirrors the shared speech state even if the
+    // toolbar is momentarily absent.
+    readingStateChanged();
+
     const toolbar = document.getElementById(CONFIG.toolbarId);
     if (!toolbar) {
         return;
@@ -545,10 +540,6 @@ export function updateToolbarReadingState() {
             next.focus({ preventScroll: true });
         }
     }
-
-    // The translation panel mirrors the shared speech state, including a
-    // session that finished on its own.
-    readingStateChanged();
 }
 
 /**

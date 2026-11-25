@@ -245,7 +245,7 @@ function beginReading(reading) {
         highlightStart: -1,
         paused: false,
         utterance: null,
-        voice: pickReadingVoice(language)
+        voice: pickReadingVoice(language, reading.origin === 'translation')
     };
 
     STATE.speech = session;
@@ -256,8 +256,9 @@ function beginReading(reading) {
 
 /**
  * Make sure transport controls are reachable. Reading from the caret may
- * start without a selection, so no toolbar exists yet.
- * @param {Range} range
+ * start without a selection, so no toolbar exists yet. A text session has no
+ * range; the panel that started it already owns a toolbar.
+ * @param {Range|null} range
  */
 function ensureReadingToolbar(range) {
     if (document.getElementById(CONFIG.toolbarId)) {
@@ -275,11 +276,31 @@ function ensureReadingToolbar(range) {
 }
 
 /**
- * Pick the saved voice, or the best match for a language.
+ * Whether a voice's language matches the requested language's primary tag.
+ * @param {SpeechSynthesisVoice} voice
+ * @param {string} language
+ * @returns {boolean}
+ */
+function voiceMatchesLanguage(voice, language) {
+    const requested = String(language || getPageLanguage()).toLowerCase();
+    const voiceLanguage = String(voice.lang || '').toLowerCase();
+
+    return voiceLanguage === requested ||
+        voiceLanguage.split('-')[0] === requested.split('-')[0];
+}
+
+/**
+ * Pick the saved voice, or the best match for a language. A translation
+ * session passes `preferLanguage` so a saved voice for another language is
+ * not used with the target text.
  * @param {string} [language] Defaults to the page language.
+ * @param {boolean} [preferLanguage]
  * @returns {SpeechSynthesisVoice|null}
  */
-export function pickReadingVoice(language = getPageLanguage()) {
+export function pickReadingVoice(
+    language = getPageLanguage(),
+    preferLanguage = false
+) {
     const voices = getAvailableVoices();
     if (voices.length === 0) {
         return null;
@@ -289,7 +310,7 @@ export function pickReadingVoice(language = getPageLanguage()) {
         const saved = voices.find((voice) =>
             voice.voiceURI === STATE.ttsVoice || voice.name === STATE.ttsVoice
         );
-        if (saved) {
+        if (saved && (!preferLanguage || voiceMatchesLanguage(saved, language))) {
             return saved;
         }
     }

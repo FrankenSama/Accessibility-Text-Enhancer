@@ -517,7 +517,10 @@ function resetReadingSettings() {
     });
 
     if (STATE.speech) {
-        STATE.speech.voice = pickReadingVoice();
+        STATE.speech.voice = pickReadingVoice(
+            STATE.speech.language,
+            STATE.speech.origin === 'translation'
+        );
     }
 
     populateVoiceSelect();

@@ -4,21 +4,8 @@
 
 import { CONFIG } from './core.js';
 import { normalizeSiteRules } from './prefs.js';
-import {
-    normalizeTextDefaults,
-    pickTextDefaults,
-    TEXT_DEFAULT_KEYS
-} from './style-defaults.js';
+import { normalizeTextDefaults } from './style-defaults.js';
 import { normalizeTranslationTarget } from './translation.js';
-
-const PREFERENCE_KEYS = [
-    'darkMode',
-    'ttsVoice',
-    'ttsRate',
-    'ttsPitch',
-    'translationTarget',
-    ...TEXT_DEFAULT_KEYS
-];
 
 /**
  * Build the object written to a settings file.
@@ -51,10 +38,11 @@ export function buildSettingsFile(settings) {
 
 /**
  * Parse a settings file. Files written before schema 2 have no schema field
- * and carry preferences only, so they are treated as schema 1.
+ * and carry preferences only, so they are treated as schema 1. The caller
+ * decides which preferences it recognizes.
  * @param {string} text
- * @returns {{preferences: Object, textDefaults: Object,
- *     hasSettings: boolean, hasRules: boolean, siteRules: Object|null}|null}
+ * @returns {{preferences: Object, hasRules: boolean,
+ *     siteRules: Object|null}|null}
  *     Null when the file has no preferences object at all.
  */
 export function parseSettingsFile(text) {
@@ -71,17 +59,12 @@ export function parseSettingsFile(text) {
     }
 
     const schema = typeof settings.schema === 'number' ? settings.schema : 1;
-    const hasSettings = PREFERENCE_KEYS.some(
-        (key) => preferences[key] !== undefined
-    );
     const rules = settings.siteRules;
     const hasRules = schema >= 2 && Boolean(rules) &&
         typeof rules === 'object' && !Array.isArray(rules);
 
     return {
         preferences,
-        textDefaults: pickTextDefaults(preferences),
-        hasSettings,
         hasRules,
         siteRules: hasRules ? normalizeSiteRules(rules) : null
     };

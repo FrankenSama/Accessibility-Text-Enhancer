@@ -125,11 +125,12 @@ offer **Try again**. The translated text carries the target `lang` and
 screen reader can switch pronunciation and direction. The panel chrome stays
 English and left-to-right.
 
-The panel is a snapshot: changing the page selection starts a new translation,
-while collapsing the selection or selecting inside the panel keeps it open. The
-page DOM is never changed, so translation creates no undo entry and no Reset page
-work. Machine translation can be wrong or awkward; the original is one click away
-in the **Original text** disclosure. Input is capped at 5,000 characters.
+The panel is a snapshot: a new page selection closes it so the toolbar can
+follow the new range, while collapsing the selection or selecting inside the
+panel keeps it open. The page DOM is never changed, so translation creates no
+undo entry and no Reset page work. Machine translation can be wrong or awkward;
+the original is one click away in the **Original text** disclosure. Input is
+capped at 5,000 characters.
 
 ### Limits
 
