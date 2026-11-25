@@ -13,16 +13,22 @@ import {
     HIGHLIGHT_COLORS,
     SPACING_PRESETS
 } from './style-defaults.js';
+import { isTranslatorAvailable } from './translation.js';
 import { showToast } from './toast.js';
 
 let runCommand = () => {};
 let resolveCommandScope = () => null;
 let readToggleStates = () => ({});
+let repositionTranslationPanel = () => {};
+let toolbarRemoved = () => {};
+let readingStateChanged = () => {};
 
 /**
  * Supply the command callbacks the toolbar needs. Keeping them injected
  * avoids a circular import between the toolbar and command modules.
- * @param {{runCommand?: Function, getScopeOverride?: Function, getToggleStates?: Function}} handlers
+ * @param {{runCommand?: Function, getScopeOverride?: Function,
+ *     getToggleStates?: Function, positionTranslationPanel?: Function,
+ *     onToolbarRemoved?: Function, onReadingStateChanged?: Function}} handlers
  */
 export function configureToolbar(handlers = {}) {
     if (typeof handlers.runCommand === 'function') {
@@ -33,6 +39,15 @@ export function configureToolbar(handlers = {}) {
     }
     if (typeof handlers.getToggleStates === 'function') {
         readToggleStates = handlers.getToggleStates;
+    }
+    if (typeof handlers.positionTranslationPanel === 'function') {
+        repositionTranslationPanel = handlers.positionTranslationPanel;
+    }
+    if (typeof handlers.onToolbarRemoved === 'function') {
+        toolbarRemoved = handlers.onToolbarRemoved;
+    }
+    if (typeof handlers.onReadingStateChanged === 'function') {
+        readingStateChanged = handlers.onReadingStateChanged;
     }
 }
 
@@ -86,6 +101,15 @@ export function refreshTextCommandLabels() {
 }
 
 /**
+ * Whether this page can show the Translate button. The API needs a secure
+ * context; the panel explains a Permissions-Policy block later.
+ * @returns {boolean}
+ */
+function translationAvailable() {
+    return isTranslatorAvailable() && window.isSecureContext;
+}
+
+/**
  * Creates and returns the enhanced toolbar element.
  * @returns {HTMLElement|null} The created toolbar element
  */
@@ -96,6 +120,9 @@ export function createToolbar() {
     removeToolbar();
 
     const tooltips = textCommandTooltips();
+    const translateButton = translationAvailable()
+        ? `<button type="button" data-command="translate" class="icon-btn translate-btn" data-tooltip="Translate selection (${SHORTCUT_LABELS.translate}) · Shift-click: paragraph" data-aria-label="Translate" aria-keyshortcuts="${SHORTCUT_ARIA.translate}" aria-haspopup="dialog" aria-expanded="false">文A</button>`
+        : '';
     const toolbar = document.createElement('div');
     toolbar.id = CONFIG.toolbarId;
     toolbar.setAttribute('role', 'toolbar');
@@ -131,6 +158,7 @@ export function createToolbar() {
             <button type="button" data-command="contrast" class="icon-btn" data-tooltip="Fix Contrast · Shift: selection">🎨</button>
             <button type="button" data-command="focusMode" class="icon-btn aids-btn" data-tooltip="Focus mode (${SHORTCUT_LABELS.focusMode})" data-aria-label="Focus mode" aria-keyshortcuts="${SHORTCUT_ARIA.focusMode}" aria-pressed="false">🎯</button>
             <button type="button" data-command="readingRuler" class="icon-btn aids-btn" data-tooltip="Reading ruler (${SHORTCUT_LABELS.readingRuler})" data-aria-label="Reading ruler" aria-keyshortcuts="${SHORTCUT_ARIA.readingRuler}" aria-pressed="false">📏</button>
+            ${translateButton}
             <button type="button" data-command="readAloud" class="icon-btn" data-tooltip="Read Aloud (${SHORTCUT_LABELS.read})">🔊</button>
             <button type="button" data-command="stopReading" class="icon-btn" data-tooltip="Stop Reading" tabindex="-1" hidden>⏹️</button>
         </div>
@@ -421,11 +449,13 @@ export function scheduleToolbarPosition() {
         if (toolbar && STATE.savedRange) {
             positionToolbar(toolbar, STATE.savedRange);
         }
+        repositionTranslationPanel();
     });
 }
 
 /**
- * Removes the toolbar and cancels any pending placement work.
+ * Removes the toolbar, closes the translation panel, and cancels any pending
+ * placement work.
  */
 export function removeToolbar() {
     if (STATE.positionFrame !== null) {
@@ -442,10 +472,16 @@ export function removeToolbar() {
     if (existingToolbar) {
         existingToolbar.remove();
     }
+
+    // The panel is a sibling of the toolbar, so removing the toolbar must
+    // tear it down too. It closes without restoring focus because the button
+    // it would return to is going away.
+    toolbarRemoved();
 }
 
 /**
- * Checks if a click is outside the toolbar, settings panel, and overlay.
+ * Checks if a click is outside the toolbar, settings panel, translation
+ * panel, and overlay.
  * @param {Event} event - The mouse event
  * @returns {boolean} True if outside the extension UI
  */
@@ -453,10 +489,12 @@ export function isClickOutsideExtensionUi(event) {
     const toolbar = document.getElementById(CONFIG.toolbarId);
     const panel = document.getElementById(CONFIG.settingsPanelId);
     const overlay = document.getElementById(CONFIG.settingsOverlayId);
+    const translation = document.getElementById(CONFIG.translationPanelId);
 
     return !(toolbar && toolbar.contains(event.target)) &&
            !(panel && panel.contains(event.target)) &&
-           !(overlay && overlay.contains(event.target));
+           !(overlay && overlay.contains(event.target)) &&
+           !(translation && translation.contains(event.target));
 }
 
 // ==================== READING STATE ====================
@@ -507,6 +545,10 @@ export function updateToolbarReadingState() {
             next.focus({ preventScroll: true });
         }
     }
+
+    // The translation panel mirrors the shared speech state, including a
+    // session that finished on its own.
+    readingStateChanged();
 }
 
 /**
@@ -591,5 +633,10 @@ export function applyTheme() {
     const panel = document.getElementById(CONFIG.settingsPanelId);
     if (panel) {
         panel.classList.toggle('light-mode', !STATE.isDarkMode);
+    }
+
+    const translation = document.getElementById(CONFIG.translationPanelId);
+    if (translation) {
+        translation.classList.toggle('light-mode', !STATE.isDarkMode);
     }
 }

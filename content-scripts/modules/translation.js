@@ -339,14 +339,21 @@ function translationFailure(code, context) {
 }
 
 /**
+ * Whether this context exposes the Translator constructor. The secure-context
+ * check belongs to the caller because it needs `window`.
+ * @returns {boolean}
+ */
+export function isTranslatorAvailable() {
+    return typeof globalThis.Translator === 'function';
+}
+
+/**
  * Chrome exposes Translator on the global object. Reading it lazily keeps the
  * module importable in Node, where the API does not exist.
  * @returns {Function|null}
  */
 function defaultTranslatorClass() {
-    return typeof globalThis.Translator === 'function'
-        ? globalThis.Translator
-        : null;
+    return isTranslatorAvailable() ? globalThis.Translator : null;
 }
 
 /**
@@ -440,6 +447,7 @@ export function createTranslationService(options = {}) {
      * @param {string} to
      * @param {AbortSignal|undefined} createSignal
      * @param {Function|undefined} onProgress
+     * @param {Function|undefined} onReady
      * @param {{source: string, target: string}} context
      * @returns {Promise<Object>}
      */
@@ -450,6 +458,7 @@ export function createTranslationService(options = {}) {
         to,
         createSignal,
         onProgress,
+        onReady,
         context
     ) {
         if (createSignal?.aborted) {
@@ -514,6 +523,10 @@ export function createTranslationService(options = {}) {
             }, { once: true });
         }
 
+        if (typeof onReady === 'function') {
+            onReady();
+        }
+
         return { ok: true, entry };
     }
 
@@ -521,7 +534,7 @@ export function createTranslationService(options = {}) {
      * Translate text, creating the pair's translator on first use.
      * @param {{text: unknown, source: unknown, target: unknown,
      *     signal?: AbortSignal, createSignal?: AbortSignal,
-     *     onProgress?: Function}} request
+     *     onProgress?: Function, onReady?: Function}} request
      * @returns {Promise<Object>}
      */
     async function translate(request = {}) {
@@ -531,7 +544,8 @@ export function createTranslationService(options = {}) {
             target,
             signal,
             createSignal,
-            onProgress
+            onProgress,
+            onReady
         } = request;
 
         const from = normalizeLanguageTag(source);
@@ -575,12 +589,15 @@ export function createTranslationService(options = {}) {
                 to,
                 createSignal,
                 onProgress,
+                onReady,
                 context
             );
             if (!created.ok) {
                 return created;
             }
             entry = created.entry;
+        } else if (typeof onReady === 'function') {
+            onReady();
         }
 
         try {

@@ -19,6 +19,7 @@ import {
     toggleReadingRuler
 } from './reading-aids-ui.js';
 import { showSettingsPanel, toggleToolbarTheme } from './settings.js';
+import { openTranslationPanel } from './translation-ui.js';
 import { notify } from './feedback.js';
 import {
     contrastRatio,
@@ -69,6 +70,9 @@ export function handleCommand(command, options = {}) {
             return;
         case 'readAloud':
             toggleReadAloud();
+            return;
+        case 'translate':
+            openTranslationPanel(options.scope || 'selection');
             return;
         case 'stopReading':
             stopReading();

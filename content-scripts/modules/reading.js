@@ -177,10 +177,48 @@ function getReadingTarget() {
  */
 function startReading(range) {
     const map = buildTextMap(range);
+
+    beginReading({
+        text: map.text,
+        map,
+        language: getPageLanguage(),
+        range,
+        origin: 'selection'
+    });
+}
+
+/**
+ * Read text that is not on the page, such as a translation result. There is
+ * no text map, so the follow-along highlight is skipped.
+ * @param {string} text
+ * @param {string} [language]
+ */
+export function startReadingText(text, language) {
+    beginReading({
+        text,
+        map: null,
+        language: language || getPageLanguage(),
+        range: null,
+        origin: 'translation'
+    });
+}
+
+/**
+ * Start a reading session from either a page range or plain text.
+ * @param {{text: string, map: Object|null, language: string,
+ *     range?: Range|null, origin: string}} reading
+ */
+function beginReading(reading) {
+    if (!('speechSynthesis' in window)) {
+        showToast('Speech synthesis not supported', { error: true });
+        return;
+    }
+
+    const language = reading.language || getPageLanguage();
     const chunks = buildSpeechChunks(
-        map.text,
+        reading.text,
         CONFIG.maxSpeechChunkLength,
-        getPageLanguage()
+        language
     );
 
     if (chunks.length === 0) {
@@ -195,9 +233,11 @@ function startReading(range) {
     }
 
     const session = {
-        map,
+        map: reading.map,
+        language,
+        origin: reading.origin || 'selection',
         chunks,
-        sentences: buildSentenceMap(map.text, getPageLanguage()),
+        sentences: buildSentenceMap(reading.text, language),
         index: 0,
         // Highest chunk already handed to the speech engine.
         queued: -1,
@@ -205,11 +245,11 @@ function startReading(range) {
         highlightStart: -1,
         paused: false,
         utterance: null,
-        voice: pickReadingVoice()
+        voice: pickReadingVoice(language)
     };
 
     STATE.speech = session;
-    ensureReadingToolbar(range);
+    ensureReadingToolbar(reading.range);
     queueSpeechChunk(session, 0);
     showToast('Reading aloud');
 }
@@ -227,15 +267,19 @@ function ensureReadingToolbar(range) {
 
     const toolbar = createToolbar();
     if (toolbar) {
-        positionToolbar(toolbar, STATE.savedRange || range);
+        const target = STATE.savedRange || range;
+        if (target) {
+            positionToolbar(toolbar, target);
+        }
     }
 }
 
 /**
- * Pick the saved voice, or the best match for the page language.
+ * Pick the saved voice, or the best match for a language.
+ * @param {string} [language] Defaults to the page language.
  * @returns {SpeechSynthesisVoice|null}
  */
-export function pickReadingVoice() {
+export function pickReadingVoice(language = getPageLanguage()) {
     const voices = getAvailableVoices();
     if (voices.length === 0) {
         return null;
@@ -250,7 +294,7 @@ export function pickReadingVoice() {
         }
     }
 
-    const pageLanguage = getPageLanguage().toLowerCase();
+    const pageLanguage = String(language || getPageLanguage()).toLowerCase();
     const primaryLanguage = pageLanguage.split('-')[0];
     const matching = voices.filter((voice) => {
         const voiceLanguage = voice.lang.toLowerCase();
@@ -292,7 +336,11 @@ function queueSpeechChunk(session, index) {
     if (session.voice) {
         utterance.voice = session.voice;
     }
-    utterance.lang = session.voice?.lang || getPageLanguage();
+    // A translation session must speak in its target language. Page reading
+    // keeps preferring the chosen voice's more specific language.
+    utterance.lang = session.origin === 'translation'
+        ? session.language
+        : (session.voice?.lang || session.language || getPageLanguage());
 
     utterance.onstart = () => {
         if (session !== STATE.speech) {
@@ -301,9 +349,11 @@ function queueSpeechChunk(session, index) {
 
         session.index = index;
         session.highlightStart = -1;
-        const range = rangeFromOffsets(session.map, chunk.start, chunk.end);
-        if (range) {
-            highlightReadingRange(range);
+        if (session.map) {
+            const range = rangeFromOffsets(session.map, chunk.start, chunk.end);
+            if (range) {
+                highlightReadingRange(range);
+            }
         }
 
         // The next chunk is already in the engine's queue by the time this
@@ -444,6 +494,10 @@ function highlightReadingRange(range) {
  * @param {number} offset
  */
 function highlightReadingSentence(session, offset) {
+    if (!session.map) {
+        return;
+    }
+
     const sentence = session.sentences.find((entry) =>
         offset >= entry.start && offset < entry.end
     );

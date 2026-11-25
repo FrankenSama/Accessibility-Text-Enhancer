@@ -33,7 +33,7 @@ export function getScopeOverride(command, shiftKey) {
         return 'selection';
     }
 
-    if (command === 'bold' || command === 'highlight') {
+    if (command === 'bold' || command === 'highlight' || command === 'translate') {
         return 'block';
     }
 

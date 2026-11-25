@@ -15,6 +15,7 @@ import {
 } from './style-defaults.js';
 import { initTextStylingControls } from './text-styling-ui.js';
 import { initSiteRulesControls } from './site-rules-ui.js';
+import { closeTranslationPanel } from './translation-ui.js';
 import { hasPageChanges, resetPageChanges } from './history.js';
 
 let settingsReturnFocus = null;
@@ -424,6 +425,7 @@ function setupPageReset(panel) {
         disarm();
 
         if (resetPageChanges()) {
+            closeTranslationPanel({ restoreFocus: false });
             removeSettingsPanel();
         }
     });

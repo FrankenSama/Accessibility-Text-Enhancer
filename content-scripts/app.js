@@ -43,6 +43,12 @@ import {
     toggleReadingRuler
 } from './modules/reading-aids-ui.js';
 import {
+    closeTranslationPanel,
+    positionTranslationPanel,
+    syncTranslationReadingState
+} from './modules/translation-ui.js';
+import { defaultTranslationTarget } from './modules/translation.js';
+import {
     isEnabledForOrigin,
     loadSyncedPreferences,
     normalizeSiteRules,
@@ -146,6 +152,7 @@ async function loadExtensionState() {
         CONFIG.defaultTtsPitch
     );
     STATE.textDefaults = normalizeTextDefaults(synced);
+    STATE.translationTarget = defaultTranslationTarget(navigator.language);
     if (STATE.textDefaults.fontFamily === 'opendyslexic') {
         loadOpenDyslexicFonts();
     }
@@ -163,6 +170,9 @@ function setupEventListeners() {
     document.addEventListener('mousedown', (event) => {
         if (isClickOutsideExtensionUi(event)) {
             STATE.savedRange = null;
+            if (STATE.translationOpen) {
+                closeTranslationPanel({ restoreFocus: false });
+            }
             if (STATE.speech) {
                 updateToolbarState();
             } else {
@@ -255,7 +265,9 @@ function handleSelectionChange() {
 
     // Ignore selection changes caused by interacting with the extension UI.
     const activeElement = document.activeElement;
-    if (activeElement && activeElement.closest(`#${CONFIG.toolbarId}, #${CONFIG.settingsPanelId}`)) {
+    if (activeElement && activeElement.closest(
+        `#${CONFIG.toolbarId}, #${CONFIG.settingsPanelId}, #${CONFIG.translationPanelId}`
+    )) {
         return;
     }
 
@@ -269,6 +281,22 @@ function handleSelectionChange() {
     // before the pending-toolbar timer is cleared.
     if (range && STATE.savedRange && rangesMatch(range, STATE.savedRange)) {
         return;
+    }
+
+    // The translation panel is a snapshot. A collapsed selection or text
+    // selected inside the panel keeps it open; a new page selection closes
+    // it so the toolbar can follow the new range.
+    if (STATE.translationOpen) {
+        const panel = document.getElementById(CONFIG.translationPanelId);
+        const insidePanel = Boolean(
+            panel && range && panel.contains(range.commonAncestorContainer)
+        );
+
+        if (!range || !range.toString().trim() || insidePanel) {
+            return;
+        }
+
+        closeTranslationPanel({ restoreFocus: false });
     }
 
     // Focus mode follows the caret even when the toolbar is about to be
@@ -318,6 +346,15 @@ function setupKeyboardShortcuts() {
             // Close the dialog first and leave the toolbar in place.
             if (document.getElementById(CONFIG.settingsPanelId)) {
                 removeSettingsPanel();
+                event.preventDefault();
+                return;
+            }
+
+            // The translation panel closes before reading so Escape does not
+            // stop speech the user may still be listening to. A <select>
+            // counts as editable, so this branch must not check for that.
+            if (STATE.translationOpen) {
+                closeTranslationPanel();
                 event.preventDefault();
                 return;
             }
@@ -415,6 +452,15 @@ function setupKeyboardShortcuts() {
             (event.code === 'KeyR' || key === 'r')) {
             event.preventDefault();
             toggleReadAloud();
+            return;
+        }
+
+        // Alt/Option + Shift + G = translate the selection. The shortcut
+        // always uses selection scope; Shift-click uses paragraph scope.
+        if (altShift && !editable &&
+            (event.code === 'KeyG' || key === 'g') && STATE.savedRange) {
+            event.preventDefault();
+            handleCommand('translate', { scope: 'selection' });
             return;
         }
 
@@ -550,7 +596,10 @@ export function start() {
     configureToolbar({
         runCommand: handleCommand,
         getScopeOverride,
-        getToggleStates
+        getToggleStates,
+        positionTranslationPanel,
+        onToolbarRemoved: () => closeTranslationPanel({ restoreFocus: false }),
+        onReadingStateChanged: syncTranslationReadingState
     });
 
     chrome.storage.onChanged.addListener(handleStorageChange);

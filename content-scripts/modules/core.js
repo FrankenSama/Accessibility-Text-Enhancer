@@ -40,6 +40,10 @@ export const STATE = {
     focusMode: false,
     readingRuler: false,
     focusBlock: null,
+    // Selection translation. The panel is a snapshot; the target is the
+    // normalized language tag the user chose.
+    translationOpen: false,
+    translationTarget: '',
     // Focus Toolbar is a manifest command. These defaults are replaced with
     // the user's actual binding once the background worker responds.
     focusToolbarShortcut: IS_MAC ? 'Cmd+Shift+F' : 'Ctrl+Shift+F',
@@ -50,6 +54,7 @@ export const CONFIG = {
     toolbarId: 'accessibility-toolbar',
     settingsPanelId: 'accessibility-settings-panel',
     settingsOverlayId: 'accessibility-settings-overlay',
+    translationPanelId: 'accessibility-translation-panel',
     focusOverlayId: 'accessibility-focus-overlay',
     readingRulerId: 'accessibility-reading-ruler',
     highlightAttr: 'data-accessibility-highlight',
@@ -78,6 +83,8 @@ export const CONFIG = {
     // guard for unusually long text; desktop Chrome speaks a thousand
     // characters without truncating.
     maxSpeechChunkLength: 1000,
+    // Translation input cap. Longer selections are reported, never truncated.
+    translationMaxChars: 5000,
     readingHighlightName: 'atx-reading',
     defaultTtsRate: 0.9,
     defaultTtsPitch: 1,
@@ -96,14 +103,16 @@ export const SHORTCUT_LABELS = {
     highlight: IS_MAC ? 'Option+Shift+H' : 'Alt+Shift+H',
     read: IS_MAC ? 'Option+Shift+R' : 'Alt+Shift+R',
     focusMode: IS_MAC ? 'Option+Shift+D' : 'Alt+Shift+D',
-    readingRuler: IS_MAC ? 'Option+Shift+L' : 'Alt+Shift+L'
+    readingRuler: IS_MAC ? 'Option+Shift+L' : 'Alt+Shift+L',
+    translate: IS_MAC ? 'Option+Shift+G' : 'Alt+Shift+G'
 };
 
 // ARIA keyshortcuts use the platform-neutral Alt name; on macOS the Option
 // key is the Alt key.
 export const SHORTCUT_ARIA = {
     focusMode: 'Alt+Shift+D',
-    readingRuler: 'Alt+Shift+L'
+    readingRuler: 'Alt+Shift+L',
+    translate: 'Alt+Shift+G'
 };
 
 // Commands that change readability, so they apply to the nearest block
@@ -165,5 +174,6 @@ export const HTML_NAMESPACE = 'http://www.w3.org/1999/xhtml';
 // An empty or "plaintext-only" contenteditable is still editable, so only
 // an explicit "false" opts an element out.
 export const SKIP_SELECTOR = `#${CONFIG.toolbarId}, #${CONFIG.settingsPanelId}, ` +
+    `#${CONFIG.translationPanelId}, ` +
     'script, style, textarea, input, select, ' +
     '[contenteditable]:not([contenteditable="false"])';
