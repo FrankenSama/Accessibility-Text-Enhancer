@@ -157,18 +157,20 @@ Turn on Windows High Contrast (or emulate `forced-colors: active` in DevTools) a
 
 | # | Step | Expected |
 |---|------|----------|
-| TR1 | Select text and activate **Translate** (or press `Alt+Shift+G`). | The translation panel opens as a non-modal dialog, focus moves into it, and its name and language pair are announced. The Translate button reports expanded. |
-| TR2 | Inspect the **From** and **To** selects. | Both are announced as comboboxes with their current values: the detected source and the saved target. Changing either cancels the current request and starts a new one. |
-| TR3 | Use a language pair for the first time. | "Preparing language pack…" is announced, percentage progress follows when Chrome reports it, and **Cancel** stops the request. |
-| TR4 | Wait for the result. | "Translation ready" is announced. The result is announced with the target language and direction, and the **Original text** disclosure is available. |
-| TR5 | Activate **Copy**. | "Copied to clipboard" is announced. If the clipboard is blocked, the result is selected and the manual copy shortcut is announced. |
-| TR6 | Activate **Read aloud**. | The translated text is spoken in the target language, the button announces Pause/Resume, and the toolbar's Stop Reading remains available. |
-| TR7 | Press `Escape` while focus is in the **To** select. | The panel closes, focus returns to **Translate**, and any speech keeps playing. A second `Escape` stops reading. |
-| TR8 | With the panel open, select new page text, then collapse a selection. | A new page selection closes the panel and the toolbar follows the new range; a collapsed selection or a selection inside the panel keeps it open. |
-| TR9 | Force a download failure or choose an unsupported pair. | The failure is announced and **Try again** is offered when retrying can help. |
-| TR10 | Select more than 5,000 characters. | The panel reports the character count, suggests a smaller selection or Shift-click for one paragraph, and translates nothing. |
-| TR11 | Open a plain `http://` page. | The Translate button is absent; invoking the shortcut explains that Chrome 138+ on desktop, on an HTTPS page, is required. |
-| TR12 | Turn on Windows High Contrast and open the panel. | The panel, selects, result, and buttons use system colours with visible borders and focus rings. |
+| TR1 | Select text and activate **Translate** (or press `Alt+Shift+G`). | On first use, the language bubble opens, focus moves into it, and the source/target pair is announced. Once a target is saved, Translate starts directly. |
+| TR2 | Choose a target and activate **Translate**. | "Preparing language pack." is announced; percentage progress follows when Chrome reports it; **Cancel** stops the request. |
+| TR3 | Wait for the replacement. | The selected text is replaced in place by the translation. The translated text is selected, carries the target language and direction, has a dotted underline, and "Translated to…" is announced. |
+| TR4 | Press **Translate** again (now **Show original**). | The original text returns, the button becomes Translate, and "Original text restored" is announced. |
+| TR5 | Undo, Redo, then Reset page. | Undo restores the original; Redo re-applies the translation; Reset page restores it and closes the settings dialog. |
+| TR6 | Shift-click Translate, then select across two paragraphs and translate. | Shift-click replaces the whole paragraph; a cross-block selection is explained and left unchanged. |
+| TR7 | Change the target in Settings or the options page, then translate. | The toolbar tooltip names the new target, and the next translation uses it. |
+| TR8 | Force a download failure or choose an unsupported pair. | The failure is announced and **Try again** is offered when retrying can help. |
+| TR9 | Select more than 5,000 characters. | The bubble reports the character count, suggests a smaller selection or Shift-click, and translates nothing. |
+| TR10 | Select text inside a link or emphasis, then translate and restore. | The link target or emphasis stays around the translation; restoring brings the original markup back. |
+| TR11 | Translate into a right-to-left language. | The translated text follows `dir="auto"`; the page flow may reflow, but the direction is correct. |
+| TR12 | Read the translated text with Read Aloud. | It is spoken with the target language and a matching voice. |
+| TR13 | Open a plain `http://` page. | The Translate button is absent; the shortcut explains that Chrome 138+ on desktop, on an HTTPS page, is required. |
+| TR14 | Turn on Windows High Contrast and translate. | The bubble uses system colours; the translation mark uses the system Highlight colour and stays inline. |
 
 The translation rows were added with v1.7.0; their manual NVDA pass is pending.
 
@@ -203,7 +205,7 @@ Use **Pass**, **Pass with notes**, or **Fail** for each section.
 | Automated v1.5.0 checks | 2026-11-19 | Chrome 156 headless on Windows, real extension build | 57 style-default unit checks; 64 text-default browser checks; 20 font-loading checks over ordinary, strict-CSP, file://, and blocked-font pages; options suite 89/89 |
 | Automated v1.5.1 checks | 2026-11-23 | Chrome 156 headless on Windows, real extension build | 36 in-page settings checks covering text styling, preview, persistence, reset, and site rules; options suite 91/91; full harness 615 pass with only the known bogus `check-coverage` line |
 | Automated v1.6.0 checks | 2026-11-24 | Chrome 156 headless on Windows, real extension build | 105 focus-mode, ruler, toolbar, accessibility-tree, forced-colors, and regression checks pass; full harness 815 pass, 0 fail |
-| Automated v1.7.0 checks | 2026-11-25 | Chrome 156 headless on Windows, script-tag build with a fake Translator plus the real-extension regressions | 158 translation unit checks and 107 translation browser checks pass (cache, signals, progress, cancel, errors, focus, shortcut-before-toolbar, schema 4, reload persistence, in-page import, panel a11y, hostile CSS, print, forced colours, and toolbar rows); full harness 1,088 pass, 0 fail |
+| Automated v1.7.0 checks | 2026-11-25 | Chrome 156 headless on Windows, script-tag build with a fake Translator plus the real-extension regressions | 158 translation unit checks and 56 in-place translation browser checks pass (first-use bubble, wrapper `lang`/`dir`, dotted mark, toggle/undo/redo/reset, Shift paragraph, cross-block rejection, link context, same-language, cap, network retry, cancel, target settings, hostile CSS, print, forced colours, Read Aloud language, and reload); full harness 1,042 pass, 0 fail |
 | NVDA pass (Speech Viewer) | 2026-11-24 | Windows 11 Home 26200, Chrome for Testing 156.0.8078.47 headed with `--force-renderer-accessibility`, NVDA 2026.3 (Portuguese UI) | 37/37 captured announcements pass; toolbar, settings, reading, focus mode, ruler, shortcuts, and Escape order |
 | NVDA manual pass | 2026-11-06 | Windows 11 Home 26200, Chrome for Testing 156.0.8078.47 headed with `--force-renderer-accessibility`, NVDA 2026.3 (Portuguese UI) | Pass with notes |
 | VoiceOver manual pass | — | macOS | Not tested — no macOS hardware available |

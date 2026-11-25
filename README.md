@@ -27,7 +27,7 @@ Originally developed for an MSc dissertation at Solent University, it is now mai
 - **Font size, contrast, and font choice** for the nearest paragraph: Sans, Serif, Monospace, or the bundled **OpenDyslexic** font
 - **Text spacing** with Comfortable, the WCAG 1.4.12 preset, or four custom sliders, plus **highlight colour and style** (background, underline, or automatic contrast-aware)
 - **Focus mode and reading ruler**: dim everything except the paragraph you are reading, or lay a translucent ruler under the pointer. Both are visual, session-only aids that change nothing on the page
-- **Translate** the selection or a paragraph into a read-only panel with Chrome's built-in Translator API. The target language syncs with your profile, language-pack progress can be cancelled, and the result can be copied or read aloud in the target language. Needs Chrome 138+ on desktop and an HTTPS page
+- **Translate** the selection in place, or the paragraph on Shift-click, with Chrome's built-in Translator API. The translated text stays in the page, is marked with a dotted underline, and is restored by pressing Translate again, Undo, or Reset page. The target language syncs with your profile and can be changed in Settings. Needs Chrome 138+ on desktop and an HTTPS page
 - **Read aloud** with selectable voice, speed, and pitch, sentence highlighting, pause/resume/stop controls, plus voice preview and a dedicated settings page
 - **Undo/redo** for the last 50 changes, plus **Reset page** to remove everything in one action
 - **Saved text defaults** for font, spacing, and highlight that sync with your Chrome profile
@@ -65,7 +65,7 @@ The symbols match the toolbar buttons:
 | 🎨 | Fix contrast | Adjusts the paragraph text colour until it is readable against its background. |
 | 🎯 | Focus mode | Dims every block except the one under the selection or caret. Session-only; `Escape` exits. |
 | 📏 | Reading ruler | Shows a translucent band under the pointer to keep your place. Session-only; `Escape` exits. |
-| 文A | Translate | Translates the selection into a read-only panel; Shift-click translates the paragraph. Needs Chrome 138+ desktop on an HTTPS page. |
+| 文A / ↺ | Translate / Show original | Replaces the selected text with its translation in place; Shift-click translates the paragraph, and pressing the button again restores the original. Needs Chrome 138+ desktop on an HTTPS page. |
 | 🔊 | Read Aloud | Reads the selection, or the paragraph at the caret; turns into pause/resume while reading. |
 | ⏹️ | Stop Reading | Stops speech; appears only while reading. |
 | ⚙️ | Settings | Opens the in-page dialog for text styling, reading, site rules, page reset, and backup. |
@@ -97,7 +97,7 @@ Screen-reader announcements are verified with NVDA on Windows. VoiceOver on macO
 
 ## Privacy
 
-Preferences, the translation target, and site rules are stored with `chrome.storage.sync`, so Chrome may sync them across the devices signed in to your Google account; the on/off switch uses `chrome.storage.local` and stays on this device. Selections and page content are processed in your browser and never sent to the developer or a third party. Translation runs through Chrome's built-in Translator API; the first use of a language pair downloads an on-device language pack, and the extension sends no page text to the developer or any third party. See the [privacy policy](privacy-policy.md) for details.
+Preferences, the translation target, and site rules are stored with `chrome.storage.sync`, so Chrome may sync them across the devices signed in to your Google account; the on/off switch uses `chrome.storage.local` and stays on this device. Selections and page content are processed in your browser and never sent to the developer or a third party. The translated text replaces the selection locally and can be undone. Translation runs through Chrome's built-in Translator API; the first use of a language pair downloads an on-device language pack, and the extension sends no page text to the developer or any third party. See the [privacy policy](privacy-policy.md) for details.
 
 ## Contributing
 

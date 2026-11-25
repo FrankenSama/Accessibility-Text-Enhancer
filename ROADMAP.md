@@ -41,7 +41,7 @@ This roadmap tracks the accessibility work planned for Accessibility Text Enhanc
 
 **v1.6.0 (reading aids):** keeps toolbar buttons centred on pages that restyle `<button>` with their own `display`, `align-items`, `line-height`, margins, or font. Each button is now a self-contained centred flex box with its line height, vertical alignment, and text metrics reset, instead of relying on the host page's button defaults; this fixes the bottom-aligned icons seen on Reddit and similar sites. Also completes the High Contrast pass in the settings dialog: the live preview and the per-rule **Remove** button use system colours with a real border. v1.6.0 adds the Phase 5 reading aids: **focus mode** dims everything except the block under the selection or caret, and the **reading ruler** follows the pointer. Both are transient overlays with no page mutation, no history entries, and no new storage keys; they are hidden from assistive technology, follow forced-colors, and exit with `Escape`. No new permissions or network access.
 
-**v1.7.0 (selection translation, implemented on main):** adds a **Translate** toolbar button and `Alt+Shift+G` shortcut. The selection, or the paragraph on Shift-click, is translated into a read-only panel with Chrome's built-in Translator API. The panel detects the source language, remembers and syncs the target, shows language-pack progress with Cancel, explains unsupported pairs and failures with Try again, and offers Copy plus read-aloud in the target language. The result carries `lang` and `dir="auto"`; the page DOM, undo history, and Reset page are untouched. Translation needs Chrome 138+ on desktop and an HTTPS page, and adds `translationTarget` to schema 4 settings exports. A non-secure page hides the button and explains the requirement. No new permissions.
+**v1.7.0 (in-place selection translation, implemented on main):** adds a **Translate** toolbar button and `Alt+Shift+G` shortcut. The selection, or the paragraph on Shift-click, is replaced in place by its translation using Chrome's built-in Translator API. The wrapper carries `lang` and `dir="auto"` with a dotted underline; pressing Translate again, Undo/Redo, or Reset page restores the original. A compact first-use/progress/error bubble detects the source, saves and syncs the target, shows language-pack progress with Cancel, and offers Try again. The target is changed in Settings or the options page. Multi-block selections are rejected; links or emphasis containing the whole selection stay around the translation, while internal markup is flattened and restored by undo. The page change is undoable and read aloud uses the target language. Needs Chrome 138+ on desktop and an HTTPS page. Adds `translationTarget` to schema 4 settings exports. No new permissions.
 
 **Distribution:** v1.6.0 is the latest GitHub release with a packaged zip and SHA-256 checksum. v1.4.1 remains the Chrome Web Store version until a package is submitted and published. v1.7.0 is implemented on `main` and is waiting for its manual NVDA pass, version bump, package, and release.
 
@@ -204,12 +204,13 @@ The toolbar already declares `role="toolbar"`, but it was not operable or unders
 
 **Work:**
 
-- **Translate selection.** A toolbar button translates the current selection into a read-only panel; Shift translates the containing paragraph.
+- **Translate selection.** A toolbar button replaces the current selection in place with its translation; Shift translates the containing paragraph.
 - **On-device translation.** Use Chrome's built-in Translator API (Chrome 138+ desktop). No cloud service, API key, or extension-originated network request; show language-pack progress and cancellation.
-- **Accessible result.** Set `lang` and `dir` on the result, announce progress and errors, and offer copy plus read-aloud in the target language.
-- **No page mutation.** The original stays intact, so there is no undo entry, layout change, or RTL risk.
+- **Accessible result.** Set `lang` and `dir="auto"` on the translated text, mark it with a dotted underline, announce progress and errors, and read it aloud in the target language.
+- **Undoable page change.** Keep the original for the Translate toggle, Undo/Redo, and Reset page. A page re-render can discard the change, like the styling commands.
+- **Target control.** Save and sync the target; choose it in a first-use/language bubble and change it later in Settings or the options page.
 
-**Acceptance:** selection and paragraph scopes work; the target language is saved and synced; unsupported pairs, download failures, and the character cap are explained; the panel is keyboard-operable, forced-colors ready, and announced correctly; the page DOM and undo history are unchanged; the full harness is green.
+**Acceptance:** selection and paragraph scopes work in place; the target language is saved and synced; unsupported pairs, download failures, and the character cap are explained; the toggle, Undo/Redo, and Reset page restore the original; the wrapper carries `lang`/`dir="auto"` and Read Aloud uses the target; the bubble is keyboard-operable and forced-colors ready; the full harness is green.
 
 **Risks:** Chrome 138+ only; incomplete language-pair coverage; first-use model download; machine-translation quality; toolbar crowding.
 

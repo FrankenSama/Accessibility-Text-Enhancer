@@ -29,12 +29,12 @@ That is a target, not a certification:
 | Chromium-based browsers (Edge, Brave, Opera) | Best effort; not part of the release checks |
 | Chrome on Android or iOS | Not supported; mobile Chrome does not run extensions |
 | Keyboard-only use | Supported: shortcuts, a single toolbar tab stop, arrow-key navigation, and `aria-pressed` state |
-| Windows High Contrast / forced-colors | Supported for the toolbar, dialog, translation panel, popup, options page, and reading aids |
+| Windows High Contrast / forced-colors | Supported for the toolbar, dialog, translation text and bubble, popup, options page, and reading aids |
 | NVDA on Windows | Verified for v1.3.0 on 2026-11-06. A v1.6.0 Speech Viewer pass on 2026-11-24 covered the toolbar, settings, reading, focus mode, and ruler (37/37). The v1.7.0 translation pass is pending; a live listening pass has not been repeated since v1.3.0 |
 | VoiceOver on macOS | Not tested - no macOS hardware available |
 | Orca on Linux | Not tested - no Linux environment available |
 | Browser zoom and reflow | The toolbar is repositioned to stay inside the viewport, but 400% reflow has not been formally tested |
-| Right-to-left layouts | Translation result direction follows `dir="auto"` and the panel chrome stays left-to-right. Page-level RTL layouts are not formally tested |
+| Right-to-left layouts | Translated text follows `dir="auto"`. Page-level RTL layouts are not formally tested |
 | Interface language | English only |
 
 [`docs/smoke-test.md`](docs/smoke-test.md) holds the manual screen-reader
@@ -117,20 +117,29 @@ The **Translate** button uses Chrome's built-in Translator API. It needs Chrome
 Chrome downloads an on-device language pack the first time a pair is used, and a
 page's `Permissions-Policy` can block the API.
 
-The result opens in a non-modal dialog beside the toolbar. Focus moves into the
-panel, `Escape` closes it and returns focus to **Translate**, and a `<select>`
-does not swallow `Escape`. Progress is a polite status; errors are assertive and
-offer **Try again**. The translated text carries the target `lang` and
-`dir="auto"`, and the original text keeps its own `lang` and direction, so a
-screen reader can switch pronunciation and direction. The panel chrome stays
-English and left-to-right.
+The selected text is replaced in place by the translation. The wrapper carries
+the target `lang` and `dir="auto"`, and a dotted underline marks it. Pressing
+**Translate** again (it becomes **Show original**), Undo/Redo, or Reset page
+restores the original. The translated text stays selected after the change, so
+the button and keyboard path are immediately available. The page DOM is changed,
+so translation is an undoable page change like Bold or Highlight; a page
+re-render can discard it.
 
-The panel is a snapshot: a new page selection closes it so the toolbar can
-follow the new range, while collapsing the selection or selecting inside the
-panel keeps it open. The page DOM is never changed, so translation creates no
-undo entry and no Reset page work. Machine translation can be wrong or awkward;
-the original is one click away in the **Original text** disclosure. Input is
-capped at 5,000 characters.
+The source comes from the nearest `lang` attribute or the page language;
+Shift-click translates the whole paragraph. A selection spanning several blocks
+is rejected with a short message. The first use or an unknown source opens a
+compact language bubble; after the target is saved, Translate starts directly.
+The bubble also carries language-pack progress and Cancel, errors and Try again,
+and the 5,000-character cap. The target can be changed in the in-page Settings
+dialog or the options page.
+
+The translated text is ordinary page text: selectable, copyable, and read by
+Read Aloud. Read Aloud uses the wrapper's target language and prefers a matching
+voice. A link or emphasis that contains the whole selection stays around the
+translation; internal links and emphasis are flattened and come back with the
+original. Machine translation can be wrong; use **Show original** or Undo to
+compare. The bubble is a non-modal dialog: focus moves into it, `Escape`
+closes/cancels, and focus returns to **Translate**.
 
 ### Limits
 
@@ -145,15 +154,15 @@ capped at 5,000 characters.
 
 Every release is checked with an automated browser harness before packaging. It
 exercises accessible names, roles, and states; keyboard paths; forced-colors
-rendering; the toolbar, popup, options page, settings dialog, and translation
-panel; the focus-mode and reading-ruler overlays; translation cache, progress,
-cancel, and error paths with a fake translator; settings import and export; and
-undo, redo, and Reset page.
+rendering; the toolbar, popup, options page, settings dialog, and the in-place
+translation wrapper and language bubble; the focus-mode and reading-ruler
+overlays; translation cache, progress, cancel, and error paths with a fake
+translator; settings import and export; and undo, redo, and Reset page.
 
 The harness cannot hear what a screen reader announces. A manual NVDA pass
 against `docs/smoke-test.md` is required after any change to the toolbar, the
 settings dialog, keyboard handling, the reading assistant, or the translation
-panel. That pass is the reason the NVDA row above is dated rather than assumed.
+flow. That pass is the reason the NVDA row above is dated rather than assumed.
 
 ## Reporting a barrier
 

@@ -24,7 +24,7 @@ The Extension **does not** collect, store, or transmit:
 - Logs of clicks, keystrokes, mouse movements, scrolling, or other interaction data
 
 ### 4. Translation Processing
-The "Translate" feature uses Chrome's built-in Translator API. The selected text and the translation result are processed **in your browser**. The first time a language pair is used, Chrome downloads an on-device language pack; the Extension does not send page text to the developer or any third party, and it does not store the selected text or the translation result. The target language is a preference stored as described in Section 1.
+The "Translate" feature uses Chrome's built-in Translator API. The selected text and the translation result are processed **in your browser**. The translated text replaces the selected text in the page for the session, and the original is kept in memory until Undo, Reset page, or the page unloads. The first time a language pair is used, Chrome downloads an on-device language pack; the Extension does not send page text to the developer or any third party, and it does not store the selected text or the translation result beyond the page session. The target language is a preference stored as described in Section 1.
 
 ### 5. Text-to-Speech Processing
 The "Read Aloud" feature uses your browser's built-in Web Speech API. The Extension does not send page text to its own servers. Depending on the voices installed on your system, your browser or operating system may synthesize speech locally or through the voice provider's service; the Extension does not receive or store that data.
