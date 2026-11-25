@@ -980,6 +980,11 @@ span[data-atx-selection] {
    backgrounds are replaced by system colours, and box-shadow disappears, so
    add real borders and explicit system colours to keep every control legible. */
 @media (forced-colors: active) {
+    #accessibility-toolbar button,
+    #accessibility-translation-panel button {
+        transition: none !important;
+    }
+
     #accessibility-toolbar,
     #accessibility-toolbar.light-mode {
         background: Canvas;

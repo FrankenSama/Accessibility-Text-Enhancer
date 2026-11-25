@@ -17,7 +17,7 @@
 
 Accessibility Text Enhancer is a Chrome extension that lets you adjust text while you read it. Select a passage and a small toolbar appears with one-click fixes for common readability problems: bold, highlight, font size, font style, letter and word spacing, contrast, and read aloud.
 
-Unlike audit tools that only report problems, this extension applies the fix immediately, in your browser. There is no account, no build step, and no network request: every change is local, and every text change can be undone.
+Unlike audit tools that only report problems, this extension applies the fix immediately, in your browser. There is no account and no build step. Text changes are local and can be undone. Translation uses Chrome's built-in, on-device Translator API: the extension sends no page text anywhere, though Chrome downloads a language pack the first time you use a pair.
 
 Originally developed for an MSc dissertation at Solent University, it is now maintained by [Octavio Silva](https://github.com/FrankenSama).
 
@@ -27,13 +27,14 @@ Originally developed for an MSc dissertation at Solent University, it is now mai
 - **Font size, contrast, and font choice** for the nearest paragraph: Sans, Serif, Monospace, or the bundled **OpenDyslexic** font
 - **Text spacing** with Comfortable, the WCAG 1.4.12 preset, or four custom sliders, plus **highlight colour and style** (background, underline, or automatic contrast-aware)
 - **Focus mode and reading ruler**: dim everything except the paragraph you are reading, or lay a translucent ruler under the pointer. Both are visual, session-only aids that change nothing on the page
+- **Translate** the selection or a paragraph into a read-only panel with Chrome's built-in Translator API. The target language syncs with your profile, language-pack progress can be cancelled, and the result can be copied or read aloud in the target language. Needs Chrome 138+ on desktop and an HTTPS page
 - **Read aloud** with selectable voice, speed, and pitch, sentence highlighting, pause/resume/stop controls, plus voice preview and a dedicated settings page
 - **Undo/redo** for the last 50 changes, plus **Reset page** to remove everything in one action
 - **Saved text defaults** for font, spacing, and highlight that sync with your Chrome profile
-- **Dark/light toolbar**, with JSON export/import (schema 3; older files still import), synced preferences, and per-site on/off rules
+- **Dark/light toolbar**, with JSON export/import (schema 4; older files still import), synced preferences, and per-site on/off rules
 - **High contrast**: the toolbar, popup, and settings pages follow Windows High Contrast / forced-colors
 - **Keyboard and screen reader support**: shortcuts, a single tab stop, arrow-key navigation, and `aria-pressed` state (NVDA-verified on Windows)
-- **Works in** Chrome 91+ and other Chromium-based browsers
+- **Works in** Chrome 91+ and other Chromium-based browsers; translation needs Chrome 138+ on desktop
 
 ## Install
 
@@ -64,6 +65,7 @@ The symbols match the toolbar buttons:
 | 🎨 | Fix contrast | Adjusts the paragraph text colour until it is readable against its background. |
 | 🎯 | Focus mode | Dims every block except the one under the selection or caret. Session-only; `Escape` exits. |
 | 📏 | Reading ruler | Shows a translucent band under the pointer to keep your place. Session-only; `Escape` exits. |
+| 文A | Translate | Translates the selection into a read-only panel; Shift-click translates the paragraph. Needs Chrome 138+ desktop on an HTTPS page. |
 | 🔊 | Read Aloud | Reads the selection, or the paragraph at the caret; turns into pause/resume while reading. |
 | ⏹️ | Stop Reading | Stops speech; appears only while reading. |
 | ⚙️ | Settings | Opens the in-page dialog for text styling, reading, site rules, page reset, and backup. |
@@ -72,7 +74,7 @@ The symbols match the toolbar buttons:
 
 The popup's **This site** menu can keep the extension **Always on** or **Always off** for the current site. A site rule wins over the global switch, and the toolbar shows an `OFF` badge on sites you turned off. **Settings** (⚙️) in the toolbar lists every site rule with a remove button and a two-step clear-all action; the popup keeps the global switch and the rule for the current site. To undo the extension's changes to the current page, choose **Reset page changes** in the toolbar's settings dialog — the button asks for a second click — which removes every change and clears the undo history, leaving the page as it was found.
 
-Theme, reading and text styling preferences, and site rules are stored with `chrome.storage.sync`, so they follow your Chrome profile to other devices signed in to the same account. The on/off switch itself stays on this device.
+Theme, reading preferences, text styling, the translation target, and site rules are stored with `chrome.storage.sync`, so they follow your Chrome profile to other devices signed in to the same account. The on/off switch itself stays on this device.
 
 The shortcuts below cover the toolbar and extension actions:
 
@@ -84,17 +86,18 @@ The shortcuts below cover the toolbar and extension actions:
 | Bold | `Alt+Shift+B` | `Option+Shift+B` |
 | Highlight | `Alt+Shift+H` | `Option+Shift+H` |
 | Read selection or paragraph | `Alt+Shift+R` | `Option+Shift+R` |
+| Translate selection | `Alt+Shift+G` | `Option+Shift+G` |
 | Focus mode | `Alt+Shift+D` | `Option+Shift+D` |
 | Reading ruler | `Alt+Shift+L` | `Option+Shift+L` |
 | Undo / redo | `Ctrl+Z` / `Ctrl+Y` | `Cmd+Z` / `Cmd+Y` |
 
-Focus Toolbar can be rebound at `chrome://extensions/shortcuts` (also linked from the popup). Bold, highlight, read aloud, focus mode, and the reading ruler are ignored in inputs, text areas, and editable regions. Undo and redo are only captured while the toolbar is visible and there is a change to undo. On Windows, `Alt+Shift` is also the default layout-switch shortcut; if it conflicts, use the toolbar buttons or rebind Focus Toolbar.
+Focus Toolbar can be rebound at `chrome://extensions/shortcuts` (also linked from the popup). Bold, highlight, read aloud, translate, focus mode, and the reading ruler are ignored in inputs, text areas, and editable regions. Undo and redo are only captured while the toolbar is visible and there is a change to undo. On Windows, `Alt+Shift` is also the default layout-switch shortcut; if it conflicts, use the toolbar buttons or rebind Focus Toolbar.
 
 Screen-reader announcements are verified with NVDA on Windows. VoiceOver on macOS and Orca on Linux have not been tested; see [`docs/smoke-test.md`](docs/smoke-test.md) for the manual checklist and current coverage. [ACCESSIBILITY.md](ACCESSIBILITY.md) lists supported environments, known limitations, and how to report a barrier.
 
 ## Privacy
 
-Preferences and site rules are stored with `chrome.storage.sync`, so Chrome may sync them across the devices signed in to your Google account; the on/off switch uses `chrome.storage.local` and stays on this device. Selections and page content are processed in your browser and never sent to the developer or a third party. See the [privacy policy](privacy-policy.md) for details.
+Preferences, the translation target, and site rules are stored with `chrome.storage.sync`, so Chrome may sync them across the devices signed in to your Google account; the on/off switch uses `chrome.storage.local` and stays on this device. Selections and page content are processed in your browser and never sent to the developer or a third party. Translation runs through Chrome's built-in Translator API; the first use of a language pair downloads an on-device language pack, and the extension sends no page text to the developer or any third party. See the [privacy policy](privacy-policy.md) for details.
 
 ## Contributing
 

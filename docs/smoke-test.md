@@ -153,6 +153,25 @@ Turn on Windows High Contrast (or emulate `forced-colors: active` in DevTools) a
 | R8 | Start a reading, then check Undo. | Reading creates no undo entry; Undo remains disabled or unchanged. |
 | R9 | Start a reading in a long section. | Speech continues through the section instead of cutting off after the first sentence. A paragraph is read as one continuous utterance, and the highlight follows each sentence as it is spoken. |
 
+## Translation
+
+| # | Step | Expected |
+|---|------|----------|
+| TR1 | Select text and activate **Translate** (or press `Alt+Shift+G`). | The translation panel opens as a non-modal dialog, focus moves into it, and its name and language pair are announced. The Translate button reports expanded. |
+| TR2 | Inspect the **From** and **To** selects. | Both are announced as comboboxes with their current values: the detected source and the saved target. Changing either cancels the current request and starts a new one. |
+| TR3 | Use a language pair for the first time. | "Preparing language pack…" is announced, percentage progress follows when Chrome reports it, and **Cancel** stops the request. |
+| TR4 | Wait for the result. | "Translation ready" is announced. The result is announced with the target language and direction, and the **Original text** disclosure is available. |
+| TR5 | Activate **Copy**. | "Copied to clipboard" is announced. If the clipboard is blocked, the result is selected and the manual copy shortcut is announced. |
+| TR6 | Activate **Read aloud**. | The translated text is spoken in the target language, the button announces Pause/Resume, and the toolbar's Stop Reading remains available. |
+| TR7 | Press `Escape` while focus is in the **To** select. | The panel closes, focus returns to **Translate**, and any speech keeps playing. A second `Escape` stops reading. |
+| TR8 | With the panel open, select new page text, then collapse a selection. | A new page selection closes the panel and the toolbar follows the new range; a collapsed selection or a selection inside the panel keeps it open. |
+| TR9 | Force a download failure or choose an unsupported pair. | The failure is announced and **Try again** is offered when retrying can help. |
+| TR10 | Select more than 5,000 characters. | The panel reports the character count, suggests a smaller selection or Shift-click for one paragraph, and translates nothing. |
+| TR11 | Open a plain `http://` page. | The Translate button is absent; invoking the shortcut explains that Chrome 138+ on desktop, on an HTTPS page, is required. |
+| TR12 | Turn on Windows High Contrast and open the panel. | The panel, selects, result, and buttons use system colours with visible borders and focus rings. |
+
+The translation rows were added with v1.7.0; their manual NVDA pass is pending.
+
 ## Page integrity
 
 | # | Step | Expected |
@@ -184,6 +203,7 @@ Use **Pass**, **Pass with notes**, or **Fail** for each section.
 | Automated v1.5.0 checks | 2026-11-19 | Chrome 156 headless on Windows, real extension build | 57 style-default unit checks; 64 text-default browser checks; 20 font-loading checks over ordinary, strict-CSP, file://, and blocked-font pages; options suite 89/89 |
 | Automated v1.5.1 checks | 2026-11-23 | Chrome 156 headless on Windows, real extension build | 36 in-page settings checks covering text styling, preview, persistence, reset, and site rules; options suite 91/91; full harness 615 pass with only the known bogus `check-coverage` line |
 | Automated v1.6.0 checks | 2026-11-24 | Chrome 156 headless on Windows, real extension build | 105 focus-mode, ruler, toolbar, accessibility-tree, forced-colors, and regression checks pass; full harness 815 pass, 0 fail |
+| Automated v1.7.0 checks | 2026-11-25 | Chrome 156 headless on Windows, script-tag build with a fake Translator plus the real-extension regressions | 154 translation unit checks and 87 translation browser checks pass (cache, signals, progress, cancel, errors, schema 4, reload persistence, panel a11y, forced colours, and toolbar rows); full harness 1,060 pass, 0 fail |
 | NVDA pass (Speech Viewer) | 2026-11-24 | Windows 11 Home 26200, Chrome for Testing 156.0.8078.47 headed with `--force-renderer-accessibility`, NVDA 2026.3 (Portuguese UI) | 37/37 captured announcements pass; toolbar, settings, reading, focus mode, ruler, shortcuts, and Escape order |
 | NVDA manual pass | 2026-11-06 | Windows 11 Home 26200, Chrome for Testing 156.0.8078.47 headed with `--force-renderer-accessibility`, NVDA 2026.3 (Portuguese UI) | Pass with notes |
 | VoiceOver manual pass | — | macOS | Not tested — no macOS hardware available |

@@ -2,7 +2,7 @@
 
 This roadmap tracks the accessibility work planned for Accessibility Text Enhancer. It is a living document: items move between phases as the project learns from real use, and nothing here is a commitment to a date.
 
-**Latest GitHub release:** v1.6.0 · **Chrome Web Store:** v1.4.1 · **Last updated:** 2026-11-24
+**Latest GitHub release:** v1.6.0 · **Chrome Web Store:** v1.4.1 · **Last updated:** 2026-11-25
 
 ## Guiding principles
 
@@ -22,7 +22,7 @@ This roadmap tracks the accessibility work planned for Accessibility Text Enhanc
 | 3 | Persistence and control | v1.4.0 | ✅ Released |
 | 4 | Personalization | v1.5.0–v1.5.1 | ✅ Released |
 | 5 | Reading aids | v1.6.0 | ✅ Released |
-| 6 | Comprehension | v1.7.0 | 📋 Planned |
+| 6 | Comprehension | v1.7.0 | 🚧 Implemented, pending release |
 | 7 | Platform and reach | v2.0.0 | 💡 Exploring |
 
 **Status key:** ✅ Done · 🚧 In progress · 📋 Planned · 💡 Exploring · ⏸️ Deferred
@@ -41,9 +41,11 @@ This roadmap tracks the accessibility work planned for Accessibility Text Enhanc
 
 **v1.6.0 (reading aids):** keeps toolbar buttons centred on pages that restyle `<button>` with their own `display`, `align-items`, `line-height`, margins, or font. Each button is now a self-contained centred flex box with its line height, vertical alignment, and text metrics reset, instead of relying on the host page's button defaults; this fixes the bottom-aligned icons seen on Reddit and similar sites. Also completes the High Contrast pass in the settings dialog: the live preview and the per-rule **Remove** button use system colours with a real border. v1.6.0 adds the Phase 5 reading aids: **focus mode** dims everything except the block under the selection or caret, and the **reading ruler** follows the pointer. Both are transient overlays with no page mutation, no history entries, and no new storage keys; they are hidden from assistive technology, follow forced-colors, and exit with `Escape`. No new permissions or network access.
 
-**Distribution:** v1.6.0 is the latest GitHub release with a packaged zip and SHA-256 checksum. v1.4.1 remains the Chrome Web Store version until a package is submitted and published; no new permissions or privacy disclosures are required.
+**v1.7.0 (selection translation, implemented on main):** adds a **Translate** toolbar button and `Alt+Shift+G` shortcut. The selection, or the paragraph on Shift-click, is translated into a read-only panel with Chrome's built-in Translator API. The panel detects the source language, remembers and syncs the target, shows language-pack progress with Cancel, explains unsupported pairs and failures with Try again, and offers Copy plus read-aloud in the target language. The result carries `lang` and `dir="auto"`; the page DOM, undo history, and Reset page are untouched. Translation needs Chrome 138+ on desktop and an HTTPS page, and adds `translationTarget` to schema 4 settings exports. A non-secure page hides the button and explains the requirement. No new permissions.
 
-**Next:** v1.6.0 is released. v1.7.0 adds selection translation in a read-only panel; the [plan](docs/v1.7.0-plan.md) is drafted and no translation code has shipped yet.
+**Distribution:** v1.6.0 is the latest GitHub release with a packaged zip and SHA-256 checksum. v1.4.1 remains the Chrome Web Store version until a package is submitted and published. v1.7.0 is implemented on `main` and is waiting for its manual NVDA pass, version bump, package, and release.
+
+**Next:** v1.7.0 is code-complete on `main`. The remaining work is the manual NVDA translation rows, the v1.7.0 version bump and package, the GitHub release, and the Chrome Web Store submission.
 
 ---
 
@@ -194,9 +196,9 @@ The toolbar already declares `role="toolbar"`, but it was not operable or unders
 
 ---
 
-## Phase 6 — Comprehension (v1.7.0) 📋
+## Phase 6 — Comprehension (v1.7.0) 🚧
 
-**Plan:** [docs/v1.7.0-plan.md](docs/v1.7.0-plan.md), draft for review.
+**Plan:** [docs/v1.7.0-plan.md](docs/v1.7.0-plan.md), approved and implemented on `main`; pending the manual NVDA pass, version bump, package, and release.
 
 **Problem:** Chrome's page translation is page-level, prompts automatically, and replaces the original. That is awkward when the reader only needs a word, sentence, or paragraph, and it hides the source text they are trying to understand.
 

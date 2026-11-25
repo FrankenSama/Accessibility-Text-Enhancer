@@ -1,6 +1,6 @@
 # Privacy Policy for Accessibility Text Enhancer
 
-**Last updated:** November 16, 2026
+**Last updated:** November 25, 2026
 
 Thank you for using the Accessibility Text Enhancer extension ("the Extension"). This privacy policy explains what information the Extension handles and how it is used.
 
@@ -8,7 +8,7 @@ Thank you for using the Accessibility Text Enhancer extension ("the Extension").
 The Accessibility Text Enhancer is committed to protecting your privacy. We handle only the minimum information necessary to provide core functionality.
 
 ### 1. User Preferences (Chrome Storage)
-The Extension uses Chrome's `storage.sync` API to remember your dark/light toolbar theme, your reading preferences (voice, speed, and pitch), and your per-site on/off rules. Chrome may sync this data across the devices signed in to your Google account, under Google's terms; it is never transmitted to the developer or any third party. The extension's global on/off switch uses `storage.local`, so it stays on the device where you set it.
+The Extension uses Chrome's `storage.sync` API to remember your dark/light toolbar theme, your reading preferences (voice, speed, and pitch), your translation target language, and your per-site on/off rules. Chrome may sync this data across the devices signed in to your Google account, under Google's terms; it is never transmitted to the developer or any third party. The extension's global on/off switch uses `storage.local`, so it stays on the device where you set it.
 
 ### 2. Website Access and User Interactions
 To enhance pages, the Extension runs on the websites you visit and reads the text you select and the styles of the element containing it. It also responds to text selection, toolbar clicks, and keyboard shortcuts so it can show the toolbar and apply the enhancement you request. This processing happens **in your browser**. Page content and interaction data are never sent to the developer or any third party, and the Extension does not run on browser-internal pages such as `chrome://` or the Chrome Web Store.
@@ -23,10 +23,13 @@ The Extension **does not** collect, store, or transmit:
 - Page content beyond the transient local processing described in Section 2
 - Logs of clicks, keystrokes, mouse movements, scrolling, or other interaction data
 
-### 4. Text-to-Speech Processing
+### 4. Translation Processing
+The "Translate" feature uses Chrome's built-in Translator API. The selected text and the translation result are processed **in your browser**. The first time a language pair is used, Chrome downloads an on-device language pack; the Extension does not send page text to the developer or any third party, and it does not store the selected text or the translation result. The target language is a preference stored as described in Section 1.
+
+### 5. Text-to-Speech Processing
 The "Read Aloud" feature uses your browser's built-in Web Speech API. The Extension does not send page text to its own servers. Depending on the voices installed on your system, your browser or operating system may synthesize speech locally or through the voice provider's service; the Extension does not receive or store that data.
 
-### 5. No Performance Metrics
+### 6. No Performance Metrics
 The Extension does not collect or transmit performance metrics. Any measurements reported in the project's research were gathered separately during testing, not through the Extension.
 
 ## Limited Use

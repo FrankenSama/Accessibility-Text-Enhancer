@@ -25,16 +25,16 @@ That is a target, not a certification:
 
 | Environment | Status |
 |---|---|
-| Chrome 91+ on Windows, macOS, and Linux | Supported |
+| Chrome 91+ on Windows, macOS, and Linux | Supported. Translation needs Chrome 138+ on desktop and an HTTPS page |
 | Chromium-based browsers (Edge, Brave, Opera) | Best effort; not part of the release checks |
 | Chrome on Android or iOS | Not supported; mobile Chrome does not run extensions |
 | Keyboard-only use | Supported: shortcuts, a single toolbar tab stop, arrow-key navigation, and `aria-pressed` state |
-| Windows High Contrast / forced-colors | Supported for the toolbar, dialog, popup, options page, and reading aids |
-| NVDA on Windows | Verified for v1.3.0 on 2026-11-06. A v1.6.0 Speech Viewer pass on 2026-11-24 covered the toolbar, settings, reading, focus mode, and ruler (37/37); a live listening pass has not been repeated since v1.3.0 |
+| Windows High Contrast / forced-colors | Supported for the toolbar, dialog, translation panel, popup, options page, and reading aids |
+| NVDA on Windows | Verified for v1.3.0 on 2026-11-06. A v1.6.0 Speech Viewer pass on 2026-11-24 covered the toolbar, settings, reading, focus mode, and ruler (37/37). The v1.7.0 translation pass is pending; a live listening pass has not been repeated since v1.3.0 |
 | VoiceOver on macOS | Not tested - no macOS hardware available |
 | Orca on Linux | Not tested - no Linux environment available |
 | Browser zoom and reflow | The toolbar is repositioned to stay inside the viewport, but 400% reflow has not been formally tested |
-| Right-to-left layouts | Not tested |
+| Right-to-left layouts | Translation result direction follows `dir="auto"` and the panel chrome stays left-to-right. Page-level RTL layouts are not formally tested |
 | Interface language | English only |
 
 [`docs/smoke-test.md`](docs/smoke-test.md) holds the manual screen-reader
@@ -109,10 +109,33 @@ the ruler uses system-colour rules rather than a translucent fill. Because the
 aids are visual, they do not replace a screen reader or describe the page's
 structure.
 
+### Translation
+
+The **Translate** button uses Chrome's built-in Translator API. It needs Chrome
+138 or newer on desktop and a secure context, so it is absent on `http://` pages
+(and on mobile, where extensions do not run). The extension sends no page text;
+Chrome downloads an on-device language pack the first time a pair is used, and a
+page's `Permissions-Policy` can block the API.
+
+The result opens in a non-modal dialog beside the toolbar. Focus moves into the
+panel, `Escape` closes it and returns focus to **Translate**, and a `<select>`
+does not swallow `Escape`. Progress is a polite status; errors are assertive and
+offer **Try again**. The translated text carries the target `lang` and
+`dir="auto"`, and the original text keeps its own `lang` and direction, so a
+screen reader can switch pronunciation and direction. The panel chrome stays
+English and left-to-right.
+
+The panel is a snapshot: changing the page selection starts a new translation,
+while collapsing the selection or selecting inside the panel keeps it open. The
+page DOM is never changed, so translation creates no undo entry and no Reset page
+work. Machine translation can be wrong or awkward; the original is one click away
+in the **Original text** disclosure. Input is capped at 5,000 characters.
+
 ### Limits
 
 - 50 undo steps per page.
 - 100 per-site rules.
+- 5,000 characters per translation.
 - Keyboard shortcuts can conflict with the Windows `Alt+Shift` layout switch;
   use the toolbar buttons or rebind **Focus Toolbar** at
   `chrome://extensions/shortcuts`.
@@ -121,14 +144,15 @@ structure.
 
 Every release is checked with an automated browser harness before packaging. It
 exercises accessible names, roles, and states; keyboard paths; forced-colors
-rendering; the toolbar, popup, options page, and settings dialog; the focus-mode
-and reading-ruler overlays; settings import and export; and undo, redo, and Reset
-page.
+rendering; the toolbar, popup, options page, settings dialog, and translation
+panel; the focus-mode and reading-ruler overlays; translation cache, progress,
+cancel, and error paths with a fake translator; settings import and export; and
+undo, redo, and Reset page.
 
 The harness cannot hear what a screen reader announces. A manual NVDA pass
 against `docs/smoke-test.md` is required after any change to the toolbar, the
-settings dialog, keyboard handling, or the reading assistant. That pass is the
-reason the NVDA row above is dated rather than assumed.
+settings dialog, keyboard handling, the reading assistant, or the translation
+panel. That pass is the reason the NVDA row above is dated rather than assumed.
 
 ## Reporting a barrier
 
