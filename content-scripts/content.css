@@ -99,7 +99,7 @@ span[data-atx-translation] {
        the 15px margin positionToolbar leaves on each side. */
     box-sizing: border-box;
     width: max-content;
-    max-width: min(480px, calc(100vw - 30px));
+    max-width: min(520px, calc(100vw - 30px));
     justify-content: center;
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
@@ -226,13 +226,25 @@ span[data-atx-translation] {
     font-size: 18px;
 }
 
-/* The reading group carries seven controls now, including Translate.
-   Closing the gaps and using a 32 px settings target keeps the settings
-   group on the second row at 480 px while reading. Measured with the
-   check-qol-toolbar.js row counter. */
+/* The reading group carries seven controls (eight while Stop Reading is
+   visible). At narrow widths the two-row layout needs every pixel, so the
+   gaps only open up once the toolbar has room; 38 px buttons keep the
+   targets usable at 480 px. Measured with check-qol-toolbar.js. */
 #accessibility-toolbar .reading-group {
     gap: 0;
     padding: 0;
+}
+
+@media (min-width: 520px) {
+    #accessibility-toolbar .reading-group {
+        gap: 4px;
+    }
+}
+
+@media (min-width: 544px) {
+    #accessibility-toolbar .reading-group {
+        gap: 8px;
+    }
 }
 
 #accessibility-toolbar .reading-group .icon-btn {
@@ -672,7 +684,7 @@ span[data-atx-translation] {
     backdrop-filter: blur(4px);
 }
 
-/* Translation panel. It is a sibling of the toolbar, not a child, so the
+/* Translation bubble. It is a sibling of the toolbar, not a child, so the
    toolbar's role="toolbar" pattern stays valid and the language selects keep
    their native keyboard behaviour. */
 #accessibility-translation-bubble {
@@ -904,7 +916,7 @@ span[data-atx-translation] {
     font-size: 15px;
 }
 
-/* The panel is screen-only. */
+/* The bubble is screen-only. */
 @media print {
     #accessibility-translation-bubble {
         display: none !important;

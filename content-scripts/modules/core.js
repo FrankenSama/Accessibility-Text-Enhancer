@@ -77,7 +77,7 @@ export const CONFIG = {
     // origin strings stay comfortably under that even for long hostnames.
     maxSiteRules: 100,
     // Must match the toolbar max-width in content.css.
-    toolbarMaxWidth: 480,
+    toolbarMaxWidth: 520,
     fontSizeMin: 8,
     fontSizeMax: 50,
     // Reading a whole paragraph in one utterance avoids the pause every
