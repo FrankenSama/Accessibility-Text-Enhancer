@@ -4,6 +4,29 @@ span[data-atx-selection] {
     display: inline !important;
 }
 
+/* Translated text stays in the page's text flow. The wrapper resets the
+   page's span styling so an ordinary `span { ... !important }` rule cannot
+   hide the translation or make it a block. */
+span[data-atx-translation] {
+    display: inline !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+    color: inherit !important;
+    font: inherit !important;
+    letter-spacing: inherit !important;
+    word-spacing: inherit !important;
+    white-space: inherit !important;
+    text-transform: none !important;
+    vertical-align: baseline !important;
+    text-decoration: underline dotted !important;
+    text-decoration-thickness: 1px !important;
+    text-underline-offset: 2px !important;
+    text-decoration-color: rgba(76, 175, 80, 0.9) !important;
+    unicode-bidi: isolate;
+}
+
 /* Sentence currently being read aloud. CSS Custom Highlight paints this
    without changing the page DOM. */
 ::highlight(atx-reading) {
@@ -652,7 +675,7 @@ span[data-atx-selection] {
 /* Translation panel. It is a sibling of the toolbar, not a child, so the
    toolbar's role="toolbar" pattern stays valid and the language selects keep
    their native keyboard behaviour. */
-#accessibility-translation-panel {
+#accessibility-translation-bubble {
     position: fixed;
     z-index: 2147483645;
     display: block;
@@ -697,7 +720,7 @@ span[data-atx-selection] {
 /* Page styles must not leak into the panel. The panel keeps its own font;
    descendants inherit it and opt back into direction-aware alignment with
    dir="auto". Native option styling is left to the browser. */
-#accessibility-translation-panel *:not(option) {
+#accessibility-translation-bubble *:not(option) {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
@@ -716,17 +739,17 @@ span[data-atx-selection] {
     position: static;
 }
 
-#accessibility-translation-panel.light-mode {
+#accessibility-translation-bubble.light-mode {
     background: linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%);
     color: #222222;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.1);
 }
 
-#accessibility-translation-panel [hidden] {
+#accessibility-translation-bubble [hidden] {
     display: none !important;
 }
 
-#accessibility-translation-panel h3 {
+#accessibility-translation-bubble h3 {
     display: block;
     margin: 0 36px 4px 0;
     font-size: 16px;
@@ -734,7 +757,7 @@ span[data-atx-selection] {
     background: transparent;
 }
 
-#accessibility-translation-panel .translation-note {
+#accessibility-translation-bubble .translation-note {
     display: block;
     margin: 0 36px 12px 0;
     font-size: 11px;
@@ -742,17 +765,17 @@ span[data-atx-selection] {
     background: transparent;
 }
 
-#accessibility-translation-panel .translation-languages {
+#accessibility-translation-bubble .translation-languages {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 8px;
 }
 
-#accessibility-translation-panel .translation-field {
+#accessibility-translation-bubble .translation-field {
     display: block;
 }
 
-#accessibility-translation-panel .translation-field label {
+#accessibility-translation-bubble .translation-field label {
     display: block;
     margin-bottom: 4px;
     font-size: 12px;
@@ -760,7 +783,7 @@ span[data-atx-selection] {
     background: transparent;
 }
 
-#accessibility-translation-panel .translation-select {
+#accessibility-translation-bubble .translation-select {
     display: block;
     width: 100%;
     min-height: 32px;
@@ -773,13 +796,13 @@ span[data-atx-selection] {
     line-height: 1.2;
 }
 
-#accessibility-translation-panel.light-mode .translation-select {
+#accessibility-translation-bubble.light-mode .translation-select {
     border-color: rgba(0, 0, 0, 0.25);
     background: #ffffff;
     color: #222222;
 }
 
-#accessibility-translation-panel .translation-status {
+#accessibility-translation-bubble .translation-status {
     display: block;
     min-height: 18px;
     margin-top: 10px;
@@ -787,12 +810,12 @@ span[data-atx-selection] {
     opacity: 0.9;
 }
 
-#accessibility-translation-panel .translation-status:empty {
+#accessibility-translation-bubble .translation-status:empty {
     min-height: 0;
     margin-top: 0;
 }
 
-#accessibility-translation-panel .translation-error {
+#accessibility-translation-bubble .translation-error {
     display: block;
     margin-top: 10px;
     padding: 8px 10px;
@@ -803,78 +826,26 @@ span[data-atx-selection] {
     font-size: 12px;
 }
 
-#accessibility-translation-panel.light-mode .translation-error {
+#accessibility-translation-bubble.light-mode .translation-error {
     border-color: #e6b3ae;
     background: #fdecea;
     color: #8a1c1c;
 }
 
-#accessibility-translation-panel .translation-result {
-    display: block;
-    margin-top: 10px;
-    padding: 10px;
-    max-height: 240px;
-    overflow-y: auto;
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    border-radius: 8px;
-    background: rgba(255, 255, 255, 0.06);
-    white-space: pre-wrap;
-    overflow-wrap: anywhere;
-    font-size: 14px;
-}
-
-#accessibility-translation-panel.light-mode .translation-result {
-    border-color: rgba(0, 0, 0, 0.15);
-    background: rgba(0, 0, 0, 0.04);
-}
-
-#accessibility-translation-panel .translation-result:focus-visible {
-    outline: 2px solid #4caf50;
-    outline-offset: 2px;
-}
-
-#accessibility-translation-panel .translation-original {
-    display: block;
-    margin-top: 10px;
-    font-size: 12px;
-}
-
-#accessibility-translation-panel .translation-original summary {
-    display: list-item;
-    cursor: pointer;
-    font-weight: 600;
-    background: transparent;
-}
-
-#accessibility-translation-panel .translation-original-text {
-    display: block;
-    margin-top: 6px;
-    padding: 8px;
-    max-height: 160px;
-    overflow-y: auto;
-    border-radius: 6px;
-    background: rgba(255, 255, 255, 0.04);
-    white-space: pre-wrap;
-    overflow-wrap: anywhere;
-    opacity: 0.9;
-}
-
-#accessibility-translation-panel.light-mode .translation-original-text {
-    background: rgba(0, 0, 0, 0.03);
-}
-
-#accessibility-translation-panel .translation-actions {
+#accessibility-translation-bubble .translation-actions {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
     margin-top: 12px;
 }
 
-#accessibility-translation-panel .translation-action {
+#accessibility-translation-bubble .translation-submit,
+#accessibility-translation-bubble .translation-cancel {
     flex: 1 1 auto;
+    margin-top: 0;
 }
 
-#accessibility-translation-panel button {
+#accessibility-translation-bubble button {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -893,41 +864,37 @@ span[data-atx-selection] {
     transition: background-color 0.15s ease;
 }
 
-#accessibility-translation-panel.light-mode button {
+#accessibility-translation-bubble.light-mode button {
     border-color: rgba(0, 0, 0, 0.2);
     background: rgba(230, 230, 230, 0.95);
     color: #333333;
 }
 
-#accessibility-translation-panel button:hover {
+#accessibility-translation-bubble button:hover {
     background: rgba(90, 90, 90, 0.95);
 }
 
-#accessibility-translation-panel.light-mode button:hover {
+#accessibility-translation-bubble.light-mode button:hover {
     background: rgba(200, 200, 200, 1);
 }
 
-#accessibility-translation-panel button[aria-disabled="true"] {
+#accessibility-translation-bubble button[aria-disabled="true"] {
     opacity: 0.55;
     cursor: default;
 }
 
-#accessibility-translation-panel button[aria-pressed="true"] {
+#accessibility-translation-bubble button[aria-pressed="true"] {
     border-color: #2e7d32;
     background: #2e7d32;
     color: #ffffff;
 }
 
-#accessibility-translation-panel button:focus-visible {
+#accessibility-translation-bubble button:focus-visible {
     outline: 2px solid #4caf50;
     outline-offset: 2px;
 }
 
-#accessibility-translation-panel .translation-cancel {
-    margin-top: 6px;
-}
-
-#accessibility-translation-panel .translation-close {
+#accessibility-translation-bubble .translation-close {
     position: absolute;
     top: 8px;
     right: 8px;
@@ -939,7 +906,7 @@ span[data-atx-selection] {
 
 /* The panel is screen-only. */
 @media print {
-    #accessibility-translation-panel {
+    #accessibility-translation-bubble {
         display: none !important;
     }
 }
@@ -997,7 +964,7 @@ span[data-atx-selection] {
 
 /* The two language selects need more room than a 320 px viewport gives. */
 @media (max-width: 420px) {
-    #accessibility-translation-panel .translation-languages {
+    #accessibility-translation-bubble .translation-languages {
         grid-template-columns: 1fr;
     }
 }
@@ -1006,7 +973,7 @@ span[data-atx-selection] {
 @media (prefers-reduced-motion: reduce) {
     #accessibility-toolbar,
     #accessibility-toolbar.show,
-    #accessibility-translation-panel button,
+    #accessibility-translation-bubble button,
     .accessibility-toast {
         animation: none !important;
         transition: none !important;
@@ -1028,7 +995,7 @@ span[data-atx-selection] {
    add real borders and explicit system colours to keep every control legible. */
 @media (forced-colors: active) {
     #accessibility-toolbar button,
-    #accessibility-translation-panel button {
+    #accessibility-translation-bubble button {
         transition: none !important;
     }
 
@@ -1141,7 +1108,7 @@ span[data-atx-selection] {
         border: 1px solid ButtonText;
     }
 
-    #accessibility-translation-panel {
+    #accessibility-translation-bubble {
         background: Canvas;
         color: CanvasText;
         border: 1px solid CanvasText;
@@ -1150,42 +1117,43 @@ span[data-atx-selection] {
         -webkit-backdrop-filter: none;
     }
 
-    #accessibility-translation-panel .translation-select,
-    #accessibility-translation-panel .translation-result,
-    #accessibility-translation-panel .translation-original-text,
-    #accessibility-translation-panel .translation-error {
+    #accessibility-translation-bubble .translation-select,
+    #accessibility-translation-bubble .translation-error {
         background: Canvas;
         color: CanvasText;
         border: 1px solid CanvasText;
     }
 
-    #accessibility-translation-panel button {
+    #accessibility-translation-bubble button {
         background: ButtonFace;
         color: ButtonText;
         border: 1px solid ButtonText;
     }
 
-    #accessibility-translation-panel button[aria-pressed="true"] {
+    #accessibility-translation-bubble button[aria-pressed="true"] {
         border: 2px solid Highlight;
     }
 
-    #accessibility-translation-panel button[aria-disabled="true"] {
+    #accessibility-translation-bubble button[aria-disabled="true"] {
         color: GrayText;
         border-color: GrayText;
         opacity: 1;
     }
 
-    #accessibility-translation-panel button:hover {
+    #accessibility-translation-bubble button:hover {
         background: ButtonFace;
         color: ButtonText;
         outline: 2px solid Highlight;
         outline-offset: -2px;
     }
 
-    #accessibility-translation-panel button:focus-visible,
-    #accessibility-translation-panel .translation-result:focus-visible {
+    #accessibility-translation-bubble button:focus-visible {
         outline: 2px solid Highlight;
         outline-offset: 2px;
+    }
+
+    span[data-atx-translation] {
+        text-decoration-color: Highlight;
     }
 
     #accessibility-settings-overlay {

@@ -18,7 +18,9 @@ import {
 import { clampNumber } from '../content-scripts/modules/text.js';
 import {
     defaultTranslationTarget,
-    normalizeTranslationTarget
+    normalizeTranslationTarget,
+    translationLanguageName,
+    TRANSLATION_LANGUAGES
 } from '../content-scripts/modules/translation.js';
 import { initTextStylingControls } from '../content-scripts/modules/text-styling-ui.js';
 import { initSiteRulesControls } from '../content-scripts/modules/site-rules-ui.js';
@@ -55,6 +57,7 @@ const pitchInput = document.getElementById('tts-pitch');
 const pitchValue = document.getElementById('tts-pitch-value');
 const status = document.getElementById('options-status');
 const importFile = document.getElementById('import-file');
+const translationSelect = document.getElementById('translation-target');
 
 /**
  * Show a short status message in the page's live region.
@@ -176,6 +179,34 @@ function syncControls() {
  */
 function syncThemeControl() {
     themeSelect.value = state.darkMode ? 'dark' : 'light';
+}
+
+/**
+ * Fill the translation target select with the supported languages.
+ */
+function populateTranslationSelect() {
+    translationSelect.textContent = '';
+
+    const placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = 'Choose a language';
+    translationSelect.appendChild(placeholder);
+
+    TRANSLATION_LANGUAGES.forEach(({ code, name }) => {
+        const option = document.createElement('option');
+        option.value = code;
+        option.textContent = name;
+        translationSelect.appendChild(option);
+    });
+
+    translationSelect.value = state.translationTarget || '';
+}
+
+/**
+ * Mirror the stored translation target into its select.
+ */
+function syncTranslationControl() {
+    translationSelect.value = state.translationTarget || '';
 }
 
 /**
@@ -454,6 +485,7 @@ function importFileContents(file) {
             loadVoices();
             syncControls();
             syncThemeControl();
+            syncTranslationControl();
             textControls.sync();
             siteRulesControls.sync();
             setStatus('Settings imported.');
@@ -492,11 +524,15 @@ loadSyncedPreferences().then((result) => {
     state.siteRules = normalizeSiteRules(result.siteRules);
     state.translationTarget = result.translationTarget === undefined
         ? DEFAULTS.translationTarget
-        : normalizeTranslationTarget(result.translationTarget);
+        : (result.translationTarget === ''
+            ? ''
+            : normalizeTranslationTarget(result.translationTarget));
 
     loadVoices();
+    populateTranslationSelect();
     syncControls();
     syncThemeControl();
+    syncTranslationControl();
     textControls.sync();
     siteRulesControls.sync();
 }).catch(() => {
@@ -560,12 +596,14 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
         siteRulesControls.sync();
     }
 
-    // The options page has no target control, but an import or another page
-    // can change it while this page is open. Keep the export value fresh.
+    // Keep the target select and the export value fresh when another page
+    // changes the language.
     if (changes.translationTarget) {
-        state.translationTarget = normalizeTranslationTarget(
-            changes.translationTarget.newValue
-        );
+        const value = changes.translationTarget.newValue;
+        state.translationTarget = typeof value === 'string' && value !== ''
+            ? normalizeTranslationTarget(value)
+            : '';
+        syncTranslationControl();
     }
 
     if (changed) {
@@ -585,6 +623,17 @@ if ('speechSynthesis' in window) {
 themeSelect.addEventListener('change', () => {
     state.darkMode = themeSelect.value !== 'light';
     savePreferences({ darkMode: state.darkMode });
+});
+
+translationSelect.addEventListener('change', () => {
+    const value = translationSelect.value
+        ? normalizeTranslationTarget(translationSelect.value)
+        : '';
+    state.translationTarget = value;
+    savePreferences({ translationTarget: value });
+    setStatus(value
+        ? `Translation target: ${translationLanguageName(value)}`
+        : 'Translation target cleared.');
 });
 
 voiceSelect.addEventListener('change', () => {

@@ -27,7 +27,8 @@ import {
     removeSettingsPanel,
     syncReadingSettingsControls,
     syncSiteRulesControls,
-    syncTextStylingControls
+    syncTextStylingControls,
+    syncTranslationSettingsControls
 } from './modules/settings.js';
 import {
     enhanceSelection,
@@ -43,11 +44,11 @@ import {
     toggleReadingRuler
 } from './modules/reading-aids-ui.js';
 import {
-    closeTranslationPanel,
-    positionTranslationPanel,
-    syncTranslationReadingState
-} from './modules/translation-ui.js';
-import { defaultTranslationTarget, normalizeTranslationTarget } from './modules/translation.js';
+    closeTranslationBubble,
+    positionTranslationBubble,
+    syncTranslationButton
+} from './modules/translation-inline.js';
+import { normalizeTranslationTarget } from './modules/translation.js';
 import {
     isEnabledForOrigin,
     loadSyncedPreferences,
@@ -153,7 +154,7 @@ async function loadExtensionState() {
     );
     STATE.textDefaults = normalizeTextDefaults(synced);
     STATE.translationTarget = synced.translationTarget === undefined
-        ? defaultTranslationTarget(navigator.language)
+        ? ''
         : normalizeTranslationTarget(synced.translationTarget);
     if (STATE.textDefaults.fontFamily === 'opendyslexic') {
         loadOpenDyslexicFonts();
@@ -172,8 +173,8 @@ function setupEventListeners() {
     document.addEventListener('mousedown', (event) => {
         if (isClickOutsideExtensionUi(event)) {
             STATE.savedRange = null;
-            if (STATE.translationOpen) {
-                closeTranslationPanel({ restoreFocus: false });
+            if (STATE.translationBubbleOpen) {
+                closeTranslationBubble({ restoreFocus: false });
             }
             if (STATE.speech) {
                 updateToolbarState();
@@ -270,7 +271,8 @@ function handleSelectionChange() {
     // selection can close it even while focus is still inside the panel.
     const activeElement = document.activeElement;
     if (activeElement && activeElement.closest(
-        `#${CONFIG.toolbarId}, #${CONFIG.settingsPanelId}`
+        `#${CONFIG.toolbarId}, #${CONFIG.settingsPanelId}, ` +
+        `#${CONFIG.translationBubbleId}`
     )) {
         return;
     }
@@ -287,20 +289,21 @@ function handleSelectionChange() {
         return;
     }
 
-    // The translation panel is a snapshot. A collapsed selection or text
-    // selected inside the panel keeps it open; a new page selection closes
-    // it so the toolbar can follow the new range.
-    if (STATE.translationOpen) {
-        const panel = document.getElementById(CONFIG.translationPanelId);
-        const insidePanel = Boolean(
-            panel && range && panel.contains(range.commonAncestorContainer)
+    // The language/progress bubble belongs to one selection. A new page
+    // selection or a collapsed selection closes and cancels it; the toolbar
+    // then follows the new range. A translation already in the page stays.
+    if (STATE.translationBubbleOpen) {
+        const bubble = document.getElementById(CONFIG.translationBubbleId);
+        const insideBubble = Boolean(
+            bubble && range && bubble.contains(range.commonAncestorContainer)
         );
 
-        if (!range || !range.toString().trim() || insidePanel) {
+        if (!insideBubble) {
+            closeTranslationBubble({ restoreFocus: false });
+        }
+        if (insideBubble) {
             return;
         }
-
-        closeTranslationPanel({ restoreFocus: false });
     }
 
     // Focus mode follows the caret even when the toolbar is about to be
@@ -331,7 +334,7 @@ function handleSelectionChange() {
         STATE.toolbarTimeout = null;
 
         if (!STATE.isExtensionEnabled || !STATE.savedRange ||
-            STATE.translationOpen) {
+            STATE.translationBubbleOpen) {
             return;
         }
 
@@ -355,11 +358,11 @@ function setupKeyboardShortcuts() {
                 return;
             }
 
-            // The translation panel closes before reading so Escape does not
+            // The translation bubble closes before reading so Escape does not
             // stop speech the user may still be listening to. A <select>
             // counts as editable, so this branch must not check for that.
-            if (STATE.translationOpen) {
-                closeTranslationPanel();
+            if (STATE.translationBubbleOpen) {
+                closeTranslationBubble();
                 event.preventDefault();
                 return;
             }
@@ -533,9 +536,12 @@ function handleStorageChange(changes, areaName) {
     }
 
     if (changes.translationTarget) {
-        STATE.translationTarget = normalizeTranslationTarget(
-            changes.translationTarget.newValue
-        );
+        const value = changes.translationTarget.newValue;
+        STATE.translationTarget = typeof value === 'string' && value !== ''
+            ? normalizeTranslationTarget(value)
+            : '';
+        syncTranslationSettingsControls();
+        syncTranslationButton();
     }
 
     if (changes.ttsVoice) {
@@ -608,9 +614,9 @@ export function start() {
         runCommand: handleCommand,
         getScopeOverride,
         getToggleStates,
-        positionTranslationPanel,
-        onToolbarRemoved: () => closeTranslationPanel({ restoreFocus: false }),
-        onReadingStateChanged: syncTranslationReadingState
+        positionTranslationBubble,
+        onToolbarRemoved: () => closeTranslationBubble({ restoreFocus: false }),
+        onTranslationStateChanged: syncTranslationButton
     });
 
     chrome.storage.onChanged.addListener(handleStorageChange);

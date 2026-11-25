@@ -40,10 +40,11 @@ export const STATE = {
     focusMode: false,
     readingRuler: false,
     focusBlock: null,
-    // Selection translation. The panel is a snapshot; the target is the
-    // normalized language tag the user chose.
-    translationOpen: false,
+    // Selection translation. The panel/bubble is transient; translations that
+    // are already in the page are undoable records in STATE.translations.
+    translationBubbleOpen: false,
     translationTarget: '',
+    translations: new Map(),
     // Focus Toolbar is a manifest command. These defaults are replaced with
     // the user's actual binding once the background worker responds.
     focusToolbarShortcut: IS_MAC ? 'Cmd+Shift+F' : 'Ctrl+Shift+F',
@@ -54,7 +55,8 @@ export const CONFIG = {
     toolbarId: 'accessibility-toolbar',
     settingsPanelId: 'accessibility-settings-panel',
     settingsOverlayId: 'accessibility-settings-overlay',
-    translationPanelId: 'accessibility-translation-panel',
+    translationBubbleId: 'accessibility-translation-bubble',
+    translationAttr: 'data-atx-translation',
     focusOverlayId: 'accessibility-focus-overlay',
     readingRulerId: 'accessibility-reading-ruler',
     highlightAttr: 'data-accessibility-highlight',
@@ -174,6 +176,6 @@ export const HTML_NAMESPACE = 'http://www.w3.org/1999/xhtml';
 // An empty or "plaintext-only" contenteditable is still editable, so only
 // an explicit "false" opts an element out.
 export const SKIP_SELECTOR = `#${CONFIG.toolbarId}, #${CONFIG.settingsPanelId}, ` +
-    `#${CONFIG.translationPanelId}, ` +
+    `#${CONFIG.translationBubbleId}, ` +
     'script, style, textarea, input, select, ' +
     '[contenteditable]:not([contenteditable="false"])';

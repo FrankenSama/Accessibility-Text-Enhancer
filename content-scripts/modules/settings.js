@@ -15,8 +15,12 @@ import {
 } from './style-defaults.js';
 import { initTextStylingControls } from './text-styling-ui.js';
 import { initSiteRulesControls } from './site-rules-ui.js';
-import { closeTranslationPanel } from './translation-ui.js';
-import { normalizeTranslationTarget } from './translation.js';
+import { closeTranslationBubble } from './translation-inline.js';
+import {
+    normalizeTranslationTarget,
+    translationLanguageName,
+    TRANSLATION_LANGUAGES
+} from './translation.js';
 import { hasPageChanges, resetPageChanges } from './history.js';
 
 let settingsReturnFocus = null;
@@ -181,6 +185,18 @@ export function showSettingsPanel() {
             </div>
         </div>
 
+        <div class="setting-item translation-settings">
+            <h4>Translation</h4>
+            <p class="setting-help">
+                The target language for the Translate button. The source is
+                detected from the page.
+            </p>
+            <div class="setting-field">
+                <label for="atx-translation-target">Target language</label>
+                <select id="atx-translation-target" class="setting-select"></select>
+            </div>
+        </div>
+
         <div class="setting-item site-rules-settings">
             <h4>Site rules</h4>
             <p class="setting-help">
@@ -246,6 +262,7 @@ export function showSettingsPanel() {
     panel.querySelector('#export-settings').addEventListener('click', exportSettings);
     panel.querySelector('#import-settings').addEventListener('click', importSettings);
     setupReadingSettings(panel);
+    setupTranslationSettings(panel);
     setupPageReset(panel);
 
     // Keep keyboard focus inside the dialog while it is open.
@@ -426,10 +443,55 @@ function setupPageReset(panel) {
         disarm();
 
         if (resetPageChanges()) {
-            closeTranslationPanel({ restoreFocus: false });
+            closeTranslationBubble({ restoreFocus: false });
             removeSettingsPanel();
         }
     });
+}
+
+/**
+ * Wire the translation target select in the settings dialog to storage.
+ * @param {HTMLElement} panel
+ */
+function setupTranslationSettings(panel) {
+    const select = panel.querySelector('#atx-translation-target');
+    if (!select) {
+        return;
+    }
+
+    select.textContent = '';
+    const placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = 'Choose a language';
+    select.appendChild(placeholder);
+
+    TRANSLATION_LANGUAGES.forEach(({ code, name }) => {
+        const option = document.createElement('option');
+        option.value = code;
+        option.textContent = name;
+        select.appendChild(option);
+    });
+
+    select.value = STATE.translationTarget || '';
+    select.addEventListener('change', () => {
+        const value = select.value ? normalizeTranslationTarget(select.value) : '';
+        STATE.translationTarget = value;
+        saveSyncedPreferences({ translationTarget: value });
+        showToast(value
+            ? `Translation target: ${translationLanguageName(value)}`
+            : 'Translation target cleared');
+    });
+}
+
+/**
+ * Refresh the translation target select if the settings dialog is open.
+ */
+export function syncTranslationSettingsControls() {
+    const panel = document.getElementById(CONFIG.settingsPanelId);
+    const select = panel?.querySelector('#atx-translation-target');
+    if (select) {
+        select.value = STATE.translationTarget || '';
+    }
 }
 
 /**
@@ -519,7 +581,7 @@ function resetReadingSettings() {
     if (STATE.speech) {
         STATE.speech.voice = pickReadingVoice(
             STATE.speech.language,
-            STATE.speech.origin === 'translation'
+            STATE.speech.preferLanguage
         );
     }
 

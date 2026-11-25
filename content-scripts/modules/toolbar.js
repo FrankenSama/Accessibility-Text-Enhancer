@@ -19,16 +19,16 @@ import { showToast } from './toast.js';
 let runCommand = () => {};
 let resolveCommandScope = () => null;
 let readToggleStates = () => ({});
-let repositionTranslationPanel = () => {};
+let repositionTranslationBubble = () => {};
 let toolbarRemoved = () => {};
-let readingStateChanged = () => {};
+let translationStateChanged = () => {};
 
 /**
  * Supply the command callbacks the toolbar needs. Keeping them injected
  * avoids a circular import between the toolbar and command modules.
  * @param {{runCommand?: Function, getScopeOverride?: Function,
- *     getToggleStates?: Function, positionTranslationPanel?: Function,
- *     onToolbarRemoved?: Function, onReadingStateChanged?: Function}} handlers
+ *     getToggleStates?: Function, positionTranslationBubble?: Function,
+ *     onToolbarRemoved?: Function, onTranslationStateChanged?: Function}} handlers
  */
 export function configureToolbar(handlers = {}) {
     if (typeof handlers.runCommand === 'function') {
@@ -40,14 +40,14 @@ export function configureToolbar(handlers = {}) {
     if (typeof handlers.getToggleStates === 'function') {
         readToggleStates = handlers.getToggleStates;
     }
-    if (typeof handlers.positionTranslationPanel === 'function') {
-        repositionTranslationPanel = handlers.positionTranslationPanel;
+    if (typeof handlers.positionTranslationBubble === 'function') {
+        repositionTranslationBubble = handlers.positionTranslationBubble;
     }
     if (typeof handlers.onToolbarRemoved === 'function') {
         toolbarRemoved = handlers.onToolbarRemoved;
     }
-    if (typeof handlers.onReadingStateChanged === 'function') {
-        readingStateChanged = handlers.onReadingStateChanged;
+    if (typeof handlers.onTranslationStateChanged === 'function') {
+        translationStateChanged = handlers.onTranslationStateChanged;
     }
 }
 
@@ -112,7 +112,7 @@ export function createToolbar() {
 
     const tooltips = textCommandTooltips();
     const translateButton = isTranslationAvailable()
-        ? `<button type="button" data-command="translate" class="icon-btn translate-btn" data-tooltip="Translate selection (${SHORTCUT_LABELS.translate}) · Shift-click: paragraph" data-aria-label="Translate" aria-keyshortcuts="${SHORTCUT_ARIA.translate}" aria-haspopup="dialog" aria-expanded="false">文A</button>`
+        ? `<button type="button" data-command="translate" class="icon-btn translate-btn" data-tooltip="Translate selection (${SHORTCUT_LABELS.translate}) · Shift-click: paragraph" data-aria-label="Translate" aria-keyshortcuts="${SHORTCUT_ARIA.translate}" aria-haspopup="dialog" aria-expanded="false" aria-pressed="false">文A</button>`
         : '';
     const toolbar = document.createElement('div');
     toolbar.id = CONFIG.toolbarId;
@@ -440,7 +440,7 @@ export function scheduleToolbarPosition() {
         if (toolbar && STATE.savedRange) {
             positionToolbar(toolbar, STATE.savedRange);
         }
-        repositionTranslationPanel();
+        repositionTranslationBubble();
     });
 }
 
@@ -480,7 +480,7 @@ export function isClickOutsideExtensionUi(event) {
     const toolbar = document.getElementById(CONFIG.toolbarId);
     const panel = document.getElementById(CONFIG.settingsPanelId);
     const overlay = document.getElementById(CONFIG.settingsOverlayId);
-    const translation = document.getElementById(CONFIG.translationPanelId);
+    const translation = document.getElementById(CONFIG.translationBubbleId);
 
     return !(toolbar && toolbar.contains(event.target)) &&
            !(panel && panel.contains(event.target)) &&
@@ -495,10 +495,6 @@ export function isClickOutsideExtensionUi(event) {
  * becomes play/pause, and a stop button appears while reading.
  */
 export function updateToolbarReadingState() {
-    // The translation panel mirrors the shared speech state even if the
-    // toolbar is momentarily absent.
-    readingStateChanged();
-
     const toolbar = document.getElementById(CONFIG.toolbarId);
     if (!toolbar) {
         return;
@@ -600,6 +596,8 @@ export function updateToolbarState() {
             fallback.focus({ preventScroll: true });
         }
     }
+
+    translationStateChanged();
 }
 
 /**
@@ -626,7 +624,7 @@ export function applyTheme() {
         panel.classList.toggle('light-mode', !STATE.isDarkMode);
     }
 
-    const translation = document.getElementById(CONFIG.translationPanelId);
+    const translation = document.getElementById(CONFIG.translationBubbleId);
     if (translation) {
         translation.classList.toggle('light-mode', !STATE.isDarkMode);
     }

@@ -57,12 +57,13 @@ export function pushHistory(entry) {
     // Remember the first state each element was seen in. Reset page uses
     // this instead of replaying the (capped) undo history, so changes that
     // scrolled out of history are still reversible.
-    for (const change of entry.changes) {
+    for (const change of entry.changes || []) {
         if (!STATE.originals.has(change.element)) {
             STATE.originals.set(change.element, change.before);
         }
     }
     pruneOriginals();
+    pruneTranslations();
 
     STATE.history = STATE.history.slice(0, STATE.historyIndex + 1);
     STATE.history.push(entry);
@@ -91,12 +92,131 @@ function pruneOriginals() {
 }
 
 /**
+ * Drop translation records whose wrapper and original nodes are both gone.
+ */
+function pruneTranslations() {
+    if (STATE.translations.size <= CONFIG.maxHistorySize * 4) {
+        return;
+    }
+
+    for (const [wrapper, record] of STATE.translations) {
+        const alive = wrapper.isConnected ||
+            record.originalNodes.some((node) => node.isConnected);
+        if (!alive) {
+            STATE.translations.delete(wrapper);
+        }
+    }
+}
+
+/**
+ * Select one side of a translation record and keep the toolbar's saved range
+ * in sync.
+ * @param {Object} record
+ * @param {'original'|'translated'} state
+ */
+function selectTranslationSide(record, state) {
+    const selection = window.getSelection();
+    if (!selection) {
+        return;
+    }
+
+    const range = document.createRange();
+    if (state === 'translated') {
+        if (!record.wrapper.isConnected) {
+            return;
+        }
+        range.selectNodeContents(record.wrapper);
+    } else {
+        const first = record.originalNodes[0];
+        const last = record.originalNodes[record.originalNodes.length - 1];
+        if (!first || !last || !first.isConnected || !last.isConnected) {
+            return;
+        }
+        range.setStartBefore(first);
+        range.setEndAfter(last);
+    }
+
+    selection.removeAllRanges();
+    selection.addRange(range);
+    STATE.savedRange = range.cloneRange();
+}
+
+/**
+ * Show either the translation or its original. Shared by the Translate
+ * toggle and the history, so both paths apply exactly the same DOM state.
+ * @param {Object} record
+ * @param {'original'|'translated'} state
+ * @returns {boolean} Whether the page was updated
+ */
+export function setTranslationState(record, state) {
+    if (!record || !record.wrapper || !record.originalNodes) {
+        return false;
+    }
+
+    const wrapper = record.wrapper;
+
+    if (state === 'translated') {
+        if (wrapper.isConnected) {
+            return false;
+        }
+
+        const parent = record.parent;
+        if (!parent || !parent.isConnected) {
+            return false;
+        }
+
+        for (const node of record.originalNodes) {
+            if (node.parentNode) {
+                node.parentNode.removeChild(node);
+            }
+        }
+
+        const next = record.next && record.next.parentNode === parent
+            ? record.next
+            : null;
+        parent.insertBefore(wrapper, next);
+        record.translated = true;
+        selectTranslationSide(record, 'translated');
+        return true;
+    }
+
+    if (state === 'original') {
+        if (!wrapper.isConnected) {
+            return false;
+        }
+
+        const parent = wrapper.parentNode;
+        if (!parent) {
+            return false;
+        }
+
+        const next = wrapper.nextSibling;
+        wrapper.remove();
+
+        const fragment = document.createDocumentFragment();
+        for (const node of record.originalNodes) {
+            fragment.appendChild(node);
+        }
+        parent.insertBefore(fragment, next);
+        record.translated = false;
+        selectTranslationSide(record, 'original');
+        return true;
+    }
+
+    return false;
+}
+
+/**
  * Restore one side of a history entry.
  * @param {{changes: Array<{element: HTMLElement, before: Object, after: Object}>}} entry
  * @param {'before'|'after'} side
  * @returns {number} Number of targets that were still on the page
  */
 function applyHistoryEntry(entry, side) {
+    if (entry.type === 'translation') {
+        return setTranslationState(entry.record, entry[side]) ? 1 : 0;
+    }
+
     let applied = 0;
 
     for (const change of entry.changes) {
@@ -192,7 +312,9 @@ function unwrapElement(wrapper) {
  */
 export function hasPageChanges() {
     return STATE.history.length > 0 ||
-        document.querySelector(`[${CONFIG.selectionAttr}]`) !== null;
+        STATE.translations.size > 0 ||
+        document.querySelector(`[${CONFIG.selectionAttr}]`) !== null ||
+        document.querySelector(`[${CONFIG.translationAttr}]`) !== null;
 }
 
 /**
@@ -212,6 +334,27 @@ export function resetPageChanges() {
         }
     }
     STATE.originals.clear();
+
+    // Put every translated range back before unwrapping selection wrappers,
+    // because an original fragment can contain those wrappers.
+    for (const [wrapper, record] of STATE.translations) {
+        if (record.translated) {
+            const parent = wrapper.parentNode;
+            if (parent) {
+                const next = wrapper.nextSibling;
+                wrapper.remove();
+                const fragment = document.createDocumentFragment();
+                for (const node of record.originalNodes) {
+                    fragment.appendChild(node);
+                }
+                parent.insertBefore(fragment, next);
+            }
+            record.translated = false;
+        } else if (wrapper.isConnected) {
+            wrapper.remove();
+        }
+    }
+    STATE.translations.clear();
 
     // Restoring a wrapper's snapshot only clears its inline style; the span
     // itself still splits the page's text nodes, so unwrap it too.
