@@ -17,7 +17,9 @@ const SYNC_KEYS = [
     ...LEGACY_KEYS,
     ...TEXT_DEFAULT_KEYS,
     'siteRules',
-    'translationTarget'
+    'translationTarget',
+    'rulerSource',
+    'focusDim'
 ];
 
 /**

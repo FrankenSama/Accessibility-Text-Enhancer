@@ -19,6 +19,8 @@ let focusFrame = null;
 let rulerFrame = null;
 let focusRect = null;
 let pointerY = null;
+let pointerActive = false;
+let caretY = null;
 let rulerHeight = 0;
 let appliedRulerHeight = '';
 let listenersAttached = false;
@@ -152,6 +154,7 @@ function updateFocusOverlay() {
     }
 
     const overlay = ensureFocusOverlay();
+    overlay.style.setProperty('--atx-focus-dim', String(STATE.focusDim / 100));
 
     if (!rectsEqual(focusRect, rect)) {
         overlay.style.top = style.top;
@@ -319,8 +322,66 @@ function measureRulerHeight() {
 }
 
 /**
- * Position the ruler under the pointer, or at the viewport centre before the
- * pointer has moved.
+ * The vertical centre of the current caret or selection, in viewport
+ * coordinates. Falls back to the block centre when the browser reports an
+ * empty caret rect.
+ * @returns {number|null}
+ */
+function caretYFromSelection() {
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) {
+        return null;
+    }
+
+    const range = selection.getRangeAt(0);
+    const rect = range.getBoundingClientRect();
+    if (rect && rect.height > 0) {
+        return rect.top + rect.height / 2;
+    }
+
+    const node = range.startContainer;
+    const block = closestBlock(node);
+    const blockRect = block &&
+        block !== document.body &&
+        !block.closest(SKIP_SELECTOR)
+        ? block.getBoundingClientRect()
+        : null;
+    return blockRect && blockRect.height > 0
+        ? blockRect.top + blockRect.height / 2
+        : null;
+}
+
+/**
+ * The Y the ruler should follow for the current source. Pointer movement wins
+ * in the combined mode until a keyboard selection moves the caret.
+ * @returns {number|null}
+ */
+function resolveRulerY() {
+    if (STATE.rulerSource === 'pointer') {
+        return pointerY;
+    }
+    if (STATE.rulerSource === 'caret') {
+        return caretY;
+    }
+    return pointerActive ? pointerY : (caretY ?? pointerY);
+}
+
+/**
+ * Recompute the caret position. Called from the selection handler so
+ * keyboard users get a ruler under the caret without moving the mouse.
+ */
+export function refreshReadingRuler() {
+    if (!STATE.readingRuler || STATE.rulerSource === 'pointer') {
+        return;
+    }
+
+    caretY = caretYFromSelection();
+    pointerActive = false;
+    scheduleRulerUpdate();
+}
+
+/**
+ * Position the ruler under the pointer or caret.
  */
 function updateReadingRuler() {
     if (!STATE.readingRuler) {
@@ -330,7 +391,11 @@ function updateReadingRuler() {
 
     const ruler = ensureReadingRuler();
     const height = rulerHeight || measureRulerHeight();
-    const top = clampRulerTop(pointerY, height, window.innerHeight);
+    const top = clampRulerTop(
+        resolveRulerY(),
+        height,
+        window.innerHeight
+    );
 
     const heightValue = `${height}px`;
     if (appliedRulerHeight !== heightValue) {
@@ -365,6 +430,8 @@ export function enableReadingRuler() {
 
     STATE.readingRuler = true;
     measureRulerHeight();
+    pointerActive = false;
+    caretY = caretYFromSelection();
     updateReadingRuler();
     syncAidListeners();
     updateToolbarState();
@@ -381,6 +448,8 @@ export function disableReadingRuler(options = {}) {
     }
 
     STATE.readingRuler = false;
+    caretY = null;
+    pointerActive = false;
     hideReadingRuler();
     document.getElementById(CONFIG.readingRulerId)?.remove();
     syncAidListeners();
@@ -415,6 +484,7 @@ function handlePointerMove(event) {
     }
 
     pointerY = event.clientY;
+    pointerActive = true;
     scheduleRulerUpdate();
 }
 
@@ -425,6 +495,10 @@ function handlePointerMove(event) {
 function handleViewportChange(event) {
     if (STATE.focusMode) {
         scheduleFocusUpdate();
+    }
+
+    if (STATE.readingRuler && STATE.rulerSource !== 'pointer' && !pointerActive) {
+        refreshReadingRuler();
     }
 
     if (event.type === 'resize' && STATE.readingRuler) {
@@ -473,6 +547,21 @@ function syncAidListeners() {
             cancelAnimationFrame(rulerFrame);
             rulerFrame = null;
         }
+    }
+}
+
+/**
+ * Re-apply the stored ruler source and focus dim. Called when another page
+ * changes them or the settings dialog updates them.
+ */
+export function applyReadingAidSettings() {
+    if (STATE.readingRuler) {
+        pointerActive = false;
+        caretY = caretYFromSelection();
+        scheduleRulerUpdate();
+    }
+    if (STATE.focusMode) {
+        scheduleFocusUpdate();
     }
 }
 

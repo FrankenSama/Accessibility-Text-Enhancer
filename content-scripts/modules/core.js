@@ -39,6 +39,8 @@ export const STATE = {
     // touch the undo history.
     focusMode: false,
     readingRuler: false,
+    rulerSource: 'both',
+    focusDim: 55,
     focusBlock: null,
     // Selection translation. The panel/bubble is transient; translations that
     // are already in the page are undoable records in STATE.translations.
@@ -72,7 +74,7 @@ export const CONFIG = {
     maxWrapNodes: 200,
     // Version of the exported settings file. Bump it whenever the shape
     // changes so import can migrate older files.
-    settingsSchemaVersion: 4,
+    settingsSchemaVersion: 5,
     // Cap on stored site rules. storage.sync allows 8 KB per item, and 100
     // origin strings stay comfortably under that even for long hostnames.
     maxSiteRules: 100,

@@ -6,6 +6,7 @@ import { CONFIG } from './core.js';
 import { normalizeSiteRules } from './prefs.js';
 import { normalizeTextDefaults } from './style-defaults.js';
 import { normalizeStoredTranslationTarget } from './translation.js';
+import { clampFocusDim, normalizeRulerSource } from './reading-aids.js';
 
 /**
  * Build the object written to a settings file.
@@ -30,6 +31,8 @@ export function buildSettingsFile(settings) {
             translationTarget: normalizeStoredTranslationTarget(
                 settings.translationTarget
             ),
+            rulerSource: normalizeRulerSource(settings.rulerSource),
+            focusDim: clampFocusDim(settings.focusDim),
             ...normalizeTextDefaults(settings.textDefaults)
         },
         siteRules: normalizeSiteRules(settings.siteRules)

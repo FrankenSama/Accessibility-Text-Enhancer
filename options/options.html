@@ -126,6 +126,40 @@
         <section class="card" aria-labelledby="reading-heading">
             <h2 id="reading-heading">Reading aloud</h2>
 
+            <p class="hint">
+                <strong>Presets</strong> set the text styling used by the next
+                Font, Spacing, or Highlight command. Reading aids are toggled
+                from the page toolbar.
+            </p>
+            <div class="actions preset-actions" id="reading-presets">
+                <button type="button" class="btn secondary" data-preset="comfortable">Comfortable</button>
+                <button type="button" class="btn secondary" data-preset="dyslexia">Dyslexia-friendly</button>
+                <button type="button" class="btn secondary" data-preset="low-vision">Low vision</button>
+                <button type="button" class="btn secondary" data-preset="focus">Focus</button>
+            </div>
+
+            <div class="field">
+                <label for="ruler-source">Ruler follows</label>
+                <select id="ruler-source">
+                    <option value="both">Pointer and caret</option>
+                    <option value="pointer">Pointer</option>
+                    <option value="caret">Caret</option>
+                </select>
+                <p class="hint">
+                    The caret option keeps the reading line under the keyboard
+                    cursor.
+                </p>
+            </div>
+
+            <div class="field">
+                <label for="focus-dim">
+                    Focus dim
+                    <output id="focus-dim-value" for="focus-dim">55%</output>
+                </label>
+                <input type="range" id="focus-dim"
+                    min="0" max="80" step="5" value="55">
+            </div>
+
             <div class="field">
                 <label for="tts-voice">Voice</label>
                 <select id="tts-voice"></select>

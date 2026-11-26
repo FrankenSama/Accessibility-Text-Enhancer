@@ -4,10 +4,26 @@ import { CONFIG, STATE } from './core.js';
 import { clampNumber } from './text.js';
 import { getMountNode } from './dom.js';
 import { showToast } from './toast.js';
-import { applyTheme } from './toolbar.js';
+import { applyTheme, refreshTextCommandLabels } from './toolbar.js';
 import { getPageLanguage, pickReadingVoice, populateVoiceSelect } from './reading.js';
 import { normalizeSiteRules, loadSyncedPreferences, saveSyncedPreferences } from './prefs.js';
 import { buildSettingsFile, parseSettingsFile } from './settings-io.js';
+import { READING_PRESETS, readingPresetById } from './reading-profiles.js';
+import {
+    DEFAULT_FOCUS_DIM,
+    DEFAULT_RULER_SOURCE,
+    MAX_FOCUS_DIM,
+    MIN_FOCUS_DIM,
+    clampFocusDim,
+    normalizeRulerSource
+} from './reading-aids.js';
+import {
+    applyReadingAidSettings,
+    disableFocusMode,
+    disableReadingRuler,
+    enableFocusMode,
+    enableReadingRuler
+} from './reading-aids-ui.js';
 import {
     normalizeTextDefaults,
     pickTextDefaults,
@@ -149,6 +165,42 @@ export function showSettingsPanel() {
 
         <div class="setting-item reading-settings">
             <h4>Reading aloud</h4>
+
+            <p class="setting-help">
+                <strong>Presets</strong> set the text styling and reading aids
+                used next. They do not change the current page on their own.
+            </p>
+            <div id="atx-reading-presets" class="setting-actions preset-actions">
+                ${READING_PRESETS.map((preset) => `
+                    <button type="button" class="action-btn preset-btn"
+                        data-preset="${preset.id}"
+                        title="${preset.description}">${preset.name}</button>
+                `).join('')}
+            </div>
+
+            <div class="setting-field">
+                <label for="atx-ruler-source">Ruler follows</label>
+                <select id="atx-ruler-source" class="setting-select">
+                    <option value="both">Pointer and caret</option>
+                    <option value="pointer">Pointer</option>
+                    <option value="caret">Caret</option>
+                </select>
+            </div>
+
+            <div class="setting-field">
+                <label for="atx-focus-dim">
+                    Focus dim
+                    <output id="atx-focus-dim-value" for="atx-focus-dim">${STATE.focusDim}%</output>
+                </label>
+                <input type="range" id="atx-focus-dim"
+                    min="${MIN_FOCUS_DIM}" max="${MAX_FOCUS_DIM}"
+                    step="5" value="${STATE.focusDim}">
+            </div>
+
+            <p class="setting-help">
+                These choices apply to the next font, spacing, or highlight
+                command.
+            </p>
 
             <div class="setting-field">
                 <label for="tts-voice">Voice</label>
@@ -365,6 +417,41 @@ function setupReadingSettings(panel) {
     populateVoiceSelect();
     syncReadingSettingsControls();
 
+    panel.querySelectorAll('[data-preset]').forEach((button) => {
+        button.addEventListener('click', () => {
+            applyReadingPreset(button.dataset.preset);
+        });
+    });
+
+    const rulerSelect = panel.querySelector('#atx-ruler-source');
+    if (rulerSelect) {
+        rulerSelect.addEventListener('change', () => {
+            STATE.rulerSource = normalizeRulerSource(rulerSelect.value);
+            saveSyncedPreferences({ rulerSource: STATE.rulerSource });
+            applyReadingAidSettings();
+            const label = rulerSelect.selectedOptions[0]?.textContent || '';
+            showToast(`Ruler follows: ${label}`);
+        });
+    }
+
+    const dimInput = panel.querySelector('#atx-focus-dim');
+    const dimOutput = panel.querySelector('#atx-focus-dim-value');
+    if (dimInput) {
+        const updateDim = (save) => {
+            STATE.focusDim = clampFocusDim(dimInput.value);
+            dimInput.value = String(STATE.focusDim);
+            if (dimOutput) {
+                dimOutput.textContent = `${STATE.focusDim}%`;
+            }
+            applyReadingAidSettings();
+            if (save) {
+                saveSyncedPreferences({ focusDim: STATE.focusDim });
+            }
+        };
+        dimInput.addEventListener('input', () => updateDim(false));
+        dimInput.addEventListener('change', () => updateDim(true));
+    }
+
     const voiceSelect = panel.querySelector('#tts-voice');
     const rateInput = panel.querySelector('#tts-rate');
     const pitchInput = panel.querySelector('#tts-pitch');
@@ -403,6 +490,37 @@ function setupReadingSettings(panel) {
 
     panel.querySelector('#preview-voice').addEventListener('click', previewReadingVoice);
     panel.querySelector('#reset-reading').addEventListener('click', resetReadingSettings);
+}
+
+/**
+ * Apply a built-in reading preset. It writes the same defaults the text
+ * commands use and sets the two reading aids; it does not restyle the current
+ * selection by itself.
+ * @param {string} id
+ */
+function applyReadingPreset(id) {
+    const preset = readingPresetById(id);
+    if (!preset) {
+        return;
+    }
+
+    savePanelTextDefaults(preset.textDefaults);
+
+    if (preset.focusMode) {
+        enableFocusMode();
+    } else {
+        disableFocusMode({ silent: true });
+    }
+
+    if (preset.ruler) {
+        enableReadingRuler();
+    } else {
+        disableReadingRuler({ silent: true });
+    }
+
+    refreshTextCommandLabels();
+    syncTextStylingControls();
+    showToast(`Reading preset: ${preset.name}`);
 }
 
 /**
@@ -520,6 +638,20 @@ export function syncReadingSettingsControls() {
     if (pitchValue) {
         pitchValue.textContent = STATE.ttsPitch.toFixed(1);
     }
+
+    const rulerSelect = panel.querySelector('#atx-ruler-source');
+    if (rulerSelect) {
+        rulerSelect.value = STATE.rulerSource;
+    }
+
+    const dimInput = panel.querySelector('#atx-focus-dim');
+    if (dimInput) {
+        dimInput.value = String(STATE.focusDim);
+    }
+    const dimValue = panel.querySelector('#atx-focus-dim-value');
+    if (dimValue) {
+        dimValue.textContent = `${STATE.focusDim}%`;
+    }
 }
 
 /**
@@ -571,12 +703,17 @@ function resetReadingSettings() {
     STATE.ttsVoice = '';
     STATE.ttsRate = CONFIG.defaultTtsRate;
     STATE.ttsPitch = CONFIG.defaultTtsPitch;
+    STATE.rulerSource = DEFAULT_RULER_SOURCE;
+    STATE.focusDim = DEFAULT_FOCUS_DIM;
 
     saveSyncedPreferences({
         ttsVoice: STATE.ttsVoice,
         ttsRate: STATE.ttsRate,
-        ttsPitch: STATE.ttsPitch
+        ttsPitch: STATE.ttsPitch,
+        rulerSource: STATE.rulerSource,
+        focusDim: STATE.focusDim
     });
+    applyReadingAidSettings();
 
     if (STATE.speech) {
         STATE.speech.voice = pickReadingVoice(
@@ -626,6 +763,8 @@ function exportSettings() {
         ttsRate: STATE.ttsRate,
         ttsPitch: STATE.ttsPitch,
         translationTarget: STATE.translationTarget,
+        rulerSource: STATE.rulerSource,
+        focusDim: STATE.focusDim,
         textDefaults: STATE.textDefaults,
         siteRules: STATE.siteRules,
         appVersion: chrome.runtime.getManifest().version
@@ -658,6 +797,8 @@ function applyImportedPreferences(preferences) {
         'ttsVoice',
         'ttsRate',
         'ttsPitch',
+        'rulerSource',
+        'focusDim',
         ...TEXT_DEFAULT_KEYS
     ];
     let hasSettings = keys.some((key) => preferences[key] !== undefined);
@@ -690,6 +831,12 @@ function applyImportedPreferences(preferences) {
             CONFIG.maxTtsPitch,
             CONFIG.defaultTtsPitch
         );
+    }
+    if (preferences.rulerSource !== undefined) {
+        STATE.rulerSource = normalizeRulerSource(preferences.rulerSource);
+    }
+    if (preferences.focusDim !== undefined) {
+        STATE.focusDim = clampFocusDim(preferences.focusDim);
     }
 
     const textDefaults = normalizeTextDefaults({
@@ -738,6 +885,8 @@ function importSettings() {
                     ttsVoice: STATE.ttsVoice,
                     ttsRate: STATE.ttsRate,
                     ttsPitch: STATE.ttsPitch,
+                    rulerSource: STATE.rulerSource,
+                    focusDim: STATE.focusDim,
                     ...STATE.textDefaults
                 };
 
@@ -752,6 +901,7 @@ function importSettings() {
 
                 saveSyncedPreferences(updates);
                 applyTheme();
+                applyReadingAidSettings();
                 syncReadingSettingsControls();
                 showToast('Settings imported successfully');
                 removeSettingsPanel();

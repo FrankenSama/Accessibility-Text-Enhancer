@@ -40,11 +40,14 @@ import {
 import { getScopeOverride } from './modules/scope.js';
 import { redo, undo } from './modules/history.js';
 import {
+    applyReadingAidSettings,
     disableReadingAids,
     refreshFocusMode,
+    refreshReadingRuler,
     toggleFocusMode,
     toggleReadingRuler
 } from './modules/reading-aids-ui.js';
+import { clampFocusDim, normalizeRulerSource } from './modules/reading-aids.js';
 import {
     closeTranslationBubble,
     positionTranslationBubble,
@@ -158,6 +161,8 @@ async function loadExtensionState() {
     STATE.translationTarget = normalizeStoredTranslationTarget(
         synced.translationTarget
     );
+    STATE.rulerSource = normalizeRulerSource(synced.rulerSource);
+    STATE.focusDim = clampFocusDim(synced.focusDim);
     if (STATE.textDefaults.fontFamily === 'opendyslexic') {
         loadOpenDyslexicFonts();
     }
@@ -318,6 +323,7 @@ function handleSelectionChange() {
     // Focus mode follows the caret even when the toolbar is about to be
     // removed for an empty selection, so update it before that teardown.
     refreshFocusMode();
+    refreshReadingRuler();
 
     if (STATE.toolbarTimeout) {
         clearTimeout(STATE.toolbarTimeout);
@@ -570,6 +576,19 @@ function handleStorageChange(changes, areaName) {
         STATE.isDarkMode = changes.darkMode.newValue !== false;
         applyTheme();
         syncTextStylingControls();
+    }
+
+    if (changes.rulerSource || changes.focusDim) {
+        STATE.rulerSource = normalizeRulerSource(
+            changes.rulerSource
+                ? changes.rulerSource.newValue
+                : STATE.rulerSource
+        );
+        STATE.focusDim = clampFocusDim(
+            changes.focusDim ? changes.focusDim.newValue : STATE.focusDim
+        );
+        applyReadingAidSettings();
+        syncReadingSettingsControls();
     }
 
     if (TEXT_DEFAULT_KEYS.some((key) => changes[key])) {

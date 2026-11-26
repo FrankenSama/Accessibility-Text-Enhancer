@@ -5,6 +5,34 @@
 // outlines, and italic overhangs are not dimmed at the edge.
 export const FOCUS_INSET = 2;
 
+export const DEFAULT_RULER_SOURCE = 'both';
+export const RULER_SOURCES = Object.freeze(['both', 'pointer', 'caret']);
+export const DEFAULT_FOCUS_DIM = 55;
+export const MIN_FOCUS_DIM = 0;
+export const MAX_FOCUS_DIM = 80;
+
+/**
+ * A stored ruler source, falling back to the pointer-and-caret default.
+ * @param {unknown} value
+ * @returns {'both'|'pointer'|'caret'}
+ */
+export function normalizeRulerSource(value) {
+    return RULER_SOURCES.includes(value) ? value : DEFAULT_RULER_SOURCE;
+}
+
+/**
+ * Clamp a stored focus dim percentage.
+ * @param {unknown} value
+ * @returns {number}
+ */
+export function clampFocusDim(value) {
+    const number = Number(value);
+    if (!Number.isFinite(number)) {
+        return DEFAULT_FOCUS_DIM;
+    }
+    return Math.round(Math.min(MAX_FOCUS_DIM, Math.max(MIN_FOCUS_DIM, number)));
+}
+
 // The ruler is about one comfortably spaced line tall, with a floor and a
 // ceiling so very small or very large root fonts stay useful.
 const RULER_HEIGHT_EM = 2.2;

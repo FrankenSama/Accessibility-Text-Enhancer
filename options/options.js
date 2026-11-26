@@ -21,6 +21,13 @@ import {
     translationLanguageName,
     TRANSLATION_LANGUAGES
 } from '../content-scripts/modules/translation.js';
+import { readingPresetById } from '../content-scripts/modules/reading-profiles.js';
+import {
+    DEFAULT_FOCUS_DIM,
+    DEFAULT_RULER_SOURCE,
+    clampFocusDim,
+    normalizeRulerSource
+} from '../content-scripts/modules/reading-aids.js';
 import { initTextStylingControls } from '../content-scripts/modules/text-styling-ui.js';
 import { initSiteRulesControls } from '../content-scripts/modules/site-rules-ui.js';
 
@@ -28,7 +35,9 @@ const DEFAULTS = {
     darkMode: true,
     ttsVoice: '',
     ttsRate: CONFIG.defaultTtsRate,
-    ttsPitch: CONFIG.defaultTtsPitch
+    ttsPitch: CONFIG.defaultTtsPitch,
+    rulerSource: DEFAULT_RULER_SOURCE,
+    focusDim: DEFAULT_FOCUS_DIM
 };
 
 const LIMITS = {
@@ -53,6 +62,10 @@ const rateInput = document.getElementById('tts-rate');
 const rateValue = document.getElementById('tts-rate-value');
 const pitchInput = document.getElementById('tts-pitch');
 const pitchValue = document.getElementById('tts-pitch-value');
+const rulerSourceSelect = document.getElementById('ruler-source');
+const focusDimInput = document.getElementById('focus-dim');
+const focusDimValue = document.getElementById('focus-dim-value');
+const readingPresets = document.getElementById('reading-presets');
 const status = document.getElementById('options-status');
 const importFile = document.getElementById('import-file');
 const translationSelect = document.getElementById('translation-target');
@@ -170,6 +183,10 @@ function syncControls() {
 
     const hasSavedVoice = voices.some((voice) => voice.voiceURI === state.ttsVoice);
     voiceSelect.value = hasSavedVoice ? state.ttsVoice : '';
+
+    rulerSourceSelect.value = state.rulerSource;
+    focusDimInput.value = String(state.focusDim);
+    focusDimValue.textContent = `${state.focusDim}%`;
 }
 
 /**
@@ -330,11 +347,15 @@ function resetReadingSettings() {
     state.ttsVoice = DEFAULTS.ttsVoice;
     state.ttsRate = DEFAULTS.ttsRate;
     state.ttsPitch = DEFAULTS.ttsPitch;
+    state.rulerSource = DEFAULTS.rulerSource;
+    state.focusDim = DEFAULTS.focusDim;
 
     savePreferences({
         ttsVoice: state.ttsVoice,
         ttsRate: state.ttsRate,
-        ttsPitch: state.ttsPitch
+        ttsPitch: state.ttsPitch,
+        rulerSource: state.rulerSource,
+        focusDim: state.focusDim
     });
 
     syncControls();
@@ -351,6 +372,8 @@ function exportSettings() {
         ttsRate: state.ttsRate,
         ttsPitch: state.ttsPitch,
         translationTarget: state.translationTarget,
+        rulerSource: state.rulerSource,
+        focusDim: state.focusDim,
         textDefaults: state.textDefaults,
         siteRules: state.siteRules,
         appVersion: chrome.runtime.getManifest().version
@@ -406,6 +429,14 @@ function applyImportedPreferences(preferences) {
             LIMITS.maxPitch,
             DEFAULTS.ttsPitch
         );
+        applied = true;
+    }
+    if (preferences.rulerSource !== undefined) {
+        state.rulerSource = normalizeRulerSource(preferences.rulerSource);
+        applied = true;
+    }
+    if (preferences.focusDim !== undefined) {
+        state.focusDim = clampFocusDim(preferences.focusDim);
         applied = true;
     }
 
@@ -464,6 +495,8 @@ function importFileContents(file) {
             ttsVoice: state.ttsVoice,
             ttsRate: state.ttsRate,
             ttsPitch: state.ttsPitch,
+            rulerSource: state.rulerSource,
+            focusDim: state.focusDim,
             ...state.textDefaults
         };
 
@@ -523,6 +556,8 @@ loadSyncedPreferences().then((result) => {
     state.translationTarget = normalizeStoredTranslationTarget(
         result.translationTarget
     );
+    state.rulerSource = normalizeRulerSource(result.rulerSource);
+    state.focusDim = clampFocusDim(result.focusDim);
 
     loadVoices();
     populateTranslationSelect();
@@ -573,6 +608,16 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
             LIMITS.maxPitch,
             DEFAULTS.ttsPitch
         );
+        changed = true;
+    }
+
+    if (changes.rulerSource) {
+        state.rulerSource = normalizeRulerSource(changes.rulerSource.newValue);
+        changed = true;
+    }
+
+    if (changes.focusDim) {
+        state.focusDim = clampFocusDim(changes.focusDim.newValue);
         changed = true;
     }
 
@@ -632,6 +677,35 @@ translationSelect.addEventListener('change', () => {
 voiceSelect.addEventListener('change', () => {
     state.ttsVoice = voiceSelect.value;
     savePreferences({ ttsVoice: state.ttsVoice });
+});
+
+readingPresets?.addEventListener('click', (event) => {
+    const button = event.target.closest?.('[data-preset]');
+    const preset = button ? readingPresetById(button.dataset.preset) : null;
+    if (!preset) {
+        return;
+    }
+
+    state.textDefaults = normalizeTextDefaults(preset.textDefaults);
+    saveTextDefaults(state.textDefaults);
+    textControls.sync();
+    setStatus(`Reading preset: ${preset.name} (text styling).`);
+});
+
+rulerSourceSelect.addEventListener('change', () => {
+    state.rulerSource = normalizeRulerSource(rulerSourceSelect.value);
+    savePreferences({ rulerSource: state.rulerSource });
+    const label = rulerSourceSelect.selectedOptions[0]?.textContent || '';
+    setStatus(`Ruler follows: ${label}`);
+});
+
+focusDimInput.addEventListener('input', () => {
+    state.focusDim = clampFocusDim(focusDimInput.value);
+    focusDimValue.textContent = `${state.focusDim}%`;
+});
+
+focusDimInput.addEventListener('change', () => {
+    savePreferences({ focusDim: state.focusDim });
 });
 
 rateInput.addEventListener('input', () => {

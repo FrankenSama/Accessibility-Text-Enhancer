@@ -44,15 +44,15 @@ span[data-atx-translation] {
     box-sizing: border-box;
     border-radius: 4px;
     outline: 1px solid rgba(128, 128, 128, 0.35);
-    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.55) !important;
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, var(--atx-focus-dim, 0.55)) !important;
 }
 
 #accessibility-focus-overlay.visible {
     display: block !important;
 }
 
-/* Reading ruler. A translucent band that follows the pointer. It sits above
-   the focus scrim and below the toolbar. */
+/* Reading ruler. A translucent band that follows the pointer or the caret.
+   It sits above the focus scrim and below the toolbar. */
 #accessibility-reading-ruler {
     position: fixed !important;
     left: 0;
@@ -636,6 +636,14 @@ span[data-atx-translation] {
     display: flex;
     gap: 8px;
     margin-top: 12px;
+}
+
+#accessibility-settings-panel .preset-actions {
+    flex-wrap: wrap;
+}
+
+#accessibility-settings-panel .preset-actions .preset-btn {
+    flex: 1 1 40%;
 }
 
 #accessibility-settings-panel .setting-actions .action-btn {
