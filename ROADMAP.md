@@ -2,7 +2,7 @@
 
 This roadmap tracks the accessibility work planned for Accessibility Text Enhancer. It is a living document: items move between phases as the project learns from real use, and nothing here is a commitment to a date.
 
-**Latest GitHub release:** v1.6.0 · **Chrome Web Store:** v1.4.1 · **Last updated:** 2026-11-25
+**Latest GitHub release:** v1.7.0 · **Chrome Web Store:** v1.7.0 · **Last updated:** 2026-11-26
 
 ## Guiding principles
 
@@ -43,9 +43,9 @@ This roadmap tracks the accessibility work planned for Accessibility Text Enhanc
 
 **v1.7.0 (in-place selection translation, released):** adds a **Translate** toolbar button and `Alt+Shift+G` shortcut. The selection, or the paragraph on Shift-click, is replaced in place by its translation using Chrome's built-in Translator API. The wrapper carries `lang` and `dir="auto"` with a dotted underline; pressing Translate again, Undo/Redo, or Reset page restores the original. A compact first-use/progress/error bubble detects the source, saves and syncs the target, shows language-pack progress with Cancel, and offers Try again. The target is changed in Settings or the options page. Multi-block selections are rejected; links or emphasis containing the whole selection stay around the translation, while internal markup is flattened and restored by undo. The page change is undoable and read aloud uses the target language. Needs Chrome 138+ on desktop and an HTTPS page. Adds `translationTarget` to schema 4 settings exports. No new permissions.
 
-**Distribution:** v1.7.0 is the latest GitHub release with a packaged zip and SHA-256 checksum. v1.4.1 remains the Chrome Web Store version until a package is submitted and published. The v1.7.0 manual NVDA pass is still pending.
+**Distribution:** v1.7.0 is the latest GitHub release and the published Chrome Web Store version; both ship the packaged zip with a SHA-256 checksum. The v1.7.0 manual NVDA pass is still pending.
 
-**Next:** the remaining work is the manual NVDA in-place rows and the Chrome Web Store submission.
+**Next:** the remaining work is the manual NVDA in-place rows.
 
 ---
 
@@ -251,7 +251,7 @@ These are worth investigating but are not scheduled:
 
 ## Release checklist
 
-Use this list for every release. The v1.4.0, v1.4.1, v1.5.0, v1.5.1, and v1.6.0 runs are recorded in the release notes and [`docs/smoke-test.md`](docs/smoke-test.md). The store step was last completed for v1.4.1 on 2026-11-18; the checklist stays unchecked as a template for the next release.
+Use this list for every release. The v1.4.0, v1.4.1, v1.5.0, v1.5.1, v1.6.0, and v1.7.0 runs are recorded in the release notes and [`docs/smoke-test.md`](docs/smoke-test.md). The store step was last completed for v1.7.0 on 2026-11-26; the checklist stays unchecked as a template for the next release.
 
 - [ ] Browser harness green (all suites, including real-extension load and command smoke tests)
 - [ ] Keyboard-only harness checks: focus, traversal, apply, undo
