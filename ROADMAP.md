@@ -43,9 +43,9 @@ This roadmap tracks the accessibility work planned for Accessibility Text Enhanc
 
 **v1.7.0 (in-place selection translation, released):** adds a **Translate** toolbar button and `Alt+Shift+G` shortcut. The selection, or the paragraph on Shift-click, is replaced in place by its translation using Chrome's built-in Translator API. The wrapper carries `lang` and `dir="auto"` with a dotted underline; pressing Translate again, Undo/Redo, or Reset page restores the original. A compact first-use/progress/error bubble detects the source, saves and syncs the target, shows language-pack progress with Cancel, and offers Try again. The target is changed in Settings or the options page. Multi-block selections are rejected; links or emphasis containing the whole selection stay around the translation, while internal markup is flattened and restored by undo. The page change is undoable and read aloud uses the target language. Needs Chrome 138+ on desktop and an HTTPS page. Adds `translationTarget` to schema 4 settings exports. No new permissions.
 
-**Distribution:** v1.7.0 is the latest GitHub release and the published Chrome Web Store version; both ship the packaged zip with a SHA-256 checksum. The v1.7.0 manual NVDA pass is still pending.
+**Distribution:** v1.7.0 is the latest GitHub release and the published Chrome Web Store version; both ship the packaged zip with a SHA-256 checksum. The v1.7.0 in-place NVDA pass is recorded in [`docs/smoke-test.md`](docs/smoke-test.md) (13/13).
 
-**Next:** the remaining work is the manual NVDA in-place rows.
+**Next:** no open v1.7.0 work. Future releases start from the next roadmap item.
 
 ---
 
@@ -198,7 +198,7 @@ The toolbar already declares `role="toolbar"`, but it was not operable or unders
 
 ## Phase 6 — Comprehension (v1.7.0) 🚧
 
-**Plan:** [docs/v1.7.0-plan.md](docs/v1.7.0-plan.md), approved and implemented on `main`; pending the manual NVDA pass, version bump, package, and release.
+**Plan:** [docs/v1.7.0-plan.md](docs/v1.7.0-plan.md), approved, implemented, packaged, and released; the in-place NVDA pass is recorded in [`docs/smoke-test.md`](docs/smoke-test.md).
 
 **Problem:** Chrome's page translation is page-level, prompts automatically, and replaces the original. That is awkward when the reader only needs a word, sentence, or paragraph, and it hides the source text they are trying to understand.
 
@@ -255,7 +255,7 @@ Use this list for every release. The v1.4.0, v1.4.1, v1.5.0, v1.5.1, v1.6.0, and
 
 - [ ] Browser harness green (all suites, including real-extension load and command smoke tests)
 - [ ] Keyboard-only harness checks: focus, traversal, apply, undo
-- [ ] NVDA smoke test on Windows when the toolbar, settings, or reading changes — see [`docs/smoke-test.md`](docs/smoke-test.md). Last full pass: v1.6.0
+- [ ] NVDA smoke test on Windows when the toolbar, settings, or reading changes - see [`docs/smoke-test.md`](docs/smoke-test.md). Last full pass: v1.6.0; v1.7.0 in-place translation pass: 13/13
 - [ ] VoiceOver (macOS) and Orca (Linux) smoke tests — not blocking, but still untested; no macOS or Linux hardware available
 - [ ] Dark and light toolbar themes
 - [ ] Version bumped in `manifest.json`, `popup/popup.html`, and the README badge

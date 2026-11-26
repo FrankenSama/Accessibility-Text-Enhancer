@@ -11,7 +11,7 @@ or the reading assistant.
 
 | Platform | Screen reader | Status |
 |----------|---------------|--------|
-| Windows | NVDA 2026.3 | Verified for v1.3.0 on 2026-11-06; v1.6.0 Speech Viewer pass on 2026-11-24 (37/37) |
+| Windows | NVDA 2026.3 | Verified for v1.3.0 on 2026-11-06; v1.6.0 Speech Viewer pass on 2026-11-24 (37/37); v1.7.0 in-place translation Speech Viewer pass on 2026-11-26 (13/13) |
 | macOS | VoiceOver | Not tested — no macOS hardware available |
 | Linux | Orca | Not tested — no Linux environment available |
 
@@ -172,7 +172,7 @@ Turn on Windows High Contrast (or emulate `forced-colors: active` in DevTools) a
 | TR13 | Open a plain `http://` page. | The Translate button is absent; the shortcut explains that Chrome 138+ on desktop, on an HTTPS page, is required. |
 | TR14 | Turn on Windows High Contrast and translate. | The bubble uses system colours; the translation mark uses the system Highlight colour and stays inline. |
 
-The translation rows were added with v1.7.0; their manual NVDA pass is pending.
+The translation rows were added with v1.7.0; the 2026-11-26 in-place pass covered them (13/13).
 
 ## Page integrity
 
@@ -191,6 +191,7 @@ what identifies the defect.
 |-------|----|--------|---------------|--------|------|---------|----------|---------|------|-------|
 | v1.3.0 | Windows 11 Home 26200 | 156.0.8078.47 | NVDA 2026.3 (Portuguese UI) | Maintainer | 2026-11-06 | Pass with notes | Pass | Pass with notes | Not run | NVDA covered T1–T4, S1–S5, and R1–R5. Page integrity was covered by the automated harness, not by NVDA. |
 | v1.6.0 (Speech Viewer) | Windows 11 Home 26200 | 156.0.8078.47 | NVDA 2026.3 (Portuguese UI) | Maintainer | 2026-11-24 | Pass | Pass | Pass | Not run | 37/37 captured announcements covering the toolbar, settings, reading, focus mode, ruler, shortcuts, and Escape order. Page integrity was covered by the automated harness, not by NVDA. |
+| v1.7.0 in-place translation (Speech Viewer) | Windows 11 Home 26200 | 156.0.8078.47 | NVDA 2026.3 (Portuguese UI) | Maintainer | 2026-11-26 | Pass | Not run | Not run | Not run | 13/13 captured announcements covering the Translate button, first-use language bubble (`From`/`To`), language-pack progress, in-place replacement and Show original, restore, Undo/Redo, cross-block rejection, the 5,001-character error, and Escape. Toolbar, settings, and reading were covered by the v1.6.0 pass; page integrity by the automated harness. |
 
 Use **Pass**, **Pass with notes**, or **Fail** for each section.
 
