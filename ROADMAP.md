@@ -47,7 +47,7 @@ This roadmap tracks the accessibility work planned for Accessibility Text Enhanc
 
 **Distribution:** v1.8.0 is the latest GitHub release and the packaged zip with a SHA-256 checksum; the Chrome Web Store remains on v1.7.0 until the v1.8.0 package is uploaded. The v1.8.0 NVDA pass is recorded in [`docs/smoke-test.md`](docs/smoke-test.md) (17/17).
 
-**Next:** no open v1.8.0 work. v1.9.0 is planned; its plan is in [`docs/v1.9.0-plan.md`](docs/v1.9.0-plan.md).
+**Next:** no open v1.8.0 work. v1.9.0 is planned; see Phase 8. Release plans are working documents kept locally and are not tracked; this roadmap is the public summary.
 
 ---
 
@@ -160,7 +160,7 @@ The toolbar already declares `role="toolbar"`, but it was not operable or unders
 
 ## Phase 4 — Personalization (v1.5.0–v1.5.1) ✅
 
-**Plan:** [docs/v1.5.0-plan.md](docs/v1.5.0-plan.md), approved 2026-11-18.
+**Plan:** approved 2026-11-18; kept as a local working document.
 
 **Problem:** every command uses one fixed value: one highlight colour, two font families, and a single spacing toggle.
 
@@ -181,7 +181,7 @@ The toolbar already declares `role="toolbar"`, but it was not operable or unders
 
 ## Phase 5 — Reading aids (v1.6.0) ✅
 
-**Plan:** [docs/v1.6.0-plan.md](docs/v1.6.0-plan.md), implemented, packaged, and released.
+**Plan:** implemented, packaged, and released; kept as a local working document.
 
 **Problem:** the extension can restyle text, but it cannot reduce visual noise or help a reader keep their place.
 
@@ -200,7 +200,7 @@ The toolbar already declares `role="toolbar"`, but it was not operable or unders
 
 ## Phase 6 — Comprehension (v1.7.0) 🚧
 
-**Plan:** [docs/v1.7.0-plan.md](docs/v1.7.0-plan.md), approved, implemented, packaged, and released; the in-place NVDA pass is recorded in [`docs/smoke-test.md`](docs/smoke-test.md).
+**Plan:** approved, implemented, packaged, and released; the in-place NVDA pass is recorded in [`docs/smoke-test.md`](docs/smoke-test.md).
 
 **Problem:** Chrome's page translation is page-level, prompts automatically, and replaces the original. That is awkward when the reader only needs a word, sentence, or paragraph, and it hides the source text they are trying to understand.
 
@@ -222,7 +222,7 @@ The toolbar already declares `role="toolbar"`, but it was not operable or unders
 
 ## Phase 7 - Reading flow (v1.8.0) ✅
 
-**Plan:** [docs/v1.8.0-plan.md](docs/v1.8.0-plan.md), released; continuous reading, presets, caret ruler, and focus dim are in, with the NVDA pass recorded in [`docs/smoke-test.md`](docs/smoke-test.md).
+**Plan:** released; continuous reading, presets, caret ruler, and focus dim are in, with the NVDA pass recorded in [`docs/smoke-test.md`](docs/smoke-test.md).
 
 **Problem:** Read Aloud stops at the selection or paragraph. Reading a long article means selecting the next paragraph and starting again, and the reading aids are configured one control at a time.
 
@@ -243,7 +243,7 @@ The toolbar already declares `role="toolbar"`, but it was not operable or unders
 
 ## Phase 8 - Translation and selection power (v1.9.0) 📋
 
-**Plan:** [docs/v1.9.0-plan.md](docs/v1.9.0-plan.md), draft for review.
+**Plan:** draft for review; kept as a local working document.
 
 **Problem:** v1.7 translates one block at a time and rejects a multi-paragraph selection. Changing the target means a trip to Settings, and selecting a sentence or paragraph for a command still depends on the mouse.
 
