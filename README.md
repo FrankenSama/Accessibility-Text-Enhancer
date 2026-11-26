@@ -118,4 +118,4 @@ OpenDyslexic is © Abbie Gonzalez and is distributed under the [SIL Open Font Li
 
 ---
 
-[GitHub](https://github.com/FrankenSama/accessibility-text-enhancer) · [Project page](https://frankensama.github.io/accessibility-text-enhancer/) · [Accessibility](ACCESSIBILITY.md) · [LinkedIn](https://www.linkedin.com/in/octavio-silva-designer/) · [Report an issue](https://github.com/FrankenSama/accessibility-text-enhancer/issues)
+[GitHub](https://github.com/FrankenSama/accessibility-text-enhancer) · [Project page](https://frankensama.github.io/Accessibility-Text-Enhancer/) · [Accessibility](ACCESSIBILITY.md) · [LinkedIn](https://www.linkedin.com/in/octavio-silva-designer/) · [Report an issue](https://github.com/FrankenSama/accessibility-text-enhancer/issues)
