@@ -26,12 +26,13 @@ Originally developed for an MSc dissertation at Solent University, it is now mai
 - **Bold** and **highlight** just the selected words
 - **Font size, contrast, and font choice** for the nearest paragraph: Sans, Serif, Monospace, or the bundled **OpenDyslexic** font
 - **Text spacing** with Comfortable, the WCAG 1.4.12 preset, or four custom sliders, plus **highlight colour and style** (background, underline, or automatic contrast-aware)
-- **Focus mode and reading ruler**: dim everything except the paragraph you are reading, or lay a translucent ruler under the pointer. Both are visual, session-only aids that change nothing on the page
+- **Focus mode and reading ruler**: dim everything except the paragraph you are reading, or lay a translucent ruler under the pointer or caret. Both are visual, session-only aids that change nothing on the page. The dim strength and whether the ruler follows the pointer or caret are in Settings
 - **Translate** the selection in place, or the paragraph on Shift-click, with Chrome's built-in Translator API. The translated text stays in the page, is marked with a dotted underline, and is restored by pressing Translate again, Undo, or Reset page. The target language syncs with your profile and can be changed in Settings. Needs Chrome 138+ on desktop and an HTTPS page
-- **Read aloud** with selectable voice, speed, and pitch, sentence highlighting, pause/resume/stop controls, plus voice preview and a dedicated settings page
+- **Read aloud** with selectable voice, speed, and pitch, sentence highlighting, auto-scroll, sentence navigation, pause/resume/stop controls, plus voice preview and a dedicated settings page. A caret continues to the end of the article; Shift-click or `Alt+Shift+C` continues from a selection
+- **Reading presets**: Comfortable, Dyslexia-friendly, Low vision, and Focus set the font, spacing, highlight, and reading aids used next
 - **Undo/redo** for the last 50 changes, plus **Reset page** to remove everything in one action
 - **Saved text defaults** for font, spacing, and highlight that sync with your Chrome profile
-- **Dark/light toolbar**, with JSON export/import (schema 4; older files still import), synced preferences, and per-site on/off rules
+- **Dark/light toolbar**, with JSON export/import (schema 5; older files still import), synced preferences, and per-site on/off rules
 - **High contrast**: the toolbar, popup, and settings pages follow Windows High Contrast / forced-colors
 - **Keyboard and screen reader support**: shortcuts, a single tab stop, arrow-key navigation, and `aria-pressed` state (NVDA-verified on Windows)
 - **Works in** Chrome 91+ and other Chromium-based browsers; translation needs Chrome 138+ on desktop
@@ -64,9 +65,9 @@ The symbols match the toolbar buttons:
 | ↔️ | Text spacing | Applies the saved spacing preset (Comfortable, WCAG 1.4.12, or Custom). A second press removes it. |
 | 🎨 | Fix contrast | Adjusts the paragraph text colour until it is readable against its background. |
 | 🎯 | Focus mode | Dims every block except the one under the selection or caret. Session-only; `Escape` exits. |
-| 📏 | Reading ruler | Shows a translucent band under the pointer to keep your place. Session-only; `Escape` exits. |
+| 📏 | Reading ruler | Shows a translucent band under the pointer or caret to keep your place. Session-only; `Escape` exits. |
 | 文A / ↺ | Translate / Show original | Replaces the selected text with its translation in place; Shift-click translates the paragraph, and pressing the button again restores the original. Needs Chrome 138+ desktop on an HTTPS page. |
-| 🔊 | Read Aloud | Reads the selection, or the paragraph at the caret; turns into pause/resume while reading. |
+| 🔊 | Read Aloud | Reads the selection; a caret continues to the end of the article. Shift-click continues from a selection. Turns into pause/resume while reading. |
 | ⏹️ | Stop Reading | Stops speech; appears only while reading. |
 | ⚙️ | Settings | Opens the in-page dialog for text styling, reading, site rules, page reset, and backup. |
 | ☀️ / 🌙 | Toggle theme | Switches the toolbar and dialog between dark and light. |
@@ -74,7 +75,7 @@ The symbols match the toolbar buttons:
 
 The popup's **This site** menu can keep the extension **Always on** or **Always off** for the current site. A site rule wins over the global switch, and the toolbar shows an `OFF` badge on sites you turned off. **Settings** (⚙️) in the toolbar lists every site rule with a remove button and a two-step clear-all action; the popup keeps the global switch and the rule for the current site. To undo the extension's changes to the current page, choose **Reset page changes** in the toolbar's settings dialog — the button asks for a second click — which removes every change and clears the undo history, leaving the page as it was found.
 
-Theme, reading preferences, text styling, the translation target, and site rules are stored with `chrome.storage.sync`, so they follow your Chrome profile to other devices signed in to the same account. The on/off switch itself stays on this device.
+Theme, reading preferences, text styling, reading-aid settings, the translation target, and site rules are stored with `chrome.storage.sync`, so they follow your Chrome profile to other devices signed in to the same account. The on/off switch itself stays on this device.
 
 The shortcuts below cover the toolbar and extension actions:
 
@@ -86,6 +87,9 @@ The shortcuts below cover the toolbar and extension actions:
 | Bold | `Alt+Shift+B` | `Option+Shift+B` |
 | Highlight | `Alt+Shift+H` | `Option+Shift+H` |
 | Read selection or paragraph | `Alt+Shift+R` | `Option+Shift+R` |
+| Continue reading from here | `Alt+Shift+C` | `Option+Shift+C` |
+| Next / previous sentence while reading | `Alt+Shift+Right` / `Alt+Shift+Left` | `Option+Shift+Right` / `Option+Shift+Left` |
+| Pause / resume reading | `Space` | `Space` |
 | Translate selection | `Alt+Shift+G` | `Option+Shift+G` |
 | Focus mode | `Alt+Shift+D` | `Option+Shift+D` |
 | Reading ruler | `Alt+Shift+L` | `Option+Shift+L` |

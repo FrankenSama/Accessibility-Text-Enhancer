@@ -23,7 +23,7 @@ This roadmap tracks the accessibility work planned for Accessibility Text Enhanc
 | 4 | Personalization | v1.5.0–v1.5.1 | ✅ Released |
 | 5 | Reading aids | v1.6.0 | ✅ Released |
 | 6 | Comprehension | v1.7.0 | ✅ Released |
-| 7 | Reading flow | v1.8.0 | 📋 Planned |
+| 7 | Reading flow | v1.8.0 | 🚧 In progress |
 | 8 | Translation and selection power | v1.9.0 | 📋 Planned |
 | 9 | Platform and reach | v2.0.0 | 💡 Exploring |
 
@@ -47,7 +47,7 @@ This roadmap tracks the accessibility work planned for Accessibility Text Enhanc
 
 **Distribution:** v1.7.0 is the latest GitHub release and the published Chrome Web Store version; both ship the packaged zip with a SHA-256 checksum. The v1.7.0 in-place NVDA pass is recorded in [`docs/smoke-test.md`](docs/smoke-test.md) (13/13).
 
-**Next:** v1.8.0 and v1.9.0 are drafted in [`docs/v1.8.0-plan.md`](docs/v1.8.0-plan.md) and [`docs/v1.9.0-plan.md`](docs/v1.9.0-plan.md); review them before implementation.
+**Next:** v1.8.0 is feature-complete. The remaining work is the docs, NVDA pass, package, and release.
 
 ---
 
@@ -220,17 +220,17 @@ The toolbar already declares `role="toolbar"`, but it was not operable or unders
 
 ---
 
-## Phase 7 - Reading flow (v1.8.0) 📋
+## Phase 7 - Reading flow (v1.8.0) 🚧
 
-**Plan:** [docs/v1.8.0-plan.md](docs/v1.8.0-plan.md), draft for review.
+**Plan:** [docs/v1.8.0-plan.md](docs/v1.8.0-plan.md), in progress; continuous reading, presets, caret ruler, and focus dim have landed.
 
 **Problem:** Read Aloud stops at the selection or paragraph. Reading a long article means selecting the next paragraph and starting again, and the reading aids are configured one control at a time.
 
 **Work:**
 
-- **Continue reading.** Start at the selection or caret and keep reading through the article or main region to the end, with sentence highlighting, auto-scroll, pause/resume, previous/next sentence, and stop. Skip hidden and boilerplate text; respect reduced motion.
-- **Reading profiles.** Built-in Dyslexia-friendly, Low vision, and Focus presets, plus saved custom profiles. A profile sets the saved text defaults and reading-aid toggles; **Apply to selection** uses the existing commands. Do not apply page-wide without an explicit action.
-- **Reading-aid refinements.** The ruler can follow the caret for keyboard users while still following the pointer for mouse users. Focus-mode dim strength is adjustable, and focus mode follows the spoken sentence while reading.
+- **Continue reading.** A collapsed caret reads from its paragraph to the end of the article by default; Shift-click or `Alt+Shift+C` continues from a selection. Sentence highlighting, auto-scroll, pause/resume, previous/next sentence, and stop are included. Skip hidden and boilerplate text; respect reduced motion.
+- **Reading presets.** Built-in Dyslexia-friendly, Low vision, Focus, and Comfortable presets set the saved text defaults and, in the page dialog, the reading-aid toggles. Custom profiles and Apply to selection are deferred.
+- **Reading-aid refinements.** The ruler follows the caret for keyboard users or the pointer for mouse users. Focus-mode dim strength is adjustable, and focus mode follows the spoken sentence while reading.
 - **Reading transport.** Space pauses/resumes while reading; previous/next sentence shortcuts; Escape stops. Validate every combination against Chrome and the existing shortcuts.
 
 **Acceptance:** read a long article from a selection to the end with the spoken sentence highlighted and scrolled into view; pause/resume and sentence navigation work; profiles apply, reset, sync, and import/export with older files intact; keyboard-only and NVDA paths are covered; forced-colors and 320 px layouts hold; no new permissions or network access; the full harness is green.

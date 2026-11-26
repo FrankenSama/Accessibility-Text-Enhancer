@@ -30,7 +30,7 @@ That is a target, not a certification:
 | Chrome on Android or iOS | Not supported; mobile Chrome does not run extensions |
 | Keyboard-only use | Supported: shortcuts, a single toolbar tab stop, arrow-key navigation, and `aria-pressed` state |
 | Windows High Contrast / forced-colors | Supported for the toolbar, dialog, translation text and bubble, popup, options page, and reading aids |
-| NVDA on Windows | Verified for v1.3.0 on 2026-11-06. A v1.6.0 Speech Viewer pass on 2026-11-24 covered the toolbar, settings, reading, focus mode, and ruler (37/37). A v1.7.0 in-place translation Speech Viewer pass on 2026-11-26 covered the Translate flow (13/13). A live listening pass has not been repeated since v1.3.0 |
+| NVDA on Windows | Verified for v1.3.0 on 2026-11-06. A v1.6.0 Speech Viewer pass on 2026-11-24 covered the toolbar, settings, reading, focus mode, and ruler (37/37). A v1.7.0 in-place translation Speech Viewer pass on 2026-11-26 covered the Translate flow (13/13). The v1.8.0 continuous-reading and preset pass is pending. A live listening pass has not been repeated since v1.3.0 |
 | VoiceOver on macOS | Not tested - no macOS hardware available |
 | Orca on Linux | Not tested - no Linux environment available |
 | Browser zoom and reflow | The toolbar is repositioned to stay inside the viewport, but 400% reflow has not been formally tested |
@@ -95,14 +95,33 @@ overlap your screen reader. Sentence highlighting requires the CSS Custom
 Highlight API (Chrome 105+); on Chrome 91-104 the text is still read without the
 highlight.
 
+A selection reads the selection only. A collapsed caret continues from its
+paragraph to the end of the nearest `article`, `main`, `role="main"`, or the
+page; Shift-click Read Aloud or `Alt+Shift+C` continues from a selection. The
+spoken sentence is highlighted and scrolled into view, and the last sentence in
+the article ends the reading. `Alt+Shift+Right`/`Left` move to the next or
+previous sentence, and `Space` pauses or resumes while reading, outside text
+fields and controls. A selection inside a translated wrapper stays scoped to
+that wrapper so the target language is not applied to the rest of the page.
+
+### Reading presets
+
+Comfortable, Dyslexia-friendly, Low vision, and Focus set the saved font,
+spacing, highlight, and reading-aid choices. They do not restyle the current
+page on their own: the next Font, Spacing, or Highlight command uses the preset.
+In the page settings dialog the Focus preset also turns focus mode on. The
+options page mirrors the text-styling presets; the aids are toggled on the page.
+
 ### Reading aids
 
 Focus mode and the reading ruler are visual overlays. They are `aria-hidden`,
 ignore the pointer, and never change page content, page styles, the tab order, or
 reading order. Focus mode follows the selection or caret and spotlights one
-block; a selection that spans blocks uses the block where it starts. The ruler
-follows the pointer, is hidden on touch input and when the pointer leaves the
-page, and sits behind the toolbar and settings dialog. Both aids are
+block; a selection that spans blocks uses the block where it starts. While
+reading, focus mode follows the spoken sentence. The ruler follows the pointer,
+the caret, or both, depending on the Settings choice; it is hidden on touch
+input and when the pointer leaves the page, and sits behind the toolbar and
+settings dialog. The focus dim strength is adjustable. Both aids are
 session-only, `Escape` exits them, and the toolbar's ✕ button clears them with
 the toolbar. In forced-colors the spotlight becomes a system-colour outline and
 the ruler uses system-colour rules rather than a translucent fill. Because the
