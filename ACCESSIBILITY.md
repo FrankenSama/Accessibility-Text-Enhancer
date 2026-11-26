@@ -90,7 +90,7 @@ not targeted.
 
 Read aloud uses the browser's Web Speech API. The available voices come from the
 browser and operating system, and some voices synthesize speech through a
-network service - see the [privacy policy](privacy-policy.md). Speech can
+network service - see the [privacy policy](privacy-policy.html). Speech can
 overlap your screen reader. Sentence highlighting requires the CSS Custom
 Highlight API (Chrome 105+); on Chrome 91-104 the text is still read without the
 highlight.

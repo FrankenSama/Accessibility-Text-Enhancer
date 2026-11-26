@@ -102,7 +102,7 @@ Screen-reader announcements are verified with NVDA on Windows. VoiceOver on macO
 
 ## Privacy
 
-Preferences, the translation target, and site rules are stored with `chrome.storage.sync`, so Chrome may sync them across the devices signed in to your Google account; the on/off switch uses `chrome.storage.local` and stays on this device. Selections and page content are processed in your browser and never sent to the developer or a third party. The translated text replaces the selection locally and can be undone. Translation runs through Chrome's built-in Translator API; the first use of a language pair downloads an on-device language pack, and the extension sends no page text to the developer or any third party. See the [privacy policy](privacy-policy.md) for details.
+Preferences, the translation target, and site rules are stored with `chrome.storage.sync`, so Chrome may sync them across the devices signed in to your Google account; the on/off switch uses `chrome.storage.local` and stays on this device. Selections and page content are processed in your browser and never sent to the developer or a third party. The translated text replaces the selection locally and can be undone. Translation runs through Chrome's built-in Translator API; the first use of a language pair downloads an on-device language pack, and the extension sends no page text to the developer or any third party. See the [privacy policy](privacy-policy.html) for details.
 
 ## Contributing
 

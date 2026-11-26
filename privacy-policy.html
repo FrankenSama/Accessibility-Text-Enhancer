@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Privacy policy for Accessibility Text Enhancer: local page processing, synced preferences, and no page text sent to the developer.">
+    <link rel="canonical" href="https://frankensama.github.io/Accessibility-Text-Enhancer/privacy-policy.html">
+    <title>Privacy Policy - Accessibility Text Enhancer</title>
+    <style>
+        :root {
+            color-scheme: light dark;
+            --background: #ffffff;
+            --text: #1a1a1a;
+            --muted: #4a4a4a;
+            --accent: #0b57d0;
+            --border: #d0d0d0;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --background: #121212;
+                --text: #f1f1f1;
+                --muted: #c4c4c4;
+                --accent: #8ab4f8;
+                --border: #444444;
+            }
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            background: var(--background);
+            color: var(--text);
+            font-family: system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+            font-size: 17px;
+            line-height: 1.65;
+        }
+
+        main {
+            max-width: 72ch;
+            margin: 0 auto;
+            padding: 2.5rem 1.25rem 4rem;
+        }
+
+        h1 {
+            font-size: clamp(1.9rem, 4vw, 2.6rem);
+            line-height: 1.2;
+            margin: 0 0 0.5rem;
+        }
+
+        h2 {
+            font-size: 1.35rem;
+            line-height: 1.3;
+            margin: 2.2rem 0 0.6rem;
+        }
+
+        h3 {
+            font-size: 1.08rem;
+            line-height: 1.35;
+            margin: 1.6rem 0 0.4rem;
+        }
+
+        p, ul { margin: 0.7rem 0; }
+        li { margin: 0.35rem 0; }
+
+        .updated {
+            color: var(--muted);
+            margin-bottom: 1.5rem;
+        }
+
+        .back {
+            display: inline-block;
+            margin-bottom: 1.5rem;
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        a { color: var(--accent); }
+        a:focus-visible {
+            outline: 3px solid var(--accent);
+            outline-offset: 3px;
+        }
+
+        code {
+            padding: 0.08em 0.3em;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-size: 0.92em;
+        }
+
+        hr {
+            border: 0;
+            border-top: 1px solid var(--border);
+            margin: 2.5rem 0 1.25rem;
+        }
+
+        .small {
+            color: var(--muted);
+            font-size: 0.95rem;
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <a class="back" href="./">Accessibility Text Enhancer</a>
+        <h1>Privacy Policy for Accessibility Text Enhancer</h1>
+        <p class="updated"><strong>Last updated:</strong> <time datetime="2026-11-26">November 26, 2026</time></p>
+
+        <p>
+            Thank you for using the Accessibility Text Enhancer extension ("the
+            Extension"). This privacy policy explains what information the
+            Extension handles and how it is used.
+        </p>
+
+        <h2>Data Collection</h2>
+        <p>
+            The Accessibility Text Enhancer is committed to protecting your
+            privacy. We handle only the minimum information necessary to provide
+            core functionality.
+        </p>
+
+        <h3>1. User Preferences (Chrome Storage)</h3>
+        <p>
+            The Extension uses Chrome's <code>storage.sync</code> API to remember
+            your dark/light toolbar theme, your reading preferences (voice,
+            speed, pitch, ruler source, and focus dim), your text styling
+            defaults (font, spacing, highlight colour, and highlight style), your
+            translation target language, and your per-site on/off rules. Reading
+            presets write the same text styling defaults. Chrome may sync this
+            data across the devices signed in to your Google account, under
+            Google's terms; it is never transmitted to the developer or any third
+            party. The extension's global on/off switch uses
+            <code>storage.local</code>, so it stays on the device where you set
+            it.
+        </p>
+
+        <h3>2. Website Access and User Interactions</h3>
+        <p>
+            To enhance pages, the Extension runs on the websites you visit and
+            reads the text you select and the styles of the element containing
+            it. It also responds to text selection, toolbar clicks, and keyboard
+            shortcuts so it can show the toolbar and apply the enhancement you
+            request. This processing happens <strong>in your browser</strong>.
+            Page content and interaction data are never sent to the developer or
+            any third party, and the Extension does not run on browser-internal
+            pages such as <code>chrome://</code> or the Chrome Web Store.
+        </p>
+
+        <h3>3. No Collection or Transmission of Personal Information</h3>
+        <p>The Extension <strong>does not</strong> collect, store, or transmit:</p>
+        <ul>
+            <li>Your name, email address, or any personal identifiers</li>
+            <li>Browsing history</li>
+            <li>Passwords or form data</li>
+            <li>Financial information</li>
+            <li>Cookies or tracking data</li>
+            <li>Page content beyond the transient local processing described in Section 2</li>
+            <li>Logs of clicks, keystrokes, mouse movements, scrolling, or other interaction data</li>
+        </ul>
+
+        <h3>4. Translation Processing</h3>
+        <p>
+            The "Translate" feature uses Chrome's built-in Translator API. The
+            selected text and the translation result are processed
+            <strong>in your browser</strong>. The translated text replaces the
+            selected text in the page for the session, and the original is kept
+            in memory until Undo, Reset page, or the page unloads. The first time
+            a language pair is used, Chrome downloads an on-device language pack;
+            the Extension does not send page text to the developer or any third
+            party, and it does not store the selected text or the translation
+            result beyond the page session. The target language is a preference
+            stored as described in Section 1.
+        </p>
+
+        <h3>5. Text-to-Speech Processing</h3>
+        <p>
+            The "Read Aloud" feature uses your browser's built-in Web Speech API.
+            The Extension does not send page text to its own servers. Depending
+            on the voices installed on your system, your browser or operating
+            system may synthesize speech locally or through the voice provider's
+            service; the Extension does not receive or store that data.
+        </p>
+
+        <h3>6. No Performance Metrics</h3>
+        <p>
+            The Extension does not collect or transmit performance metrics. Any
+            measurements reported in the project's research were gathered
+            separately during testing, not through the Extension.
+        </p>
+
+        <h2>Limited Use</h2>
+        <p>
+            The Extension's use of information received from Google APIs adheres
+            to the
+            <a href="https://developer.chrome.com/docs/webstore/program-policies/limited-use/">Chrome Web Store User Data Policy</a>,
+            including the Limited Use requirements.
+        </p>
+
+        <h2>Data Sharing</h2>
+        <p>
+            We do not sell, trade, or transfer your information to any third
+            party. We do not use analytics services or tracking pixels.
+        </p>
+
+        <h2>Third-Party Links</h2>
+        <p>
+            The Extension operates on various websites but has no control over
+            the content or privacy practices of those external sites.
+        </p>
+
+        <h2>Changes to This Policy</h2>
+        <p>
+            We may update this privacy policy from time to time. We encourage
+            users to frequently check this page for any changes.
+        </p>
+
+        <h2>Consent</h2>
+        <p>By using the Extension, you consent to this privacy policy.</p>
+
+        <h2>Contact</h2>
+        <p>If you have questions about this privacy policy, please contact:</p>
+        <p>
+            <strong>Octavio Silva</strong><br>
+            GitHub: <a href="https://github.com/FrankenSama">@FrankenSama</a><br>
+            Project page: <a href="https://frankensama.github.io/Accessibility-Text-Enhancer/">frankensama.github.io/Accessibility-Text-Enhancer/</a>
+        </p>
+
+        <hr>
+        <p class="small">Solent University - MSc Computer Engineering Dissertation Research</p>
+    </main>
+</body>
+</html>

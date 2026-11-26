@@ -1,6 +1,8 @@
 # Privacy Policy for Accessibility Text Enhancer
 
-**Last updated:** November 25, 2026
+**Last updated:** November 26, 2026
+
+**Public page:** <https://frankensama.github.io/Accessibility-Text-Enhancer/privacy-policy.html>
 
 Thank you for using the Accessibility Text Enhancer extension ("the Extension"). This privacy policy explains what information the Extension handles and how it is used.
 
@@ -8,7 +10,7 @@ Thank you for using the Accessibility Text Enhancer extension ("the Extension").
 The Accessibility Text Enhancer is committed to protecting your privacy. We handle only the minimum information necessary to provide core functionality.
 
 ### 1. User Preferences (Chrome Storage)
-The Extension uses Chrome's `storage.sync` API to remember your dark/light toolbar theme, your reading preferences (voice, speed, and pitch), your translation target language, and your per-site on/off rules. Chrome may sync this data across the devices signed in to your Google account, under Google's terms; it is never transmitted to the developer or any third party. The extension's global on/off switch uses `storage.local`, so it stays on the device where you set it.
+The Extension uses Chrome's `storage.sync` API to remember your dark/light toolbar theme, your reading preferences (voice, speed, pitch, ruler source, and focus dim), your text styling defaults (font, spacing, highlight colour, and highlight style), your translation target language, and your per-site on/off rules. Reading presets write the same text styling defaults. Chrome may sync this data across the devices signed in to your Google account, under Google's terms; it is never transmitted to the developer or any third party. The extension's global on/off switch uses `storage.local`, so it stays on the device where you set it.
 
 ### 2. Website Access and User Interactions
 To enhance pages, the Extension runs on the websites you visit and reads the text you select and the styles of the element containing it. It also responds to text selection, toolbar clicks, and keyboard shortcuts so it can show the toolbar and apply the enhancement you request. This processing happens **in your browser**. Page content and interaction data are never sent to the developer or any third party, and the Extension does not run on browser-internal pages such as `chrome://` or the Chrome Web Store.
@@ -52,7 +54,7 @@ If you have questions about this privacy policy, please contact:
 
 **Octavio Silva**  
 GitHub: [@FrankenSama](https://github.com/FrankenSama)  
-Project Page: [https://frankensama.github.io/accessibility-text-enhancer/](https://frankensama.github.io/accessibility-text-enhancer/)
+Project Page: [https://frankensama.github.io/Accessibility-Text-Enhancer/](https://frankensama.github.io/Accessibility-Text-Enhancer/)
 
 ---
 
