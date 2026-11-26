@@ -2,8 +2,7 @@
 
 ## Supported versions
 
-Only the latest release published on the Chrome Web Store receives security
-fixes. At the time of writing that is **1.4.x**.
+Only the latest release receives security fixes. That is currently **1.8.x** on GitHub; the Chrome Web Store version follows the published package.
 
 Unpacked developer builds from `main` are useful for testing, but they are not
 supported releases. If you are testing one, confirm the issue still reproduces

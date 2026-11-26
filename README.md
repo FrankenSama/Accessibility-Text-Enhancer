@@ -3,7 +3,7 @@
 <div align="center">
 
 ![Version](https://img.shields.io/badge/version-1.8.0-blue.svg)
-![License](https://img.shields.io/badge/license-MIT-green.svg)
+![License](https://img.shields.io/badge/license-GPLv3-blue.svg)
 ![Chrome](https://img.shields.io/badge/Chrome-91%2B-yellow.svg)
 [![Downloads](https://img.shields.io/github/downloads/FrankenSama/Accessibility-Text-Enhancer/total.svg)](https://tooomm.github.io/github-release-stats/?username=FrankenSama&repository=Accessibility-Text-Enhancer)
 
@@ -105,15 +105,15 @@ Preferences, the translation target, and site rules are stored with `chrome.stor
 
 ## Contributing
 
-This is a personal project, and forks are welcome under the MIT License. Bug reports and focused pull requests are appreciated; reviews happen at the maintainer's discretion. See [CONTRIBUTING.md](CONTRIBUTING.md) for setup and guidelines, and [ROADMAP.md](ROADMAP.md) for planned work. Accessibility barriers can be reported through the dedicated issue template; security problems should follow [SECURITY.md](SECURITY.md) rather than a public issue.
+This is a personal project, free software under the GNU GPLv3. Bug reports and focused pull requests are appreciated; reviews happen at the maintainer's discretion. Start with [CONTRIBUTING.md](CONTRIBUTING.md) for the quick setup and pull-request checklist; deeper architecture, testing, and release notes are in [docs/development.md](docs/development.md). [ROADMAP.md](ROADMAP.md) lists planned work. Accessibility barriers can be reported through the dedicated issue template; security problems should follow [SECURITY.md](SECURITY.md) rather than a public issue.
 
 ## License
 
-[MIT](LICENSE) © 2025–2026 Octavio Silva. If you fork or republish this project, keep the license and copyright notice, credit the original author, and make it clear that your version is not official.
+[GNU General Public License v3.0 (only)](LICENSE) © 2025–2026 Octavio Silva. This is free software: you can redistribute it and/or modify it under version 3 of the GPL as published by the Free Software Foundation. It is distributed in the hope that it will be useful, but without any warranty. If you fork or republish, keep the license and copyright notice, publish your source under the same license, credit the original author, and make it clear that your version is not official. Releases published before the license change remain available under MIT; the current and future versions are GPLv3.
 
 ## Bundled font
 
-OpenDyslexic is © Abbie Gonzalez and is distributed under the [SIL Open Font License 1.1](fonts/OFL.txt). The extension ships the unmodified regular and bold WOFF2 files with the full licence text in `fonts/`.
+OpenDyslexic is © Abbie Gonzalez and is distributed under the [SIL Open Font License 1.1](fonts/OFL.txt). The extension ships the unmodified regular and bold WOFF2 files with the full licence text in `fonts/`. The font remains under the OFL and is not covered by the GPL.
 
 ---
 

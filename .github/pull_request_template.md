@@ -31,7 +31,7 @@ or say that it is still pending:
 <!-- What you ran and what you tested by hand. Include pages or a test case. -->
 
 - [ ] `node --check` passes for the changed scripts
-- [ ] Automated harness run, with the pass count
+- [ ] Manual checks described, or the maintainer harness pass count if available
 - [ ] Tested in Chrome at the minimum supported version or reason it was not
 - [ ] Tested on more than one site, including one with unusual layout or CSS
 
@@ -40,4 +40,5 @@ or say that it is still pending:
 - [ ] No new permissions, host permissions, or network requests
 - [ ] Docs updated where behaviour, settings, or limitations changed
 - [ ] Version number left alone (release pull requests only)
-- [ ] I have read [CONTRIBUTING.md](CONTRIBUTING.md) and the [Code of Conduct](CODE_OF_CONDUCT.md)
+- [ ] Code and assets are GPLv3-compatible; bundled fonts keep their own licence
+- [ ] I have read [CONTRIBUTING.md](CONTRIBUTING.md), the [development guide](docs/development.md), and the [Code of Conduct](CODE_OF_CONDUCT.md)

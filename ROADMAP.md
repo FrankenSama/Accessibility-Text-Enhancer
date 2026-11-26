@@ -303,11 +303,11 @@ Use this list for every release. The v1.4.0, v1.4.1, v1.5.0, v1.5.1, v1.6.0, and
 - [ ] VoiceOver (macOS) and Orca (Linux) smoke tests — not blocking, but still untested; no macOS or Linux hardware available
 - [ ] Dark and light toolbar themes
 - [ ] Version bumped in `manifest.json`, `popup/popup.html`, and the README badge
-- [ ] `README.md` and `CONTRIBUTING.md` updated
+- [ ] `README.md`, `CONTRIBUTING.md`, and `docs/development.md` updated
 - [ ] Packaged extension zip attached to the GitHub release, with a SHA-256 checksum
 - [ ] Chrome Web Store package submitted and published, and the store version recorded here
 - [ ] `vX.Y.Z` tag created after the release commit
 
 ## How to contribute
 
-Pick an item, open an issue describing the approach, and keep the browser harness green. See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, style, and commit conventions.
+Pick an item, open an issue describing the approach, and start with [CONTRIBUTING.md](CONTRIBUTING.md) for the quick setup and pull-request checklist. Architecture, testing, and packaging details are in [docs/development.md](docs/development.md).
