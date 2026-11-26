@@ -22,7 +22,7 @@ This roadmap tracks the accessibility work planned for Accessibility Text Enhanc
 | 3 | Persistence and control | v1.4.0 | ✅ Released |
 | 4 | Personalization | v1.5.0–v1.5.1 | ✅ Released |
 | 5 | Reading aids | v1.6.0 | ✅ Released |
-| 6 | Comprehension | v1.7.0 | 🚧 Implemented, pending release |
+| 6 | Comprehension | v1.7.0 | ✅ Released |
 | 7 | Platform and reach | v2.0.0 | 💡 Exploring |
 
 **Status key:** ✅ Done · 🚧 In progress · 📋 Planned · 💡 Exploring · ⏸️ Deferred
