@@ -47,7 +47,7 @@ This roadmap tracks the accessibility work planned for Accessibility Text Enhanc
 
 **Distribution:** v1.7.0 is the latest GitHub release and the published Chrome Web Store version; both ship the packaged zip with a SHA-256 checksum. The v1.7.0 in-place NVDA pass is recorded in [`docs/smoke-test.md`](docs/smoke-test.md) (13/13).
 
-**Next:** v1.8.0 is feature-complete. The remaining work is the docs, NVDA pass, package, and release.
+**Next:** v1.8.0 is feature-complete and packaged. The remaining work is the manual NVDA pass and the release.
 
 ---
 
