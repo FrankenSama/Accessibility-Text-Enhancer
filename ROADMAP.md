@@ -23,7 +23,9 @@ This roadmap tracks the accessibility work planned for Accessibility Text Enhanc
 | 4 | Personalization | v1.5.0–v1.5.1 | ✅ Released |
 | 5 | Reading aids | v1.6.0 | ✅ Released |
 | 6 | Comprehension | v1.7.0 | ✅ Released |
-| 7 | Platform and reach | v2.0.0 | 💡 Exploring |
+| 7 | Reading flow | v1.8.0 | 📋 Planned |
+| 8 | Translation and selection power | v1.9.0 | 📋 Planned |
+| 9 | Platform and reach | v2.0.0 | 💡 Exploring |
 
 **Status key:** ✅ Done · 🚧 In progress · 📋 Planned · 💡 Exploring · ⏸️ Deferred
 
@@ -45,7 +47,7 @@ This roadmap tracks the accessibility work planned for Accessibility Text Enhanc
 
 **Distribution:** v1.7.0 is the latest GitHub release and the published Chrome Web Store version; both ship the packaged zip with a SHA-256 checksum. The v1.7.0 in-place NVDA pass is recorded in [`docs/smoke-test.md`](docs/smoke-test.md) (13/13).
 
-**Next:** no open v1.7.0 work. Future releases start from the next roadmap item.
+**Next:** v1.8.0 and v1.9.0 are drafted in [`docs/v1.8.0-plan.md`](docs/v1.8.0-plan.md) and [`docs/v1.9.0-plan.md`](docs/v1.9.0-plan.md); review them before implementation.
 
 ---
 
@@ -214,11 +216,53 @@ The toolbar already declares `role="toolbar"`, but it was not operable or unders
 
 **Risks:** Chrome 138+ only; incomplete language-pair coverage; first-use model download; machine-translation quality; toolbar crowding.
 
-**Effort:** small–medium · **Impact:** high for multilingual readers and anyone reading outside their first language
+**Effort:** small-medium · **Impact:** high for multilingual readers and anyone reading outside their first language
 
 ---
 
-## Phase 7 — Platform and reach (v2.0.0) 💡
+## Phase 7 - Reading flow (v1.8.0) 📋
+
+**Plan:** [docs/v1.8.0-plan.md](docs/v1.8.0-plan.md), draft for review.
+
+**Problem:** Read Aloud stops at the selection or paragraph. Reading a long article means selecting the next paragraph and starting again, and the reading aids are configured one control at a time.
+
+**Work:**
+
+- **Continue reading.** Start at the selection or caret and keep reading through the article or main region to the end, with sentence highlighting, auto-scroll, pause/resume, previous/next sentence, and stop. Skip hidden and boilerplate text; respect reduced motion.
+- **Reading profiles.** Built-in Dyslexia-friendly, Low vision, and Focus presets, plus saved custom profiles. A profile sets the saved text defaults and reading-aid toggles; **Apply to selection** uses the existing commands. Do not apply page-wide without an explicit action.
+- **Reading-aid refinements.** The ruler can follow the caret for keyboard users while still following the pointer for mouse users. Focus-mode dim strength is adjustable, and focus mode follows the spoken sentence while reading.
+- **Reading transport.** Space pauses/resumes while reading; previous/next sentence shortcuts; Escape stops. Validate every combination against Chrome and the existing shortcuts.
+
+**Acceptance:** read a long article from a selection to the end with the spoken sentence highlighted and scrolled into view; pause/resume and sentence navigation work; profiles apply, reset, sync, and import/export with older files intact; keyboard-only and NVDA paths are covered; forced-colors and 320 px layouts hold; no new permissions or network access; the full harness is green.
+
+**Risks:** speech synthesis cannot seek, so sentence navigation must restart the utterance; auto-scroll can disorient, so use a comfort band and reduced-motion handling; profiles can be confused with page-wide themes; new shortcuts can collide with Chrome or the page.
+
+**Effort:** medium · **Impact:** high for long-form reading and low-vision or dyslexic readers
+
+---
+
+## Phase 8 - Translation and selection power (v1.9.0) 📋
+
+**Plan:** [docs/v1.9.0-plan.md](docs/v1.9.0-plan.md), draft for review.
+
+**Problem:** v1.7 translates one block at a time and rejects a multi-paragraph selection. Changing the target means a trip to Settings, and selecting a sentence or paragraph for a command still depends on the mouse.
+
+**Work:**
+
+- **Multi-block translation.** Translate every block in a multi-block selection, preserve the block structure and inline context, and apply all-or-nothing with one grouped undo entry. Show per-block progress; cancel or a failure leaves the page unchanged.
+- **Target control.** Add a swap control to the language bubble and a keyboard path to reopen the bubble for a saved target. Re-translate a wrapper in place with a new target without a page reload.
+- **Selection expansion.** Add sentence and paragraph expansion commands, and make the styling commands apply consistently to every block in a selection. Keep a keyboard-only path.
+- **Settings search.** Filter the in-page Settings and options page by label and help text, with a clear action and an announced result count.
+
+**Acceptance:** a multi-paragraph selection translates every block; Undo/Redo and Reset page restore the whole group; a cancelled or failed block leaves the page unchanged; the target can be swapped and a wrapper re-translated; selection expansion and Settings search work keyboard-only and with NVDA; forced-colors and 320 px layouts hold; the full harness is green.
+
+**Risks:** block boundaries in lists, tables, and quotes; grouped history and rollback complexity; total length and translation time; toolbar crowding; shortcut collisions.
+
+**Effort:** medium · **Impact:** high for long selections and multilingual reading
+
+---
+
+## Phase 9 - Platform and reach (v2.0.0) 💡
 
 - **Context-menu commands.** A `chrome.contextMenus` submenu for Bold, Highlight, Read Aloud, Contrast, and Spacing, available on a selection or a right-clicked paragraph. Gives discoverability and a keyboard path through the context-menu key.
 - **Frame support.** Enable `all_frames`, keep the UI in the top frame, and coordinate commands with `chrome.runtime` messaging.
