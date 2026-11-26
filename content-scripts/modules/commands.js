@@ -69,7 +69,7 @@ export function handleCommand(command, options = {}) {
             redo();
             return;
         case 'readAloud':
-            toggleReadAloud();
+            toggleReadAloud({ continuous: Boolean(options.continuous) });
             return;
         case 'translate':
             translateSelection(options.scope || 'selection');

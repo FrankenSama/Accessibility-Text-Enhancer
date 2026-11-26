@@ -150,7 +150,7 @@ export function createToolbar() {
             <button type="button" data-command="focusMode" class="icon-btn aids-btn" data-tooltip="Focus mode (${SHORTCUT_LABELS.focusMode})" data-aria-label="Focus mode" aria-keyshortcuts="${SHORTCUT_ARIA.focusMode}" aria-pressed="false">🎯</button>
             <button type="button" data-command="readingRuler" class="icon-btn aids-btn" data-tooltip="Reading ruler (${SHORTCUT_LABELS.readingRuler})" data-aria-label="Reading ruler" aria-keyshortcuts="${SHORTCUT_ARIA.readingRuler}" aria-pressed="false">📏</button>
             ${translateButton}
-            <button type="button" data-command="readAloud" class="icon-btn" data-tooltip="Read Aloud (${SHORTCUT_LABELS.read})">🔊</button>
+            <button type="button" data-command="readAloud" class="icon-btn" data-tooltip="Read Aloud (${SHORTCUT_LABELS.read}) · Shift: read to the end" data-aria-label="Read Aloud (${SHORTCUT_LABELS.read})" aria-keyshortcuts="${SHORTCUT_ARIA.read} ${SHORTCUT_ARIA.continueReading}">🔊</button>
             <button type="button" data-command="stopReading" class="icon-btn" data-tooltip="Stop Reading" tabindex="-1" hidden>⏹️</button>
         </div>
 
@@ -178,7 +178,8 @@ export function createToolbar() {
         btn.addEventListener('click', (event) => {
             event.stopPropagation();
             runCommand(btn.dataset.command, {
-                scope: resolveCommandScope(btn.dataset.command, event.shiftKey)
+                scope: resolveCommandScope(btn.dataset.command, event.shiftKey),
+                continuous: btn.dataset.command === 'readAloud' && event.shiftKey
             });
         });
     });
@@ -511,7 +512,9 @@ export function updateToolbarReadingState() {
             : `Read Aloud (${SHORTCUT_LABELS.read})`;
 
         readButton.textContent = reading ? (paused ? '▶️' : '⏸️') : '🔊';
-        readButton.dataset.tooltip = label;
+        readButton.dataset.tooltip = reading
+            ? label
+            : `${label} · Shift: read to the end`;
         readButton.setAttribute('aria-label', label);
         readButton.setAttribute('aria-pressed', reading ? 'true' : 'false');
     }

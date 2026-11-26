@@ -18,7 +18,9 @@ import {
 } from './modules/toolbar.js';
 import {
     loadVoices,
+    nextReadingSentence,
     populateVoiceSelect,
+    previousReadingSentence,
     setupVoiceListener,
     stopReading,
     toggleReadAloud
@@ -353,6 +355,19 @@ function handleSelectionChange() {
 }
 
 /**
+ * Whether a target is a control that uses Space itself, so the reading
+ * pause shortcut must not take the key away from it.
+ * @param {EventTarget|null} target
+ * @returns {boolean}
+ */
+function isInteractiveTarget(target) {
+    return Boolean(target?.closest?.(
+        'button, a[href], summary, [role="button"], [role="link"], ' +
+        '[role="menuitem"]'
+    ));
+}
+
+/**
  * Set up keyboard shortcuts.
  */
 function setupKeyboardShortcuts() {
@@ -412,6 +427,15 @@ function setupKeyboardShortcuts() {
         const modifier = event.ctrlKey || event.metaKey;
         const editable = isEditableTarget(event.target);
 
+        // Space pauses or resumes a reading, unless focus is on a control
+        // that uses Space itself.
+        if (event.code === 'Space' && STATE.speech && !editable &&
+            !isInteractiveTarget(event.target)) {
+            event.preventDefault();
+            toggleReadAloud();
+            return;
+        }
+
         // Ctrl/Cmd + Z = Undo (only while the toolbar is visible, and only
         // when the extension has something to undo). This leaves native
         // text editing and page-level undo alone.
@@ -462,11 +486,33 @@ function setupKeyboardShortcuts() {
         }
 
         // Alt/Option + Shift + R = read the selection, or the paragraph at
-        // the caret. While reading it pauses or resumes.
+        // the caret. A caret continues to the end of the article; while
+        // reading it pauses or resumes.
         if (altShift && !editable &&
             (event.code === 'KeyR' || key === 'r')) {
             event.preventDefault();
             toggleReadAloud();
+            return;
+        }
+
+        // Alt/Option + Shift + C = read from here to the end of the article.
+        if (altShift && !editable &&
+            (event.code === 'KeyC' || key === 'c')) {
+            event.preventDefault();
+            toggleReadAloud({ continuous: true });
+            return;
+        }
+
+        // Alt/Option + Shift + Left/Right = previous/next sentence while
+        // reading. Outside a reading, leave the browser's selection alone.
+        if (altShift && !editable && STATE.speech &&
+            (event.code === 'ArrowLeft' || event.code === 'ArrowRight')) {
+            event.preventDefault();
+            if (event.code === 'ArrowRight') {
+                nextReadingSentence();
+            } else {
+                previousReadingSentence();
+            }
             return;
         }
 

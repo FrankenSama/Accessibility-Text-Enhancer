@@ -104,6 +104,7 @@ export const SHORTCUT_LABELS = {
     bold: IS_MAC ? 'Option+Shift+B' : 'Alt+Shift+B',
     highlight: IS_MAC ? 'Option+Shift+H' : 'Alt+Shift+H',
     read: IS_MAC ? 'Option+Shift+R' : 'Alt+Shift+R',
+    continueReading: IS_MAC ? 'Option+Shift+C' : 'Alt+Shift+C',
     focusMode: IS_MAC ? 'Option+Shift+D' : 'Alt+Shift+D',
     readingRuler: IS_MAC ? 'Option+Shift+L' : 'Alt+Shift+L',
     translate: IS_MAC ? 'Option+Shift+G' : 'Alt+Shift+G'
@@ -112,6 +113,8 @@ export const SHORTCUT_LABELS = {
 // ARIA keyshortcuts use the platform-neutral Alt name; on macOS the Option
 // key is the Alt key.
 export const SHORTCUT_ARIA = {
+    read: 'Alt+Shift+R',
+    continueReading: 'Alt+Shift+C',
     focusMode: 'Alt+Shift+D',
     readingRuler: 'Alt+Shift+L',
     translate: 'Alt+Shift+G'

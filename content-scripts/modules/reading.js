@@ -5,6 +5,13 @@ import { buildSentenceMap, buildSpeechChunks } from './text.js';
 import { buildTextMap, closestBlock, rangeFromOffsets } from './dom.js';
 import { showToast } from './toast.js';
 import { createToolbar, positionToolbar, updateToolbarReadingState } from './toolbar.js';
+import { followReadingRange } from './reading-aids-ui.js';
+
+// A manual scroll within this window pauses auto-scroll, so reading does not
+// pull the page away from a reader who is looking somewhere else.
+const MANUAL_SCROLL_GRACE_MS = 2000;
+let lastUserScrollAt = -Infinity;
+let scrollGuardAttached = false;
 
 /**
  * Cache the browser's voices. getVoices() is asynchronous on most
@@ -105,8 +112,10 @@ export function setupVoiceListener() {
 /**
  * Read the selected text aloud, or pause/resume a reading that is already
  * in progress.
+ * @param {{continuous?: boolean}} [options] Continue from here to the end of
+ *     the article instead of reading only the selection.
  */
-export function toggleReadAloud() {
+export function toggleReadAloud(options = {}) {
     if (!('speechSynthesis' in window)) {
         showToast('Speech synthesis not supported', { error: true });
         return;
@@ -125,13 +134,29 @@ export function toggleReadAloud() {
         return;
     }
 
-    const range = getReadingTarget();
+    const live = window.getSelection();
+    const liveSelection = Boolean(
+        live && live.rangeCount > 0 && !live.isCollapsed && live.toString().trim()
+    );
+    const savedSelection = Boolean(
+        STATE.savedRange &&
+        !STATE.savedRange.collapsed &&
+        STATE.savedRange.toString().trim()
+    );
+    // A caret reads to the end of the article by default; a real selection
+    // keeps its current selection-only scope unless the reader asks for more.
+    const continuous = Boolean(options.continuous) ||
+        (!liveSelection && !savedSelection);
+    const range = continuous
+        ? getContinuousReadingTarget()
+        : getReadingTarget();
+
     if (!range) {
         showToast('Select text or place the cursor in a paragraph');
         return;
     }
 
-    startReading(range);
+    startReading(range, { continuous });
 }
 
 /**
@@ -172,13 +197,57 @@ function getReadingTarget() {
 }
 
 /**
- * The element whose language applies to a reading range.
+ * A range that starts where the selection starts and runs to the end of the
+ * article or main region. A selection inside a translated wrapper stays
+ * scoped to that wrapper, because the rest of the page is in another
+ * language.
+ * @returns {Range|null}
+ */
+function getContinuousReadingTarget() {
+    const base = getReadingTarget();
+    if (!base) {
+        return null;
+    }
+
+    const startNode = base.startContainer;
+    const startElement = startNode.nodeType === Node.ELEMENT_NODE
+        ? startNode
+        : startNode.parentElement;
+    if (!startElement) {
+        return base;
+    }
+
+    if (startElement.closest(`[${CONFIG.translationAttr}]`)) {
+        return base;
+    }
+
+    const container = startElement.closest('article, main, [role="main"]') ||
+        document.body;
+    if (!container || !container.isConnected) {
+        return base;
+    }
+
+    try {
+        const range = document.createRange();
+        range.setStart(base.startContainer, base.startOffset);
+        range.setEnd(container, container.childNodes.length);
+        return range.toString().trim() ? range : base;
+    } catch (error) {
+        // A range that crosses a detached boundary is not continuous.
+        return base;
+    }
+}
+
+/**
+ * The element whose language applies to a reading range. The start node
+ * carries the language the reader is starting in, even when a continuous
+ * range spans several blocks.
  * @param {Range} range
  * @returns {HTMLElement|null}
  */
 function readingElementFor(range) {
-    const node = range.commonAncestorContainer;
-    return node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
+    const node = range?.startContainer || range?.commonAncestorContainer;
+    return node?.nodeType === Node.ELEMENT_NODE ? node : node?.parentElement;
 }
 
 /**
@@ -206,23 +275,31 @@ function readingPrefersLanguage(range) {
 /**
  * Start a new reading from a range.
  * @param {Range} range
+ * @param {{continuous?: boolean, silent?: boolean}} [options]
  */
-function startReading(range) {
+function startReading(range, options = {}) {
     const map = buildTextMap(range);
 
     beginReading({
         text: map.text,
         map,
         language: readingLanguageFor(range),
-        range,
-        preferLanguage: readingPrefersLanguage(range)
+        range: range.cloneRange(),
+        preferLanguage: readingPrefersLanguage(range),
+        continuous: Boolean(options.continuous),
+        silent: Boolean(options.silent),
+        navigation: options.navigation || null,
+        baseOffset: Number.isFinite(options.baseOffset)
+            ? options.baseOffset
+            : 0
     });
 }
 
 /**
  * Start a reading session from a page range.
  * @param {{text: string, map: Object, language: string,
- *     range?: Range|null, preferLanguage?: boolean}} reading
+ *     range?: Range|null, preferLanguage?: boolean, continuous?: boolean,
+ *     silent?: boolean, navigation?: Object|null, baseOffset?: number}} reading
  */
 function beginReading(reading) {
     if (!('speechSynthesis' in window)) {
@@ -231,6 +308,12 @@ function beginReading(reading) {
     }
 
     const language = reading.language || getPageLanguage();
+    const sentences = buildSentenceMap(reading.text, language);
+    const navigation = reading.navigation || {
+        range: reading.range ? reading.range.cloneRange() : null,
+        map: reading.map,
+        sentences
+    };
     const chunks = buildSpeechChunks(
         reading.text,
         CONFIG.maxSpeechChunkLength,
@@ -250,10 +333,16 @@ function beginReading(reading) {
 
     const session = {
         map: reading.map,
+        range: reading.range || null,
+        navigation,
+        baseOffset: Number.isFinite(reading.baseOffset)
+            ? reading.baseOffset
+            : 0,
+        continuous: Boolean(reading.continuous),
         language,
         preferLanguage: Boolean(reading.preferLanguage),
         chunks,
-        sentences: buildSentenceMap(reading.text, language),
+        sentences,
         index: 0,
         // Highest chunk already handed to the speech engine.
         queued: -1,
@@ -265,9 +354,12 @@ function beginReading(reading) {
     };
 
     STATE.speech = session;
+    attachScrollGuard();
     ensureReadingToolbar(reading.range);
     queueSpeechChunk(session, 0);
-    showToast('Reading aloud');
+    if (!reading.silent) {
+        showToast(session.continuous ? 'Reading from here' : 'Reading aloud');
+    }
 }
 
 /**
@@ -387,7 +479,7 @@ function queueSpeechChunk(session, index) {
         session.highlightStart = -1;
         const range = rangeFromOffsets(session.map, chunk.start, chunk.end);
         if (range) {
-            highlightReadingRange(range);
+            highlightReadingRange(range, session);
         }
 
         // The next chunk is already in the engine's queue by the time this
@@ -478,6 +570,7 @@ function resumeReading() {
 export function stopReading(options = {}) {
     const wasReading = Boolean(STATE.speech);
     STATE.speech = null;
+    detachScrollGuard();
 
     // Only cancel speech we started. Calling cancel() with no session also
     // stops whatever the page itself is reading aloud.
@@ -499,6 +592,7 @@ export function stopReading(options = {}) {
 function finishReading() {
     const wasReading = Boolean(STATE.speech);
     STATE.speech = null;
+    detachScrollGuard();
     clearReadingHighlight();
     updateToolbarReadingState();
 
@@ -508,17 +602,153 @@ function finishReading() {
 }
 
 /**
+ * Move to the next sentence in the current session and keep reading.
+ */
+export function nextReadingSentence() {
+    moveReadingSentence(1);
+}
+
+/**
+ * Move to the previous sentence in the current session and keep reading.
+ */
+export function previousReadingSentence() {
+    moveReadingSentence(-1);
+}
+
+/**
+ * Restart the reading at a neighbouring sentence. SpeechSynthesis has no
+ * seek, so the old utterance is cancelled and a fresh range starts at the
+ * target sentence while keeping the original end.
+ * @param {number} delta
+ */
+function moveReadingSentence(delta) {
+    const session = STATE.speech;
+    const navigation = session?.navigation;
+    if (!session || !navigation || navigation.sentences.length === 0) {
+        return;
+    }
+
+    const relative = session.highlightStart >= 0
+        ? session.highlightStart
+        : (session.chunks[session.index]?.start ?? 0);
+    const current = session.baseOffset + relative;
+    let index = navigation.sentences.findIndex((sentence) =>
+        current >= sentence.start && current < sentence.end);
+    if (index < 0) {
+        index = 0;
+    }
+
+    const target = navigation.sentences[index + delta];
+    if (!target) {
+        return;
+    }
+
+    const range = rangeFromOffsets(
+        navigation.map,
+        target.start,
+        navigation.map.text.length
+    );
+    if (!range) {
+        return;
+    }
+
+    startReading(range, {
+        continuous: session.continuous,
+        silent: true,
+        navigation,
+        baseOffset: target.start
+    });
+}
+
+/**
+ * Mark a manual scroll so auto-scroll stands down for a moment.
+ */
+function markUserScroll() {
+    lastUserScrollAt = performance.now();
+}
+
+function markScrollKey(event) {
+    if (event.key === 'PageUp' || event.key === 'PageDown' ||
+        event.key === 'Home' || event.key === 'End') {
+        markUserScroll();
+    }
+}
+
+function attachScrollGuard() {
+    if (scrollGuardAttached) {
+        return;
+    }
+    scrollGuardAttached = true;
+    window.addEventListener('wheel', markUserScroll, { passive: true });
+    window.addEventListener('touchmove', markUserScroll, { passive: true });
+    window.addEventListener('keydown', markScrollKey, { capture: true });
+}
+
+function detachScrollGuard() {
+    if (!scrollGuardAttached) {
+        return;
+    }
+    scrollGuardAttached = false;
+    window.removeEventListener('wheel', markUserScroll);
+    window.removeEventListener('touchmove', markUserScroll);
+    window.removeEventListener('keydown', markScrollKey, { capture: true });
+}
+
+/**
+ * Keep the spoken sentence in the comfortable middle band of the viewport.
+ * A manual scroll within the grace window wins over auto-scroll.
+ * @param {Range} range
+ */
+function scrollReadingRangeIntoView(range) {
+    if (performance.now() - lastUserScrollAt < MANUAL_SCROLL_GRACE_MS) {
+        return;
+    }
+
+    const node = range.startContainer;
+    const element = node.nodeType === Node.ELEMENT_NODE
+        ? node
+        : node.parentElement;
+    if (!element || !element.isConnected) {
+        return;
+    }
+
+    const rect = range.getBoundingClientRect();
+    if (!rect || rect.height <= 0) {
+        return;
+    }
+
+    const topGuard = window.innerHeight * 0.2;
+    const bottomGuard = window.innerHeight * 0.8;
+    if (rect.top >= topGuard && rect.bottom <= bottomGuard) {
+        return;
+    }
+
+    const reduced = window.matchMedia?.(
+        '(prefers-reduced-motion: reduce)'
+    )?.matches;
+    element.scrollIntoView({
+        block: 'center',
+        inline: 'nearest',
+        behavior: reduced ? 'auto' : 'smooth'
+    });
+}
+
+/**
  * Paint the sentence that is currently being spoken. Uses the CSS Custom
  * Highlight API, which does not mutate the page. Browsers without it still
  * read the text; only the visual follow-along is skipped.
  * @param {Range} range
+ * @param {object|null} [session]
  */
-function highlightReadingRange(range) {
-    if (!window.CSS || !CSS.highlights || typeof Highlight !== 'function') {
-        return;
+function highlightReadingRange(range, session = null) {
+    if (window.CSS && CSS.highlights && typeof Highlight === 'function') {
+        CSS.highlights.set(CONFIG.readingHighlightName, new Highlight(range));
     }
 
-    CSS.highlights.set(CONFIG.readingHighlightName, new Highlight(range));
+    if (session?.continuous) {
+        scrollReadingRangeIntoView(range);
+    }
+    followReadingRange(range);
 }
 
 /**
@@ -542,7 +772,7 @@ function highlightReadingSentence(session, offset) {
     }
 
     session.highlightStart = sentence.start;
-    highlightReadingRange(range);
+    highlightReadingRange(range, session);
 }
 
 /**

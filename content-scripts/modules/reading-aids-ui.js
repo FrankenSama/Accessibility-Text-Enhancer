@@ -201,6 +201,24 @@ export function refreshFocusMode() {
 }
 
 /**
+ * Keep focus mode over the block currently being read. Unlike
+ * refreshFocusMode this takes the reading range directly, so the spotlight
+ * follows the spoken sentence rather than the pointer or saved selection.
+ * @param {Range} range
+ */
+export function followReadingRange(range) {
+    if (!STATE.focusMode || !range) {
+        return;
+    }
+
+    const block = blockFromRange(range);
+    if (block) {
+        STATE.focusBlock = block;
+        scheduleFocusUpdate();
+    }
+}
+
+/**
  * Turn focus mode on for the current block.
  * @returns {boolean} Whether it turned on.
  */
