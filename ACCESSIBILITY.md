@@ -30,7 +30,7 @@ That is a target, not a certification:
 | Chrome on Android or iOS | Not supported; mobile Chrome does not run extensions |
 | Keyboard-only use | Supported: shortcuts, a single toolbar tab stop, arrow-key navigation, and `aria-pressed` state |
 | Windows High Contrast / forced-colors | Supported for the toolbar, dialog, translation text and bubble, popup, options page, and reading aids |
-| NVDA on Windows | Verified for v1.3.0 on 2026-11-06. A v1.6.0 Speech Viewer pass on 2026-11-24 covered the toolbar, settings, reading, focus mode, and ruler (37/37). A v1.7.0 in-place translation Speech Viewer pass on 2026-11-26 covered the Translate flow (13/13). The v1.8.0 continuous-reading and preset pass is pending. A live listening pass has not been repeated since v1.3.0 |
+| NVDA on Windows | Verified for v1.3.0 on 2026-11-06. A v1.6.0 Speech Viewer pass on 2026-11-24 covered the toolbar, settings, reading, focus mode, and ruler (37/37). A v1.7.0 in-place translation Speech Viewer pass on 2026-11-26 covered the Translate flow (13/13). A v1.8.0 reading-flow Speech Viewer pass on 2026-11-26 covered continuous reading, Space, presets, the caret ruler, and focus dim (17/17). A live listening pass has not been repeated since v1.3.0 |
 | VoiceOver on macOS | Not tested - no macOS hardware available |
 | Orca on Linux | Not tested - no Linux environment available |
 | Browser zoom and reflow | The toolbar is repositioned to stay inside the viewport, but 400% reflow has not been formally tested |
