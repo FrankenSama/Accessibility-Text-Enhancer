@@ -41,4 +41,4 @@ or say that it is still pending:
 - [ ] Docs updated where behaviour, settings, or limitations changed
 - [ ] Version number left alone (release pull requests only)
 - [ ] Code and assets are GPLv3-compatible; bundled fonts keep their own licence
-- [ ] I have read [CONTRIBUTING.md](CONTRIBUTING.md), the [development guide](docs/development.md), and the [Code of Conduct](CODE_OF_CONDUCT.md)
+- [ ] I have read [CONTRIBUTING.md](https://github.com/FrankenSama/accessibility-text-enhancer/blob/main/CONTRIBUTING.md), the [development guide](https://github.com/FrankenSama/accessibility-text-enhancer/blob/main/docs/development.md), and the [Code of Conduct](https://github.com/FrankenSama/accessibility-text-enhancer/blob/main/CODE_OF_CONDUCT.md)

@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Accessibility Text Enhancer - A real-time browser extension for web accessibility enhancement">
-    <meta name="keywords" content="accessibility, WCAG, browser extension, web accessibility, assistive technology">
+    <meta name="description" content="Accessibility Text Enhancer - text styling, continuous read-aloud, in-place translation, and reading aids for Chrome">
+    <meta name="keywords" content="accessibility, WCAG, browser extension, web accessibility, assistive technology, text-to-speech, translation, dyslexia, reading">
     <meta name="author" content="Octavio Silva">
 
     <title>Accessibility Text Enhancer - Make the Web Accessible for Everyone</title>
@@ -32,7 +32,7 @@
                     <span class="stat-label">Enhancement Speed</span>
                 </div>
                 <div class="stat-item">
-                    <span class="stat-number">8</span>
+                    <span class="stat-number">12</span>
                     <span class="stat-label">Accessibility Features</span>
                 </div>
             </div>
@@ -45,13 +45,17 @@
                     Explore Features
                 </a>
             </div>
+            <p class="cta-note">
+                The Chrome Web Store listing may lag the latest GitHub release.
+                <a href="https://github.com/FrankenSama/Accessibility-Text-Enhancer/releases/latest">Get the newest build</a>.
+            </p>
         </div>
     </section>
 
     <!-- Features Section -->
     <section id="features" class="features">
         <h2 class="section-title">Powerful Features</h2>
-        <p class="section-subtitle">Eight ways to improve your reading experience, instantly, on almost any website</p>
+        <p class="section-subtitle">Twelve ways to improve your reading experience, instantly, on almost any website</p>
 
         <div class="features-grid">
             <div class="feature-card fade-in">
@@ -87,7 +91,7 @@
             <div class="feature-card fade-in">
                 <div class="feature-icon">🔊</div>
                 <h3>Read Aloud</h3>
-                <p>Built-in text-to-speech for auditory access. Works instantly without additional software.</p>
+                <p>Continuous text-to-speech from the caret or a shift-click, with sentence highlighting, auto-scroll, previous/next sentence, and Space pause/resume. Works without additional software.</p>
             </div>
 
             <div class="feature-card fade-in">
@@ -99,7 +103,31 @@
             <div class="feature-card fade-in">
                 <div class="feature-icon">⚙️</div>
                 <h3>Saved Defaults &amp; Export</h3>
-                <p>Save your font, spacing, and highlight choices to your Chrome profile, switch toolbar themes, and export or import preferences as JSON (schema 3; older files still import).</p>
+                <p>Save your font, spacing, and highlight choices to your Chrome profile, switch toolbar themes, and export or import preferences as JSON (schema 5; older files still import).</p>
+            </div>
+
+            <div class="feature-card fade-in">
+                <div class="feature-icon">🌐</div>
+                <h3>Translate in Place</h3>
+                <p>Replace the selection with an on-device translation using Chrome's built-in Translator API. Shift-click translates the paragraph; Translate again, Undo, or Reset page restores the original.</p>
+            </div>
+
+            <div class="feature-card fade-in">
+                <div class="feature-icon">🎯</div>
+                <h3>Focus Mode &amp; Ruler</h3>
+                <p>Dim everything except the block you are reading, or keep your place with a reading ruler that follows the pointer or the caret. Session-only and reversible.</p>
+            </div>
+
+            <div class="feature-card fade-in">
+                <div class="feature-icon">📖</div>
+                <h3>Reading Presets</h3>
+                <p>Comfortable, Dyslexia-friendly, Low vision, and Focus presets set the font, spacing, highlight, and reading aids used next.</p>
+            </div>
+
+            <div class="feature-card fade-in">
+                <div class="feature-icon">🌍</div>
+                <h3>Per-Site Rules</h3>
+                <p>Keep the extension always on or always off for an individual site. A site rule wins over the global switch.</p>
             </div>
         </div>
     </section>
@@ -253,7 +281,7 @@
         </div>
 
         <div class="footer-bottom">
-            <p>&copy; 2025–2026 Octavio Silva. Licensed under the MIT License. Forks welcome — please keep the license and credit the author.</p>
+            <p>&copy; 2025–2026 Octavio Silva. Licensed under the GNU General Public License v3.0 (only). Forks welcome under the same license; please keep the license and credit the author.</p>
             <p class="footer-tagline">Making the web accessible, one selection at a time ♿</p>
         </div>
     </footer>

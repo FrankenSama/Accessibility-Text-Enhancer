@@ -40,6 +40,7 @@ Originally developed for an MSc dissertation at Solent University, it is now mai
 ## Install
 
 **[Install from the Chrome Web Store](https://chromewebstore.google.com/detail/cgpanifaahogfainpnkebmbgemodgfli)** (recommended)
+The store listing may lag the latest GitHub release; the [release zip](https://github.com/FrankenSama/Accessibility-Text-Enhancer/releases/latest) is the newest build.
 
 To load it manually, clone this repository, open `chrome://extensions/`, turn on **Developer mode**, click **Load unpacked**, and select the project folder.
 

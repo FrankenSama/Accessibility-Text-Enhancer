@@ -22,7 +22,11 @@ body:
         - Options page
         - Popup
         - Read aloud
+        - Translation
+        - Reading aids (focus mode, ruler)
+        - Reading presets
         - Page enhancement (bold, highlight, size, font, spacing, contrast)
+        - Site rules
         - Keyboard shortcut
         - Other
     validations:
@@ -33,7 +37,7 @@ body:
     attributes:
       label: Extension version
       description: Shown in the popup footer.
-      placeholder: "1.4.1"
+      placeholder: "1.8.0"
     validations:
       required: true
 
@@ -41,7 +45,7 @@ body:
     id: browser
     attributes:
       label: Browser and version
-      placeholder: "Chrome 131.0.6778.86"
+      placeholder: "Chrome 156.0.8078.47"
     validations:
       required: true
 
