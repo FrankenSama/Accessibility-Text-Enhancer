@@ -2,7 +2,7 @@
 
 This roadmap tracks the accessibility work planned for Accessibility Text Enhancer. It is a living document: items move between phases as the project learns from real use, and nothing here is a commitment to a date.
 
-**Latest GitHub release:** v1.8.1 · **Chrome Web Store:** v1.8.1 · **Last updated:** 2026-11-27
+**Latest GitHub release:** v1.9.0 · **Chrome Web Store:** v1.8.1 · **Last updated:** 2026-11-27
 
 ## Guiding principles
 
@@ -24,7 +24,7 @@ This roadmap tracks the accessibility work planned for Accessibility Text Enhanc
 | 5 | Reading aids | v1.6.0 | ✅ Released |
 | 6 | Comprehension | v1.7.0 | ✅ Released |
 | 7 | Reading flow | v1.8.0 | ✅ Released |
-| 8 | Translation and selection power | v1.9.0 | 📋 Planned |
+| 8 | Translation and selection power | v1.9.0 | ✅ Released |
 | 9 | Platform and reach | v2.0.0 | 💡 Exploring |
 
 **Status key:** ✅ Done · 🚧 In progress · 📋 Planned · 💡 Exploring · ⏸️ Deferred
@@ -45,9 +45,9 @@ This roadmap tracks the accessibility work planned for Accessibility Text Enhanc
 
 **v1.7.0 (in-place selection translation, released):** adds a **Translate** toolbar button and `Alt+Shift+G` shortcut. The selection, or the paragraph on Shift-click, is replaced in place by its translation using Chrome's built-in Translator API. The wrapper carries `lang` and `dir="auto"` with a dotted underline; pressing Translate again, Undo/Redo, or Reset page restores the original. A compact first-use/progress/error bubble detects the source, saves and syncs the target, shows language-pack progress with Cancel, and offers Try again. The target is changed in Settings or the options page. Multi-block selections are rejected; links or emphasis containing the whole selection stay around the translation, while internal markup is flattened and restored by undo. The page change is undoable and read aloud uses the target language. Needs Chrome 138+ on desktop and an HTTPS page. Adds `translationTarget` to schema 4 settings exports. No new permissions.
 
-**Distribution:** v1.8.1 is the latest GitHub release and the published Chrome Web Store version; both ship the GPLv3 package with a SHA-256 checksum. It is a license and contributor-documentation patch over v1.8.0. The v1.8.0 NVDA pass is recorded in [`docs/smoke-test.md`](docs/smoke-test.md) (17/17).
+**Distribution:** v1.9.0 is the latest GitHub release: a translation and selection upgrade over v1.8.1, with the same GPLv3 package and no new permissions. It adds multi-block translation as one undoable group, Swap languages and the `Alt+Shift+S` language shortcut, paragraph/sentence selection, and Settings search. The v1.9.0 NVDA pass is recorded in [`docs/smoke-test.md`](docs/smoke-test.md) (13/13). The Chrome Web Store remains on v1.8.1 until the v1.9.0 package is uploaded.
 
-**Next:** v1.9.0 is in progress; see Phase 8. Release plans are working documents kept locally and are not tracked; this roadmap is the public summary.
+**Next:** v1.9.0 is released. v2.0.0 remains the platform and reach phase. Release plans are working documents kept locally and are not tracked; this roadmap is the public summary.
 
 ---
 
@@ -241,9 +241,9 @@ The toolbar already declares `role="toolbar"`, but it was not operable or unders
 
 ---
 
-## Phase 8 - Translation and selection power (v1.9.0) 📋
+## Phase 8 - Translation and selection power (v1.9.0) ✅
 
-**Plan:** implementation in progress; kept as a local working document.
+**Plan:** released; the working plan stays local and untracked.
 
 **Problem:** v1.7 translates one block at a time and rejects a multi-paragraph selection. Changing the target means a trip to Settings, and selecting a sentence or paragraph for a command still depends on the mouse.
 
@@ -255,6 +255,8 @@ The toolbar already declares `role="toolbar"`, but it was not operable or unders
 - **Settings search.** Filter the in-page Settings and options page by label and help text, with a clear action and an announced result count.
 
 **Acceptance:** a multi-paragraph selection translates every block; Undo/Redo and Reset page restore the whole group; a cancelled or failed block leaves the page unchanged; the target can be swapped and a wrapper re-translated; selection expansion and Settings search work keyboard-only and with NVDA; forced-colors and 320 px layouts hold; the full harness is green.
+
+**Released 2026-11-27:** multi-block translation applies all-or-nothing with one grouped history entry, per-block progress, and the 5,000-character cap on the whole selection. The language bubble gains **Swap languages**, `Alt+Shift+S` opens it without translating, and existing wrappers can be re-translated from their originals. `Alt+Shift+Up`/`Down` select the paragraph or sentence at the caret, with an announcement and no interference in text fields. Settings search ships on both surfaces with an announced count, Clear, and Escape that only clears the filter. No new permissions, no network requests, and no settings schema change. NVDA 13/13; full harness 1,160 pass plus the v1.9 suite 43/43; package 31/31.
 
 **Risks:** block boundaries in lists, tables, and quotes; grouped history and rollback complexity; total length and translation time; toolbar crowding; shortcut collisions.
 
@@ -295,7 +297,7 @@ These are worth investigating but are not scheduled:
 
 ## Release checklist
 
-Use this list for every release. The v1.4.0, v1.4.1, v1.5.0, v1.5.1, v1.6.0, v1.7.0, v1.8.0, and v1.8.1 runs are recorded in the release notes and [`docs/smoke-test.md`](docs/smoke-test.md). The store step was last completed for v1.8.1 on 2026-11-27; the checklist stays unchecked as a template for the next release.
+Use this list for every release. The v1.4.0, v1.4.1, v1.5.0, v1.5.1, v1.6.0, v1.7.0, v1.8.0, v1.8.1, and v1.9.0 runs are recorded in the release notes and [`docs/smoke-test.md`](docs/smoke-test.md). The store step was last completed for v1.8.1 on 2026-11-27; the checklist stays unchecked as a template for the next release.
 
 - [ ] Browser harness green (all suites, including real-extension load and command smoke tests)
 - [ ] Keyboard-only harness checks: focus, traversal, apply, undo
