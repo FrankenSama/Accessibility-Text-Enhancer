@@ -161,7 +161,7 @@ docs: simplify the contributor guide
 4. Build the zip from `content-scripts/`, `fonts/`, `icons/`, `options/`, `popup/`, `background.js`, `LICENSE`, and `manifest.json`. Do not include repository docs, `.git`, or the harness.
 5. Verify the extracted package with a clean Chrome profile: manifest version, content script, toolbar, settings, options, popup, fonts, and no page errors.
 6. Record the SHA-256, commit, tag `vX.Y.Z`, and attach the zip and checksum to the GitHub release.
-7. Upload the same zip to the Chrome Web Store, refresh the listing from [`docs/store-listing.md`](store-listing.md), and record the published version.
+7. Upload the same zip to the Chrome Web Store, refresh the store listing, and record the published version.
 
 The bundled OpenDyslexic font remains under the SIL OFL 1.1 and is not covered by the GPL. Keep `fonts/OFL.txt` with the font files.
 
@@ -170,7 +170,6 @@ The bundled OpenDyslexic font remains under the SIL OFL 1.1 and is not covered b
 - [CONTRIBUTING.md](../CONTRIBUTING.md) — quick start and pull-request checklist
 - [ACCESSIBILITY.md](../ACCESSIBILITY.md) — supported environments, barriers, and limits
 - [docs/smoke-test.md](smoke-test.md) — manual release checklist
-- [docs/store-listing.md](store-listing.md) — Chrome Web Store copy
 - [ROADMAP.md](../ROADMAP.md) — planned releases
 - [SECURITY.md](../SECURITY.md) — private reporting
 - [LICENSE](../LICENSE) — GNU GPLv3

@@ -1,2 +1,3 @@
-# Release plans are working documents kept locally, not published.
+# Release plans and store copy are working documents kept locally, not published.
 docs/*-plan.md
+docs/store-listing.md
