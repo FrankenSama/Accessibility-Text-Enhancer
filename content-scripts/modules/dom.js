@@ -288,7 +288,7 @@ export function wrapRange(range) {
  * @param {Text} next
  * @returns {string}
  */
-function textSeparator(previous, next) {
+export function textSeparator(previous, next) {
     if (/\s$/.test(previous.nodeValue) || /^\s/.test(next.nodeValue)) {
         return '';
     }

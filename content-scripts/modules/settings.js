@@ -43,6 +43,7 @@ import { hasPageChanges, resetPageChanges } from './history.js';
 let settingsReturnFocus = null;
 let textStylingControls = null;
 let siteRulesControls = null;
+let settingsSearch = null;
 
 // ==================== SETTINGS PANEL ====================
 
@@ -307,7 +308,7 @@ export function showSettingsPanel() {
 
     getMountNode().appendChild(panel);
 
-    initSettingsSearch({
+    settingsSearch = initSettingsSearch({
         root: panel,
         input: panel.querySelector('#atx-settings-search'),
         clear: panel.querySelector('#atx-settings-search-clear'),
@@ -768,6 +769,8 @@ export function removeSettingsPanel() {
 
     textStylingControls = null;
     siteRulesControls = null;
+    settingsSearch?.destroy();
+    settingsSearch = null;
 
     // Only move focus back when a dialog was actually open. This keeps a
     // storage-triggered cleanup from stealing focus on an unrelated page.

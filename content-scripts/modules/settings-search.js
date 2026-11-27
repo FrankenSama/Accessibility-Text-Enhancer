@@ -16,6 +16,32 @@ function normalize(value) {
 }
 
 /**
+ * Text that is visible to the user, excluding collapsed groups. Used for the
+ * card-level fallback so a hidden custom-spacing label cannot make an
+ * invisible result look like a match.
+ * @param {Node} node
+ * @returns {string}
+ */
+function visibleText(node) {
+    if (node.nodeType === Node.TEXT_NODE) {
+        return node.nodeValue || '';
+    }
+    if (node.nodeType !== Node.ELEMENT_NODE &&
+        node.nodeType !== Node.DOCUMENT_FRAGMENT_NODE) {
+        return '';
+    }
+    if (node.nodeType === Node.ELEMENT_NODE && node.hasAttribute('hidden')) {
+        return '';
+    }
+
+    let text = '';
+    for (const child of node.childNodes) {
+        text += `${visibleText(child)} `;
+    }
+    return text;
+}
+
+/**
  * @param {HTMLElement} element
  * @param {boolean} hidden
  */
@@ -57,8 +83,9 @@ export function initSettingsSearch(options) {
 
     const apply = () => {
         const query = normalize(input.value);
-        if (clear) {
-            clear.hidden = query.length === 0;
+        const shouldHideClear = query.length === 0;
+        if (clear && clear.hidden !== shouldHideClear) {
+            clear.hidden = shouldHideClear;
         }
         let matches = 0;
 
@@ -91,7 +118,7 @@ export function initSettingsSearch(options) {
 
             // Help text, buttons, and empty states live outside a field. If
             // they match, keep the whole card so the result has context.
-            if (!itemMatches && normalize(item.textContent).includes(query)) {
+            if (!itemMatches && normalize(visibleText(item)).includes(query)) {
                 itemMatches = true;
                 fields.forEach((field) => setHidden(field, false));
             }
@@ -130,10 +157,26 @@ export function initSettingsSearch(options) {
         }
     });
 
+    // A preset change can reveal a group that was collapsed when the filter
+    // last ran (for example Custom spacing). Re-apply on hidden changes so the
+    // result count never describes an outdated layout.
+    const observeRoot = root.nodeType === Node.DOCUMENT_NODE
+        ? root.documentElement
+        : root;
+    const observer = typeof MutationObserver === 'function'
+        ? new MutationObserver(() => apply())
+        : null;
+    observer?.observe(observeRoot, {
+        attributes: true,
+        attributeFilter: ['hidden'],
+        subtree: true
+    });
+
     apply();
 
     return {
         refresh: apply,
-        clear: clearSearch
+        clear: clearSearch,
+        destroy: () => observer?.disconnect()
     };
 }

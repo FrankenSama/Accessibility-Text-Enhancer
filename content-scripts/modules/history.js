@@ -282,6 +282,34 @@ export function setTranslationState(record, state) {
 }
 
 /**
+ * Remove history entries for translations that a new apply supersedes. A new
+ * action branches off the current index, so discard redo first, then drop
+ * every entry that references one of the records.
+ * @param {Object[]} records
+ */
+export function removeTranslationHistory(records) {
+    if (!records || records.length === 0) {
+        return;
+    }
+
+    const superseded = new Set(records);
+    STATE.history = STATE.history.slice(0, STATE.historyIndex + 1);
+    STATE.history = STATE.history.flatMap((entry) => {
+        if (entry.type === 'translation') {
+            return superseded.has(entry.record) ? [] : [entry];
+        }
+        if (entry.type === 'translationGroup') {
+            const group = entry.group.filter(
+                (item) => !superseded.has(item.record)
+            );
+            return group.length === 0 ? [] : [{ ...entry, group }];
+        }
+        return [entry];
+    });
+    STATE.historyIndex = STATE.history.length - 1;
+}
+
+/**
  * The number of targets a history entry is expected to restore.
  * @param {Object} entry
  * @returns {number}
@@ -303,10 +331,6 @@ function entrySize(entry) {
  * @returns {number} Number of targets that were still on the page
  */
 function applyHistoryEntry(entry, side) {
-    if (entry.type === 'translation') {
-        return setTranslationState(entry.record, entry[side]) ? 1 : 0;
-    }
-
     if (entry.type === 'translationGroup') {
         const applied = [];
 

@@ -4,12 +4,20 @@
 
 import { CONFIG, SHORTCUT_LABELS, STATE } from './core.js';
 import {
-    buildTextMap,
     closestBlock,
     getBlocksForRange,
-    getMountNode
+    getMountNode,
+    getSelectedTextNodes,
+    selectedSlice,
+    textSeparator
 } from './dom.js';
-import { pushHistory, selectTranslationGroup, restoreTranslationNodes, setTranslationState } from './history.js';
+import {
+    pushHistory,
+    removeTranslationHistory,
+    selectTranslationGroup,
+    restoreTranslationNodes,
+    setTranslationState
+} from './history.js';
 import { saveSyncedPreferences } from './prefs.js';
 import { getPageLanguage } from './reading.js';
 import { showToast } from './toast.js';
@@ -79,14 +87,16 @@ function translationWrappersFor(range) {
  * that range is replaced. Without this a new translation can capture a live
  * wrapper, leaving nested records that Reset page cannot classify.
  * @param {Range} range
+ * @returns {Object[]} Records that were restored, newest apply supersedes them
  */
 function restoreTranslationsInRange(range) {
+    const restored = [];
     const node = range.commonAncestorContainer;
     const element = node.nodeType === Node.ELEMENT_NODE
         ? node
         : node.parentElement;
     if (!element) {
-        return;
+        return restored;
     }
 
     const wrappers = [];
@@ -110,6 +120,7 @@ function restoreTranslationsInRange(range) {
         if (!restoreTranslationNodes(record)) {
             continue;
         }
+        restored.push(record);
 
         // Move a boundary that sat inside the restored wrapper to the
         // original nodes, so the following extractContents still sees the
@@ -123,6 +134,8 @@ function restoreTranslationsInRange(range) {
             range.setEndAfter(last);
         }
     }
+
+    return restored;
 }
 
 /**
@@ -187,21 +200,67 @@ function clipRangeToBlock(saved, block) {
 }
 
 /**
+ * The text a block would contain without any translations already in it.
+ * Block targets can contain a translated wrapper whose stored original is no
+ * longer in the DOM; translating the visible translation would translate the
+ * output instead of the source.
+ * @param {Range} range
+ * @returns {string}
+ */
+function sourceTextFor(range) {
+    const nodes = getSelectedTextNodes(range);
+    const used = new Set();
+    let text = '';
+    let previous = null;
+
+    for (const node of nodes) {
+        const wrapper = node.parentElement?.closest?.(
+            `[${CONFIG.translationAttr}]`
+        );
+        const record = wrapper ? STATE.translations.get(wrapper) : null;
+
+        if (record) {
+            if (used.has(wrapper)) {
+                continue;
+            }
+            used.add(wrapper);
+            if (previous) {
+                text += textSeparator(previous, node);
+            }
+            text += record.originalNodes
+                .map((original) => original.textContent || '')
+                .join('');
+            previous = node;
+            continue;
+        }
+
+        const slice = selectedSlice(range, node);
+        if (!slice) {
+            continue;
+        }
+        if (previous) {
+            text += textSeparator(previous, node);
+        }
+        text += slice;
+        previous = node;
+    }
+
+    return text;
+}
+
+/**
  * One translatable block and its prepared text.
  * @param {Range} range
- * @param {HTMLElement|null} block
  * @param {Object|null} [oldRecord] Existing translation being re-translated
- * @returns {{range: Range, block: HTMLElement|null, oldRecord: Object|null,
- *     prepared: Object}}
+ * @returns {{range: Range, oldRecord: Object|null, prepared: Object}}
  */
-function translationTarget(range, block, oldRecord = null) {
+function translationTarget(range, oldRecord = null) {
     const text = oldRecord
         ? oldRecord.originalNodes.map((node) => node.textContent || '').join('')
-        : buildTextMap(range).text;
+        : sourceTextFor(range);
 
     return {
         range,
-        block,
         oldRecord,
         prepared: prepareTranslationText(text, CONFIG.translationMaxChars)
     };
@@ -222,7 +281,7 @@ function translationTargetsFor(saved, scope) {
 
         const range = document.createRange();
         range.selectNodeContents(block);
-        const target = translationTarget(range, block);
+        const target = translationTarget(range);
         return target.prepared.text ? [target] : null;
     }
 
@@ -235,8 +294,7 @@ function translationTargetsFor(saved, scope) {
     }
 
     const targets = blocks.map((block) => translationTarget(
-        clipRangeToBlock(saved, block),
-        block
+        clipRangeToBlock(saved, block)
     )).filter((target) => target.prepared.text);
 
     return targets.length > 0 ? targets : null;
@@ -259,7 +317,7 @@ function retranslationTargetsFor(saved) {
         const record = STATE.translations.get(wrapper);
         const range = document.createRange();
         range.selectNodeContents(wrapper);
-        return translationTarget(range, closestBlock(wrapper), record);
+        return translationTarget(range, record);
     }).filter((target) => target.prepared.text);
 
     return targets.length > 0 ? targets : null;
@@ -565,7 +623,6 @@ function openBubble(options) {
         prepared,
         detectedSource: detected,
         sourceMode: 'auto',
-        target,
         scope,
         busy: false,
         creating: false,
@@ -671,9 +728,6 @@ function bindBubbleEvents(bubble) {
     bubbleState.sourceSelect.addEventListener('change', () => {
         bubbleState.sourceMode = bubbleState.sourceSelect.value;
     });
-    bubbleState.targetSelect.addEventListener('change', () => {
-        bubbleState.target = bubbleState.targetSelect.value;
-    });
 
     bubble.addEventListener('mousedown', (event) => {
         if (event.target.closest?.('button')) {
@@ -711,7 +765,6 @@ function swapLanguages() {
     hideBubbleError();
     state.sourceMode = target;
     state.sourceSelect.value = target;
-    state.target = source;
     state.targetSelect.value = source;
     setStatus(
         `Swapped to ${translationLanguageName(target)} from ` +
@@ -736,7 +789,6 @@ function requestTranslation() {
         ? state.detectedSource
         : state.sourceMode;
     const target = normalizeTranslationTarget(state.targetSelect.value);
-    state.target = target;
 
     hideBubbleError();
     state.submit.textContent = 'Translate';
@@ -993,7 +1045,7 @@ function applyTranslationGroup(targets, results) {
         // source is a stored original belonging to an existing wrapper.
         if (!target.oldRecord) {
             const current = prepareTranslationText(
-                buildTextMap(target.range).text,
+                sourceTextFor(target.range),
                 CONFIG.translationMaxChars
             ).text;
             if (current !== target.prepared.text) {
@@ -1008,6 +1060,8 @@ function applyTranslationGroup(targets, results) {
 
     STATE.isApplyingCommand = true;
     const applied = [];
+    const oldRecords = new Map();
+    const nestedRestores = new Map();
 
     try {
         for (let index = 0; index < targets.length; index++) {
@@ -1017,10 +1071,10 @@ function applyTranslationGroup(targets, results) {
 
             if (target.oldRecord) {
                 const old = target.oldRecord;
+                oldRecords.set(old, old);
                 if (!setTranslationState(old, 'original')) {
                     throw new Error('the previous translation is no longer on the page');
                 }
-                STATE.translations.delete(old.wrapper);
 
                 const first = old.originalNodes.find((node) => node.isConnected);
                 const last = [...old.originalNodes].reverse()
@@ -1033,7 +1087,9 @@ function applyTranslationGroup(targets, results) {
                 range.setStartBefore(first);
                 range.setEndAfter(last);
             } else {
-                restoreTranslationsInRange(range);
+                restoreTranslationsInRange(range).forEach((record) => {
+                    nestedRestores.set(record, record);
+                });
             }
 
             const fragment = range.extractContents();
@@ -1041,6 +1097,15 @@ function applyTranslationGroup(targets, results) {
             if (originalNodes.length === 0) {
                 throw new Error('empty selection');
             }
+
+            // Track the extracted text before inserting so a failure in
+            // insertNode can still put the block back.
+            const item = {
+                record: null,
+                originalNodes,
+                restoreRange: range.cloneRange()
+            };
+            applied.push(item);
 
             const wrapper = document.createElement('span');
             wrapper.setAttribute(CONFIG.translationAttr, result.target);
@@ -1058,12 +1123,21 @@ function applyTranslationGroup(targets, results) {
                 target: result.target,
                 translated: true
             };
+            item.record = record;
             STATE.translations.set(wrapper, record);
-            applied.push({ record, oldRecord: target.oldRecord || null });
         }
 
         const records = applied.map((item) => item.record);
         selectTranslationGroup(records, 'translated');
+
+        // A new translation replaces every translation it consumed. Drop
+        // those records and their history so Undo cannot resurrect a wrapper
+        // the page no longer tracks.
+        const superseded = [...oldRecords.keys(), ...nestedRestores.keys()];
+        for (const record of superseded) {
+            STATE.translations.delete(record.wrapper);
+        }
+        removeTranslationHistory(superseded);
 
         pushHistory({
             type: 'translationGroup',
@@ -1084,51 +1158,59 @@ function applyTranslationGroup(targets, results) {
         console.error('Translation could not be applied:', error);
 
         for (let index = applied.length - 1; index >= 0; index--) {
-            const { record, oldRecord } = applied[index];
-            const parent = record.parent;
-            const next = record.next;
+            const { record, originalNodes, restoreRange } = applied[index];
 
-            STATE.translations.delete(record.wrapper);
-            if (record.wrapper.isConnected) {
-                record.wrapper.remove();
+            if (record) {
+                STATE.translations.delete(record.wrapper);
+                if (record.wrapper.isConnected) {
+                    record.wrapper.remove();
+                }
             }
 
             const fragment = document.createDocumentFragment();
-            for (const node of record.originalNodes) {
+            for (const node of originalNodes) {
                 fragment.appendChild(node);
             }
 
-            if (parent?.isConnected) {
-                parent.insertBefore(
-                    fragment,
-                    next && next.parentNode === parent ? next : null
-                );
-            }
-
-            // A re-translation replaces an existing wrapper; put it back so a
-            // failed swap changes nothing.
-            if (oldRecord) {
+            if (restoreRange?.startContainer?.isConnected &&
+                restoreRange.endContainer?.isConnected) {
                 try {
-                    if (setTranslationState(oldRecord, 'translated')) {
-                        STATE.translations.set(oldRecord.wrapper, oldRecord);
-                    }
+                    restoreRange.insertNode(fragment);
                 } catch (restoreError) {
                     console.error(
-                        'The previous translation could not be restored:',
+                        'The original block could not be restored:',
                         restoreError
                     );
                 }
             }
         }
 
+        // Put back every translation the failed apply consumed, in both the
+        // re-translation and nested-restore paths.
+        const reapply = (record) => {
+            if (record.translated) {
+                return;
+            }
+            try {
+                if (setTranslationState(record, 'translated')) {
+                    STATE.translations.set(record.wrapper, record);
+                }
+            } catch (restoreError) {
+                console.error(
+                    'The previous translation could not be restored:',
+                    restoreError
+                );
+            }
+        };
+        oldRecords.forEach(reapply);
+        nestedRestores.forEach(reapply);
+
         // Keep a usable selection on the original text after a rollback.
-        const firstRecord = applied[0]?.record;
-        const firstNode = firstRecord?.originalNodes
-            .find((node) => node.isConnected);
-        const lastNode = firstRecord
-            ? [...firstRecord.originalNodes].reverse()
-                .find((node) => node.isConnected)
-            : null;
+        const firstItem = applied[0];
+        const firstRecord = firstItem?.record;
+        const nodes = firstRecord?.originalNodes || firstItem?.originalNodes || [];
+        const firstNode = nodes.find((node) => node.isConnected);
+        const lastNode = [...nodes].reverse().find((node) => node.isConnected);
         if (firstNode && lastNode) {
             const selection = window.getSelection();
             if (selection) {
