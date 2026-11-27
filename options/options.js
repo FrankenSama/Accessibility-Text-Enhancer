@@ -7,12 +7,15 @@ import {
 } from '../content-scripts/modules/prefs.js';
 import { CONFIG } from '../content-scripts/modules/core.js';
 import {
-    buildSettingsFile,
     parseSettingsFile
 } from '../content-scripts/modules/settings-io.js';
 import {
+    applyImportedPreferencesToState,
+    buildSettingsFileFromState,
+    downloadSettingsFile
+} from '../content-scripts/modules/settings-transfer.js';
+import {
     normalizeTextDefaults,
-    pickTextDefaults,
     TEXT_DEFAULT_KEYS
 } from '../content-scripts/modules/style-defaults.js';
 import { clampNumber } from '../content-scripts/modules/text.js';
@@ -367,97 +370,12 @@ function resetReadingSettings() {
  * Export the full settings file.
  */
 function exportSettings() {
-    const settings = buildSettingsFile({
-        darkMode: state.darkMode,
-        ttsVoice: state.ttsVoice,
-        ttsRate: state.ttsRate,
-        ttsPitch: state.ttsPitch,
-        translationTarget: state.translationTarget,
-        rulerSource: state.rulerSource,
-        focusDim: state.focusDim,
-        textDefaults: state.textDefaults,
-        siteRules: state.siteRules,
-        appVersion: chrome.runtime.getManifest().version
-    });
-
-    const blob = new Blob(
-        [JSON.stringify(settings, null, 2)],
-        { type: 'application/json' }
+    const settings = buildSettingsFileFromState(
+        state,
+        chrome.runtime.getManifest().version
     );
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    const date = settings.exportedAt.slice(0, 10);
-    link.download =
-        `accessibility-text-enhancer-settings-v${settings.appVersion}-${date}.json`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-
+    downloadSettingsFile(settings);
     setStatus('Settings exported.');
-}
-
-/**
- * Apply imported preferences to the page state.
- * @param {Object} preferences
- * @returns {boolean} Whether at least one preference was found.
- */
-function applyImportedPreferences(preferences) {
-    let applied = false;
-
-    if (typeof preferences.darkMode === 'boolean') {
-        state.darkMode = preferences.darkMode;
-        applied = true;
-    }
-    if (typeof preferences.ttsVoice === 'string') {
-        state.ttsVoice = preferences.ttsVoice;
-        applied = true;
-    }
-    if (preferences.ttsRate !== undefined) {
-        state.ttsRate = clampNumber(
-            preferences.ttsRate,
-            LIMITS.minRate,
-            LIMITS.maxRate,
-            DEFAULTS.ttsRate
-        );
-        applied = true;
-    }
-    if (preferences.ttsPitch !== undefined) {
-        state.ttsPitch = clampNumber(
-            preferences.ttsPitch,
-            LIMITS.minPitch,
-            LIMITS.maxPitch,
-            DEFAULTS.ttsPitch
-        );
-        applied = true;
-    }
-    if (preferences.rulerSource !== undefined) {
-        state.rulerSource = normalizeRulerSource(preferences.rulerSource);
-        applied = true;
-    }
-    if (preferences.focusDim !== undefined) {
-        state.focusDim = clampFocusDim(preferences.focusDim);
-        applied = true;
-    }
-
-    if (typeof preferences.translationTarget === 'string') {
-        state.translationTarget = normalizeStoredTranslationTarget(
-            preferences.translationTarget
-        );
-        applied = true;
-    }
-
-    const textDefaults = pickTextDefaults(preferences);
-    if (Object.keys(textDefaults).length > 0) {
-        state.textDefaults = normalizeTextDefaults({
-            ...state.textDefaults,
-            ...textDefaults
-        });
-        applied = true;
-    }
-
-    return applied;
 }
 
 /**
@@ -483,7 +401,10 @@ function importFileContents(file) {
             return;
         }
 
-        const hasSettings = applyImportedPreferences(parsed.preferences);
+        const hasSettings = applyImportedPreferencesToState(
+            state,
+            parsed.preferences
+        );
         const hasRules = parsed.hasRules;
 
         if (!hasSettings && !hasRules) {

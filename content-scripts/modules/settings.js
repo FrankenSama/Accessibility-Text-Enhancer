@@ -7,7 +7,12 @@ import { showToast } from './toast.js';
 import { applyTheme, refreshTextCommandLabels } from './toolbar.js';
 import { getPageLanguage, pickReadingVoice, populateVoiceSelect } from './reading.js';
 import { normalizeSiteRules, loadSyncedPreferences, saveSyncedPreferences } from './prefs.js';
-import { buildSettingsFile, parseSettingsFile } from './settings-io.js';
+import { parseSettingsFile } from './settings-io.js';
+import {
+    applyImportedPreferencesToState,
+    buildSettingsFileFromState,
+    downloadSettingsFile
+} from './settings-transfer.js';
 import { READING_PRESETS, readingPresetById } from './reading-profiles.js';
 import {
     DEFAULT_FOCUS_DIM,
@@ -25,9 +30,7 @@ import {
     enableReadingRuler
 } from './reading-aids-ui.js';
 import {
-    normalizeTextDefaults,
-    pickTextDefaults,
-    TEXT_DEFAULT_KEYS
+    normalizeTextDefaults
 } from './style-defaults.js';
 import { initTextStylingControls } from './text-styling-ui.js';
 import { initSiteRulesControls } from './site-rules-ui.js';
@@ -784,95 +787,12 @@ export function removeSettingsPanel() {
  * Export settings to a JSON file.
  */
 function exportSettings() {
-    const settings = buildSettingsFile({
-        darkMode: STATE.isDarkMode,
-        ttsVoice: STATE.ttsVoice,
-        ttsRate: STATE.ttsRate,
-        ttsPitch: STATE.ttsPitch,
-        translationTarget: STATE.translationTarget,
-        rulerSource: STATE.rulerSource,
-        focusDim: STATE.focusDim,
-        textDefaults: STATE.textDefaults,
-        siteRules: STATE.siteRules,
-        appVersion: chrome.runtime.getManifest().version
-    });
-
-    const blob = new Blob([JSON.stringify(settings, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    const date = settings.exportedAt.slice(0, 10);
-    link.download = `accessibility-text-enhancer-settings-v${settings.appVersion}-${date}.json`;
-    getMountNode().appendChild(link);
-    link.click();
-    link.remove();
-    // Give the download a moment to start before releasing the blob URL.
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-
+    const settings = buildSettingsFileFromState(
+        STATE,
+        chrome.runtime.getManifest().version
+    );
+    downloadSettingsFile(settings);
     showToast('Settings exported');
-}
-
-/**
- * Apply the preferences from an imported file to STATE, clamping anything
- * that is out of range. Returns whether at least one preference was found.
- * @param {Object} preferences
- * @returns {boolean}
- */
-function applyImportedPreferences(preferences) {
-    const keys = [
-        'darkMode',
-        'ttsVoice',
-        'ttsRate',
-        'ttsPitch',
-        'rulerSource',
-        'focusDim',
-        ...TEXT_DEFAULT_KEYS
-    ];
-    let hasSettings = keys.some((key) => preferences[key] !== undefined);
-
-    if (typeof preferences.translationTarget === 'string') {
-        STATE.translationTarget = normalizeStoredTranslationTarget(
-            preferences.translationTarget
-        );
-        hasSettings = true;
-    }
-
-    if (typeof preferences.darkMode === 'boolean') {
-        STATE.isDarkMode = preferences.darkMode;
-    }
-    if (typeof preferences.ttsVoice === 'string') {
-        STATE.ttsVoice = preferences.ttsVoice;
-    }
-    if (preferences.ttsRate !== undefined) {
-        STATE.ttsRate = clampNumber(
-            preferences.ttsRate,
-            CONFIG.minTtsRate,
-            CONFIG.maxTtsRate,
-            CONFIG.defaultTtsRate
-        );
-    }
-    if (preferences.ttsPitch !== undefined) {
-        STATE.ttsPitch = clampNumber(
-            preferences.ttsPitch,
-            CONFIG.minTtsPitch,
-            CONFIG.maxTtsPitch,
-            CONFIG.defaultTtsPitch
-        );
-    }
-    if (preferences.rulerSource !== undefined) {
-        STATE.rulerSource = normalizeRulerSource(preferences.rulerSource);
-    }
-    if (preferences.focusDim !== undefined) {
-        STATE.focusDim = clampFocusDim(preferences.focusDim);
-    }
-
-    const textDefaults = normalizeTextDefaults({
-        ...STATE.textDefaults,
-        ...pickTextDefaults(preferences)
-    });
-    STATE.textDefaults = textDefaults;
-
-    return hasSettings;
 }
 
 /**
@@ -899,7 +819,10 @@ function importSettings() {
                     return;
                 }
 
-                const hasSettings = applyImportedPreferences(parsed.preferences);
+                const hasSettings = applyImportedPreferencesToState(
+                    STATE,
+                    parsed.preferences
+                );
                 const hasRules = parsed.hasRules;
 
                 if (!hasSettings && !hasRules) {
