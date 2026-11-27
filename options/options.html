@@ -16,6 +16,19 @@
             </p>
         </header>
 
+        <div class="settings-search" role="search">
+            <label for="settings-search">Search settings</label>
+            <div class="settings-search-row">
+                <input type="search" id="settings-search"
+                    class="settings-search-input" autocomplete="off"
+                    spellcheck="false">
+                <button type="button" id="settings-search-clear"
+                    class="settings-search-clear" hidden>Clear</button>
+            </div>
+            <p id="settings-search-status" class="search-status"
+                role="status" aria-live="polite"></p>
+        </div>
+
         <section class="card" aria-labelledby="appearance-heading">
             <h2 id="appearance-heading">Appearance</h2>
 

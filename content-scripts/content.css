@@ -378,6 +378,88 @@ span[data-atx-translation] {
     color: #333;
 }
 
+#accessibility-settings-panel .settings-search {
+    margin: 0 0 14px 0;
+}
+
+#accessibility-settings-panel .settings-search label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+#accessibility-settings-panel .settings-search-row {
+    display: flex;
+    align-items: stretch;
+    gap: 8px;
+}
+
+#accessibility-settings-panel .settings-search-input {
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 36px;
+    padding: 7px 10px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 6px;
+    background: #3a3a3a;
+    color: #ffffff;
+    font: inherit;
+    font-size: 13px;
+}
+
+#accessibility-settings-panel.light-mode .settings-search-input {
+    border-color: rgba(0, 0, 0, 0.25);
+    background: #ffffff;
+    color: #222222;
+}
+
+#accessibility-settings-panel .settings-search-input:focus-visible {
+    outline: 2px solid #4CAF50;
+    outline-offset: 2px;
+}
+
+#accessibility-settings-panel .settings-search-clear {
+    flex: 0 0 auto;
+    min-height: 36px;
+    padding: 6px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.08);
+    color: inherit;
+    font: inherit;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+#accessibility-settings-panel.light-mode .settings-search-clear {
+    border-color: rgba(0, 0, 0, 0.25);
+    background: rgba(0, 0, 0, 0.05);
+}
+
+#accessibility-settings-panel .settings-search-clear[hidden] {
+    display: none;
+}
+
+#accessibility-settings-panel .settings-search-clear:hover {
+    background: rgba(255, 255, 255, 0.16);
+}
+
+#accessibility-settings-panel.light-mode .settings-search-clear:hover {
+    background: rgba(0, 0, 0, 0.1);
+}
+
+#accessibility-settings-panel .settings-search-status {
+    min-height: 0;
+    margin: 6px 0 0 0;
+    font-size: 12px;
+    opacity: 0.8;
+}
+
+#accessibility-settings-panel [data-atx-search-hidden] {
+    display: none !important;
+}
+
 #accessibility-settings-panel h3 {
     margin: 0 0 16px 0;
     font-size: 18px;
@@ -787,12 +869,23 @@ span[data-atx-translation] {
 
 #accessibility-translation-bubble .translation-languages {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: end;
+    gap: 6px;
 }
 
 #accessibility-translation-bubble .translation-field {
     display: block;
+}
+
+#accessibility-translation-bubble .translation-swap {
+    align-self: end;
+    width: 34px;
+    min-width: 34px;
+    height: 32px;
+    padding: 0;
+    font-size: 15px;
+    line-height: 1;
 }
 
 #accessibility-translation-bubble .translation-field label {
@@ -987,6 +1080,10 @@ span[data-atx-translation] {
     #accessibility-translation-bubble .translation-languages {
         grid-template-columns: 1fr;
     }
+
+    #accessibility-translation-bubble .translation-swap {
+        width: 100%;
+    }
 }
 
 /* Respect users who prefer reduced motion */
@@ -1104,6 +1201,24 @@ span[data-atx-translation] {
         background: Field;
         color: FieldText;
         border-color: ButtonText;
+    }
+
+    #accessibility-settings-panel .settings-search-input {
+        background: Field;
+        color: FieldText;
+        border-color: ButtonText;
+    }
+
+    #accessibility-settings-panel .settings-search-clear {
+        background: ButtonFace;
+        color: ButtonText;
+        border-color: ButtonText;
+    }
+
+    #accessibility-settings-panel .settings-search-input:focus-visible,
+    #accessibility-settings-panel .settings-search-clear:focus-visible {
+        outline: 2px solid Highlight;
+        outline-offset: 2px;
     }
 
     /* The preview and the per-rule Remove button are new in v1.5.1. Without

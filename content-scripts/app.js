@@ -2,7 +2,12 @@
 
 import { CONFIG, STATE } from './modules/core.js';
 import { clampNumber } from './modules/text.js';
-import { isEditableTarget, rangesMatch } from './modules/dom.js';
+import {
+    getParagraphRange,
+    getSentenceRange,
+    isEditableTarget,
+    rangesMatch
+} from './modules/dom.js';
 import { showToast } from './modules/toast.js';
 import {
     applyTheme,
@@ -50,6 +55,7 @@ import {
 import { clampFocusDim, normalizeRulerSource } from './modules/reading-aids.js';
 import {
     closeTranslationBubble,
+    openTranslationLanguage,
     positionTranslationBubble,
     syncTranslationButton
 } from './modules/translation-inline.js';
@@ -374,6 +380,60 @@ function isInteractiveTarget(target) {
 }
 
 /**
+ * Select the paragraph or sentence around the caret, or expand the current
+ * selection to the one that contains its start.
+ * @param {'paragraph'|'sentence'} kind
+ */
+function expandSelectionTo(kind) {
+    if (!STATE.isExtensionEnabled) {
+        return;
+    }
+
+    const live = window.getSelection();
+    const range = live && live.rangeCount > 0
+        ? live.getRangeAt(0)
+        : STATE.savedRange;
+
+    if (!range) {
+        showToast('Place the cursor in some text first.');
+        return;
+    }
+
+    if (!live) {
+        showToast('The page selection is not available.');
+        return;
+    }
+
+    const next = kind === 'paragraph'
+        ? getParagraphRange(range.startContainer)
+        : getSentenceRange(range.startContainer, range.startOffset);
+
+    if (!next || !next.toString().trim()) {
+        showToast(kind === 'paragraph'
+            ? 'No paragraph found here.'
+            : 'No sentence found here.');
+        return;
+    }
+
+    if (STATE.toolbarTimeout) {
+        clearTimeout(STATE.toolbarTimeout);
+        STATE.toolbarTimeout = null;
+    }
+
+    live.removeAllRanges();
+    live.addRange(next);
+    STATE.savedRange = next.cloneRange();
+
+    const toolbar = document.getElementById(CONFIG.toolbarId) || createToolbar();
+    if (toolbar) {
+        positionToolbar(toolbar, next);
+        syncTranslationButton();
+    }
+
+    showToast(kind === 'paragraph' ? 'Paragraph selected' : 'Sentence selected');
+}
+
+/**
  * Set up keyboard shortcuts.
  */
 function setupKeyboardShortcuts() {
@@ -509,6 +569,16 @@ function setupKeyboardShortcuts() {
             return;
         }
 
+        // Alt/Option + Shift + Up/Down = select the paragraph or sentence at
+        // the caret. These stay available outside a reading; Left/Right below
+        // only navigate an active reading.
+        if (altShift && !editable &&
+            (event.code === 'ArrowUp' || event.code === 'ArrowDown')) {
+            event.preventDefault();
+            expandSelectionTo(event.code === 'ArrowUp' ? 'paragraph' : 'sentence');
+            return;
+        }
+
         // Alt/Option + Shift + Left/Right = previous/next sentence while
         // reading. Outside a reading, leave the browser's selection alone.
         if (altShift && !editable && STATE.speech &&
@@ -528,6 +598,15 @@ function setupKeyboardShortcuts() {
             (event.code === 'KeyG' || key === 'g') && STATE.savedRange) {
             event.preventDefault();
             handleCommand('translate', { scope: 'selection' });
+            return;
+        }
+
+        // Alt/Option + Shift + S = open the language bubble for the saved
+        // target without translating.
+        if (altShift && !editable &&
+            (event.code === 'KeyS' || key === 's')) {
+            event.preventDefault();
+            openTranslationLanguage();
             return;
         }
 

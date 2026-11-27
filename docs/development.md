@@ -43,6 +43,7 @@ content-scripts/
     site-rules-ui.js           Shared site-rule controls
     settings-io.js             Versioned settings file build/parse
     settings.js                In-page settings dialog
+    settings-search.js         Shared label/help filter for both settings pages
     reading.js                 Speech session, chunks, highlight, continuous read
     reading-aids.js            DOM-free ruler/spotlight geometry
     reading-aids-ui.js         Focus mode and reading-ruler overlays
@@ -73,7 +74,9 @@ SECURITY.md                    Private reporting
 - **Reading** (`reading.js`) turns a range into a text map, splits it into sentences and speech chunks, queues utterances, paints the follow-along highlight with the CSS Custom Highlight API, and scrolls the spoken sentence into view. Continuous reading keeps the full map for sentence navigation while the active speech range starts at the target sentence.
 - **Reading aids** (`reading-aids.js`, `reading-aids-ui.js`) are DOM-free geometry plus transient overlays. They are `aria-hidden`, never enter the tab order, and read `rulerSource`/`focusDim` from state. Focus mode follows the selection or the spoken sentence.
 - **Reading presets** (`reading-profiles.js`) are code constants that write the existing text-default keys; they do not store a separate profile object.
-- **Translation** (`translation.js`, `translation-inline.js`) uses Chrome's on-device Translator API. The service handles language normalization, the 5,000-character cap, caching, signals, and error mapping. The in-place module replaces the range with a `span[data-atx-translation]`, records the original nodes for the toggle and history, and shows the compact language/progress/error bubble.
+- **Translation** (`translation.js`, `translation-inline.js`) uses Chrome's on-device Translator API. The service handles language normalization, the 5,000-character cap, caching, signals, and error mapping. The in-place module resolves one target per block, translates every block before touching the DOM, applies all-or-nothing, and records one grouped history entry for the whole selection. Each wrapper is a `span[data-atx-translation]` with its original nodes kept for the toggle, history, and re-translation. The compact bubble carries language selection, **Swap languages**, progress/Cancel, and errors with Try again.
+- **Settings search** (`settings-search.js`) filters cards and rows by visible label and help text on both settings surfaces. It only toggles a `data-atx-search-hidden` attribute and a polite result count; it never reads or writes a stored preference.
+- **Selection expansion** (`dom.js`) resolves the paragraph or sentence around a caret into a normal DOM range, so `Alt+Shift+Up`/`Down` reuse the existing toolbar, commands, and scope rules.
 - **Settings** (`settings.js`, `options/options.js`) share the same defaults and settings file shapes. The in-page dialog also owns the transient reading aids and translation target; the options page mirrors the persisted preferences.
 
 ### Invariants
@@ -118,7 +121,8 @@ Use [`docs/smoke-test.md`](smoke-test.md) for the release checklist. For a focus
 - Check Windows High Contrast / forced-colors, dark and light themes, 320 px width, and 200% zoom.
 - Check undo, redo, and Reset page for any page mutation.
 - For reading changes, check speech, sentence highlighting, auto-scroll, pause/resume/stop, and the reading aids.
-- For translation changes, use a real Chrome 138+ desktop build with the on-device pack, or the fake Translator used by the harness.
+- For translation changes, use a real Chrome 138+ desktop build with the on-device pack, or the fake Translator used by the harness. Check a two-block selection, a list/quote/table selection, grouped Undo/Redo/Reset, a cancelled or failed block, target swap, and re-translating an existing wrapper.
+- For settings changes, check the search field on both surfaces: matching rows, "No settings match", Escape clearing without closing, and that no preference is written while filtering.
 
 ### Automated harness
 

@@ -27,11 +27,12 @@ Originally developed for an MSc dissertation at Solent University, it is now mai
 - **Font size, contrast, and font choice** for the nearest paragraph: Sans, Serif, Monospace, or the bundled **OpenDyslexic** font
 - **Text spacing** with Comfortable, the WCAG 1.4.12 preset, or four custom sliders, plus **highlight colour and style** (background, underline, or automatic contrast-aware)
 - **Focus mode and reading ruler**: dim everything except the paragraph you are reading, or lay a translucent ruler under the pointer or caret. Both are visual, session-only aids that change nothing on the page. The dim strength and whether the ruler follows the pointer or caret are in Settings
-- **Translate** the selection in place, or the paragraph on Shift-click, with Chrome's built-in Translator API. The translated text stays in the page, is marked with a dotted underline, and is restored by pressing Translate again, Undo, or Reset page. The target language syncs with your profile and can be changed in Settings. Needs Chrome 138+ on desktop and an HTTPS page
+- **Translate** the selection in place, or the paragraph on Shift-click, with Chrome's built-in Translator API. A selection that spans several paragraphs is translated block by block and restored as one undoable action. The translated text stays in the page, is marked with a dotted underline, and is restored by pressing Translate again, Undo, or Reset page. Swap the source and target in the bubble, or press `Alt+Shift+S` to change the target without leaving the page. The target language syncs with your profile and can also be changed in Settings. Needs Chrome 138+ on desktop and an HTTPS page
 - **Read aloud** with selectable voice, speed, and pitch, sentence highlighting, auto-scroll, sentence navigation, pause/resume/stop controls, plus voice preview and a dedicated settings page. A caret continues to the end of the article; Shift-click or `Alt+Shift+C` continues from a selection
 - **Reading presets**: Comfortable, Dyslexia-friendly, Low vision, and Focus set the font, spacing, highlight, and reading aids used next
 - **Undo/redo** for the last 50 changes, plus **Reset page** to remove everything in one action
 - **Saved text defaults** for font, spacing, and highlight that sync with your Chrome profile
+- **Settings search** filters the in-page Settings and the options page by label and help text, with an announced result count
 - **Dark/light toolbar**, with JSON export/import (schema 5; older files still import), synced preferences, and per-site on/off rules
 - **High contrast**: the toolbar, popup, and settings pages follow Windows High Contrast / forced-colors
 - **Keyboard and screen reader support**: shortcuts, a single tab stop, arrow-key navigation, and `aria-pressed` state (NVDA-verified on Windows)
@@ -52,6 +53,8 @@ To load it manually, clone this repository, open `chrome://extensions/`, turn on
 
 The toolbar opens next to your selection, above it when there is room and below it otherwise, and always stays inside the viewport. Its ✕ button dismisses the toolbar without clearing the page selection, as does `Escape`; `Ctrl+Shift+F` (`Cmd+Shift+F`) brings it back for the same text.
 
+Translating a multi-paragraph selection keeps the block structure and applies every block as one undoable change; if one block fails or you cancel, the page is left unchanged. The language bubble's **Swap languages** button exchanges the detected source and the target, and `Alt+Shift+S` (`Option+Shift+S`) opens the bubble to change the target without translating straight away. Use `Alt+Shift+Up` / `Alt+Shift+Down` (`Option+Shift+Up` / `Option+Shift+Down`) to select the paragraph or sentence around the caret before applying a command.
+
 ### Toolbar at a glance
 
 The symbols match the toolbar buttons:
@@ -67,7 +70,7 @@ The symbols match the toolbar buttons:
 | 🎨 | Fix contrast | Adjusts the paragraph text colour until it is readable against its background. |
 | 🎯 | Focus mode | Dims every block except the one under the selection or caret. Session-only; `Escape` exits. |
 | 📏 | Reading ruler | Shows a translucent band under the pointer or caret to keep your place. Session-only; `Escape` exits. |
-| 文A / ↺ | Translate / Show original | Replaces the selected text with its translation in place; Shift-click translates the paragraph, and pressing the button again restores the original. Needs Chrome 138+ desktop on an HTTPS page. |
+| 文A / ↺ | Translate / Show original | Replaces the selected text with its translation in place; Shift-click translates the paragraph, and a multi-paragraph selection translates every block as one undoable change. Pressing the button again restores the original. Needs Chrome 138+ desktop on an HTTPS page. |
 | 🔊 | Read Aloud | Reads the selection; a caret continues to the end of the article. Shift-click continues from a selection. Turns into pause/resume while reading. |
 | ⏹️ | Stop Reading | Stops speech; appears only while reading. |
 | ⚙️ | Settings | Opens the in-page dialog for text styling, reading, site rules, page reset, and backup. |
@@ -89,9 +92,12 @@ The shortcuts below cover the toolbar and extension actions:
 | Highlight | `Alt+Shift+H` | `Option+Shift+H` |
 | Read selection or paragraph | `Alt+Shift+R` | `Option+Shift+R` |
 | Continue reading from here | `Alt+Shift+C` | `Option+Shift+C` |
+| Select the paragraph at the caret | `Alt+Shift+Up` | `Option+Shift+Up` |
+| Select the sentence at the caret | `Alt+Shift+Down` | `Option+Shift+Down` |
 | Next / previous sentence while reading | `Alt+Shift+Right` / `Alt+Shift+Left` | `Option+Shift+Right` / `Option+Shift+Left` |
 | Pause / resume reading | `Space` | `Space` |
 | Translate selection | `Alt+Shift+G` | `Option+Shift+G` |
+| Translation language | `Alt+Shift+S` | `Option+Shift+S` |
 | Focus mode | `Alt+Shift+D` | `Option+Shift+D` |
 | Reading ruler | `Alt+Shift+L` | `Option+Shift+L` |
 | Undo / redo | `Ctrl+Z` / `Ctrl+Y` | `Cmd+Z` / `Cmd+Y` |

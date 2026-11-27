@@ -142,6 +142,51 @@ function selectTranslationSide(record, state) {
 }
 
 /**
+ * Select a whole translated or restored group in one range, so Read Aloud and
+ * the toolbar treat the blocks as one selection.
+ * @param {Object[]} records
+ * @param {'original'|'translated'} state
+ * @returns {boolean} Whether a selection was made
+ */
+export function selectTranslationGroup(records, state) {
+    const selection = window.getSelection();
+    if (!selection || records.length === 0) {
+        return false;
+    }
+
+    const connected = records.filter((record) => state === 'translated'
+        ? record.wrapper?.isConnected
+        : record.originalNodes?.some((node) => node.isConnected));
+
+    if (connected.length === 0) {
+        return false;
+    }
+
+    const first = connected[0];
+    const last = connected[connected.length - 1];
+    const range = document.createRange();
+
+    if (state === 'translated') {
+        range.setStart(first.wrapper, 0);
+        range.setEnd(last.wrapper, last.wrapper.childNodes.length);
+    } else {
+        const startNode = first.originalNodes.find((node) => node.isConnected);
+        const endNode = [...last.originalNodes].reverse()
+            .find((node) => node.isConnected);
+        if (!startNode || !endNode) {
+            return false;
+        }
+        range.setStartBefore(startNode);
+        range.setEndAfter(endNode);
+    }
+
+    selection.removeAllRanges();
+    selection.addRange(range);
+    STATE.savedRange = range.cloneRange();
+    return true;
+}
+
+/**
  * Put a translation record's original nodes back in place of its wrapper.
  * Shared by the Translate toggle and Reset page so both use the same DOM
  * contract. Detached wrappers, or parents the page removed, are left alone so
@@ -237,6 +282,21 @@ export function setTranslationState(record, state) {
 }
 
 /**
+ * The number of targets a history entry is expected to restore.
+ * @param {Object} entry
+ * @returns {number}
+ */
+function entrySize(entry) {
+    if (entry.type === 'translationGroup') {
+        return entry.group.length;
+    }
+    if (Array.isArray(entry.changes) && entry.changes.length > 0) {
+        return entry.changes.length;
+    }
+    return 1;
+}
+
+/**
  * Restore one side of a history entry.
  * @param {{changes: Array<{element: HTMLElement, before: Object, after: Object}>}} entry
  * @param {'before'|'after'} side
@@ -245,6 +305,22 @@ export function setTranslationState(record, state) {
 function applyHistoryEntry(entry, side) {
     if (entry.type === 'translation') {
         return setTranslationState(entry.record, entry[side]) ? 1 : 0;
+    }
+
+    if (entry.type === 'translationGroup') {
+        const applied = [];
+
+        for (const item of entry.group) {
+            if (setTranslationState(item.record, item[side])) {
+                applied.push(item.record);
+            }
+        }
+
+        selectTranslationGroup(
+            applied,
+            entry.group[0]?.[side] || 'original'
+        );
+        return applied.length;
     }
 
     let applied = 0;
@@ -282,7 +358,7 @@ export function undo() {
     if (applied === 0) {
         showToast(`Could not undo ${label} — the change is no longer on the page`,
             { error: true });
-    } else if (applied < entry.changes.length) {
+    } else if (applied < entrySize(entry)) {
         showToast(`Undone: ${label} (some targets were no longer on the page)`);
     } else {
         showToast(`Undone: ${label}`);
@@ -308,7 +384,7 @@ export function redo() {
     if (applied === 0) {
         showToast(`Could not redo ${label} — the change is no longer on the page`,
             { error: true });
-    } else if (applied < entry.changes.length) {
+    } else if (applied < entrySize(entry)) {
         showToast(`Redone: ${label} (some targets were no longer on the page)`);
     } else {
         showToast(`Redone: ${label}`);

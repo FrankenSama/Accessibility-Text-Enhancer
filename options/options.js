@@ -30,6 +30,7 @@ import {
 } from '../content-scripts/modules/reading-aids.js';
 import { initTextStylingControls } from '../content-scripts/modules/text-styling-ui.js';
 import { initSiteRulesControls } from '../content-scripts/modules/site-rules-ui.js';
+import { initSettingsSearch } from '../content-scripts/modules/settings-search.js';
 
 const DEFAULTS = {
     darkMode: true,
@@ -533,6 +534,16 @@ function importFileContents(file) {
 // Load saved preferences.
 setupTextControls();
 setupSiteRules();
+
+initSettingsSearch({
+    root: document,
+    input: document.getElementById('settings-search'),
+    clear: document.getElementById('settings-search-clear'),
+    status: document.getElementById('settings-search-status'),
+    itemSelector: '.card',
+    fieldSelector: '.field',
+    headingSelector: 'h2'
+});
 
 loadSyncedPreferences().then((result) => {
     state.darkMode = typeof result.darkMode === 'boolean'

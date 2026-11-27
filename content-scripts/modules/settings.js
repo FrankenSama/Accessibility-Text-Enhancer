@@ -31,6 +31,7 @@ import {
 } from './style-defaults.js';
 import { initTextStylingControls } from './text-styling-ui.js';
 import { initSiteRulesControls } from './site-rules-ui.js';
+import { initSettingsSearch } from './settings-search.js';
 import { closeTranslationBubble } from './translation-inline.js';
 import {
     normalizeStoredTranslationTarget,
@@ -73,6 +74,19 @@ export function showSettingsPanel() {
 
     panel.innerHTML = `
         <h3 id="accessibility-settings-title">Accessibility Settings</h3>
+
+        <div class="settings-search" role="search">
+            <label for="atx-settings-search">Search settings</label>
+            <div class="settings-search-row">
+                <input type="search" id="atx-settings-search"
+                    class="settings-search-input" autocomplete="off"
+                    spellcheck="false">
+                <button type="button" id="atx-settings-search-clear"
+                    class="settings-search-clear" hidden>Clear</button>
+            </div>
+            <p id="atx-settings-search-status" class="settings-search-status"
+                role="status" aria-live="polite"></p>
+        </div>
 
         <div class="setting-item text-styling-settings">
             <h4>Text styling</h4>
@@ -292,6 +306,16 @@ export function showSettingsPanel() {
     `;
 
     getMountNode().appendChild(panel);
+
+    initSettingsSearch({
+        root: panel,
+        input: panel.querySelector('#atx-settings-search'),
+        clear: panel.querySelector('#atx-settings-search-clear'),
+        status: panel.querySelector('#atx-settings-search-status'),
+        itemSelector: '.setting-item',
+        fieldSelector: '.setting-field',
+        headingSelector: 'h4'
+    });
 
     textStylingControls = initTextStylingControls({
         root: panel,

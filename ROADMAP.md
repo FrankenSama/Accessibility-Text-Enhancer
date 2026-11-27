@@ -47,7 +47,7 @@ This roadmap tracks the accessibility work planned for Accessibility Text Enhanc
 
 **Distribution:** v1.8.1 is the latest GitHub release and the published Chrome Web Store version; both ship the GPLv3 package with a SHA-256 checksum. It is a license and contributor-documentation patch over v1.8.0. The v1.8.0 NVDA pass is recorded in [`docs/smoke-test.md`](docs/smoke-test.md) (17/17).
 
-**Next:** v1.8.1 is a license/documentation patch; no open v1.8 work. v1.9.0 is planned; see Phase 8. Release plans are working documents kept locally and are not tracked; this roadmap is the public summary.
+**Next:** v1.9.0 is in progress; see Phase 8. Release plans are working documents kept locally and are not tracked; this roadmap is the public summary.
 
 ---
 
@@ -243,7 +243,7 @@ The toolbar already declares `role="toolbar"`, but it was not operable or unders
 
 ## Phase 8 - Translation and selection power (v1.9.0) 📋
 
-**Plan:** draft for review; kept as a local working document.
+**Plan:** implementation in progress; kept as a local working document.
 
 **Problem:** v1.7 translates one block at a time and rejects a multi-paragraph selection. Changing the target means a trip to Settings, and selecting a sentence or paragraph for a command still depends on the mouse.
 

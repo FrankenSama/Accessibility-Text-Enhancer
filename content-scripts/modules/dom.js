@@ -1,6 +1,7 @@
 // DOM and selection helpers shared by commands, reading, and the toolbar.
 
 import { CONFIG, HTML_NAMESPACE, SKIP_SELECTOR, STATE } from './core.js';
+import { buildSentenceMap } from './text.js';
 
 /**
  * Return the node extension UI should be attached to. Documents without a
@@ -398,6 +399,117 @@ export function rangesMatch(a, b) {
            a.startOffset === b.startOffset &&
            a.endContainer === b.endContainer &&
            a.endOffset === b.endOffset;
+}
+
+/**
+ * The declared language that applies to a node, or the page language.
+ * @param {Node} node
+ * @returns {string}
+ */
+function nearestLanguage(node) {
+    const element = node.nodeType === Node.ELEMENT_NODE
+        ? node
+        : node.parentElement;
+    return element?.closest?.('[lang]')?.getAttribute('lang') ||
+        document.documentElement?.lang ||
+        '';
+}
+
+/**
+ * Convert a DOM node and offset into an offset in a text map. Returns null
+ * when the node is not part of the map, so an expansion never selects
+ * unrelated content.
+ * @param {{entries: Array<Object>}} map
+ * @param {Node} node
+ * @param {number} offset
+ * @returns {number|null}
+ */
+function textOffsetFor(map, node, offset) {
+    if (node.nodeType === Node.TEXT_NODE) {
+        const entry = map.entries.find((item) => item.node === node);
+        if (!entry) {
+            return null;
+        }
+
+        const within = Math.max(0, Math.min(
+            offset - entry.startOffset,
+            entry.textEnd - entry.textStart
+        ));
+        return entry.textStart + within;
+    }
+
+    if (node.nodeType !== Node.ELEMENT_NODE) {
+        return null;
+    }
+
+    // An element boundary: use the first mapped text node inside it, or the
+    // end of the map when the caret sits after all of its text.
+    const entry = map.entries.find((item) => node.contains(item.node));
+    if (entry) {
+        return entry.textStart;
+    }
+
+    if (map.entries.length > 0) {
+        const last = map.entries[map.entries.length - 1];
+        if (node.contains(last.node)) {
+            return last.textEnd;
+        }
+    }
+
+    return null;
+}
+
+/**
+ * The whole block (paragraph, list item, cell) that contains a node.
+ * @param {Node} node
+ * @returns {Range|null}
+ */
+export function getParagraphRange(node) {
+    const block = closestBlock(node);
+    if (!block || block === document.body || block === document.documentElement) {
+        return null;
+    }
+
+    const range = document.createRange();
+    range.selectNodeContents(block);
+    return range.toString().trim() ? range : null;
+}
+
+/**
+ * The sentence that contains a node and offset within its block.
+ * @param {Node} node
+ * @param {number} [offset]
+ * @returns {Range|null}
+ */
+export function getSentenceRange(node, offset = 0) {
+    const block = closestBlock(node);
+    if (!block || block === document.body || block === document.documentElement) {
+        return null;
+    }
+
+    const blockRange = document.createRange();
+    blockRange.selectNodeContents(block);
+    const map = buildTextMap(blockRange);
+    if (!map.text.trim()) {
+        return null;
+    }
+
+    const position = textOffsetFor(map, node, offset);
+    if (position === null) {
+        return null;
+    }
+
+    const sentences = buildSentenceMap(map.text, nearestLanguage(node));
+    if (sentences.length === 0) {
+        return null;
+    }
+
+    const sentence = sentences.find((item) =>
+        position >= item.start && position < item.end
+    ) || sentences.find((item) => position === item.end) ||
+        sentences[sentences.length - 1];
+
+    return rangeFromOffsets(map, sentence.start, sentence.end);
 }
 
 /**

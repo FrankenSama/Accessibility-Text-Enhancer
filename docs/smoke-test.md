@@ -66,6 +66,8 @@ These should already be green before the manual pass:
 | T6 | Press `Escape` while the toolbar has focus. | The toolbar closes and focus returns to the page sensibly. |
 | T7 | Move to the last toolbar button with `End` and activate it, or click the ✕ button. | The toolbar closes, “Toolbar dismissed” is announced, and the page selection is left in place. Pressing `Ctrl+Shift+F` (`Cmd+Shift+F`) brings the toolbar back for the same selection. |
 | T8 | Select text near the top of the page, then text in the middle of the viewport, then text at the bottom. | The toolbar appears below the selection when there is no room above, and above it otherwise. It stays fully inside the viewport at both edges and never covers the selected text. |
+| T9 | Place the caret in a paragraph and press `Alt+Shift+Up`. | The paragraph is selected, "Paragraph selected" is announced, and the toolbar follows the new range. |
+| T10 | Place the caret in a sentence and press `Alt+Shift+Down`; repeat inside a text field. | The sentence is selected and announced. Inside a text field the shortcut keeps the page's native behaviour. |
 
 ## Reading aids
 
@@ -112,6 +114,7 @@ Turn on Windows High Contrast (or emulate `forced-colors: active` in DevTools) a
 | S14 | Add two site rules in the popup, then open Settings in the toolbar. | Both rules are listed with their origins and Always on/off, and the count reads 2 of 100. Remove one with its Remove button; the list updates and the removal is announced. |
 | S15 | Activate Clear all site rules twice. | The first press arms the button and announces the confirmation prompt; the second removes the remaining rule, announces the result, and disables the button. |
 | S16 | With the dialog open, change text styling or a site rule in the options page in another tab. | The dialog's controls and list update to the new values without closing. |
+| S17 | Type "voice" in **Search settings**, then press `Escape` and activate **Clear**. | Only Reading aloud stays visible, the Voice row remains, and "1 setting matches" is announced. `Escape` clears the filter without closing the dialog; **Clear** does the same and returns focus to the field. No setting changes. |
 
 ## Settings page
 
@@ -130,6 +133,7 @@ Turn on Windows High Contrast (or emulate `forced-colors: active` in DevTools) a
 | O11 | Set Highlight style to Underline and colour to Blue, then highlight text. | The selection is underlined rather than painted, and the announcement names the style. |
 | O12 | Activate Reset text styling. | Font, spacing, and highlight return to the shipped defaults and the reset confirmation is announced. |
 | O13 | Import a schema 2 settings file after changing the text defaults. | The current font, spacing, and highlight defaults are preserved, and the import result is announced. |
+| O14 | Type "zzz" in **Search settings** on the options page, then press `Escape`. | Every card is hidden and "No settings match" is announced. `Escape` clears the filter, all cards return, and focus stays in the field. |
 
 ## Notifications
 
@@ -162,15 +166,22 @@ Turn on Windows High Contrast (or emulate `forced-colors: active` in DevTools) a
 | TR3 | Wait for the replacement. | The selected text is replaced in place by the translation. The translated text is selected, carries the target language and direction, has a dotted underline, and "Translated to…" is announced. |
 | TR4 | Press **Translate** again (now **Show original**). | The original text returns, the button becomes Translate, and "Original text restored" is announced. |
 | TR5 | Undo, Redo, then Reset page. | Undo restores the original; Redo re-applies the translation; Reset page restores it and closes the settings dialog. |
-| TR6 | Shift-click Translate, then select across two paragraphs and translate. | Shift-click replaces the whole paragraph; a cross-block selection is explained and left unchanged. |
+| TR6 | Shift-click Translate, then select across two paragraphs and translate. | Shift-click replaces the whole paragraph; a cross-block selection translates every block and applies as one undoable change. |
 | TR7 | Change the target in Settings or the options page, then translate. | The toolbar tooltip names the new target, and the next translation uses it. |
 | TR8 | Force a download failure or choose an unsupported pair. | The failure is announced and **Try again** is offered when retrying can help. |
-| TR9 | Select more than 5,000 characters. | The bubble reports the character count, suggests a smaller selection or Shift-click, and translates nothing. |
+| TR9 | Select more than 5,000 characters across one or more blocks. | The bubble reports the total character count, suggests a smaller selection or Shift-click, and translates nothing. |
 | TR10 | Select text inside a link or emphasis, then translate and restore. | The link target or emphasis stays around the translation; restoring brings the original markup back. |
 | TR11 | Translate into a right-to-left language. | The translated text follows `dir="auto"`; the page flow may reflow, but the direction is correct. |
 | TR12 | Read the translated text with Read Aloud. | It is spoken with the target language and a matching voice. |
 | TR13 | Open a plain `http://` page. | The Translate button is absent; the shortcut explains that Chrome 138+ on desktop, on an HTTPS page, is required. |
 | TR14 | Turn on Windows High Contrast and translate. | The bubble uses system colours; the translation mark uses the system Highlight colour and stays inline. |
+| TR15 | Select two paragraphs and translate. | "Translating paragraph 1 of 2" is announced, both blocks are replaced, and the result names the count and target. One Undo restores both; one Redo re-applies both. |
+| TR16 | Select across paragraphs, a list, a quote, and table cells. | Every block is translated, list items and cells keep their structure, and one Undo restores the whole group. |
+| TR17 | Make the second block fail during a group translation. | The error names paragraph 2, the page is unchanged, and **Try again** applies the whole group. |
+| TR18 | Cancel a group translation while it is in progress. | The request stops, the page is unchanged, and "Translation cancelled" is announced. |
+| TR19 | Open the language bubble and activate **Swap languages**. | From and To exchange, the detected source becomes the new target, and the swap is announced without translating. |
+| TR20 | With text selected, press `Alt+Shift+S`, change the target, then translate; repeat on a translated block. | The bubble opens without translating, keeps the saved target, and the second use re-translates the block from its original text. |
+| TR21 | Translate two blocks, select both wrappers, and press Translate. | Both wrappers are restored in one action, and one Undo re-applies both translations. |
 
 The translation rows were added with v1.7.0; the 2026-11-26 in-place pass covered them (13/13).
 

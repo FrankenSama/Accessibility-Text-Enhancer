@@ -9,7 +9,7 @@ import {
     getBlocksForRange,
     getMountNode
 } from './dom.js';
-import { pushHistory, restoreTranslationNodes, setTranslationState } from './history.js';
+import { pushHistory, selectTranslationGroup, restoreTranslationNodes, setTranslationState } from './history.js';
 import { saveSyncedPreferences } from './prefs.js';
 import { getPageLanguage } from './reading.js';
 import { showToast } from './toast.js';
@@ -20,6 +20,7 @@ import {
 } from './toolbar.js';
 import {
     createTranslationService,
+    isSameLanguage,
     isTranslationAvailable,
     normalizeLanguageTag,
     normalizeTranslationTarget,
@@ -39,18 +40,38 @@ const service = createTranslationService({
 let bubbleState = null;
 
 /**
- * The translation wrapper containing a range, if any.
+ * Every translated wrapper touched by a range, in document order. A
+ * multi-block selection can hold several wrappers, and the Translate button
+ * restores them together.
  * @param {Range|null} range
- * @returns {HTMLElement|null}
+ * @returns {HTMLElement[]}
  */
-function translationWrapperFor(range) {
-    if (!range) {
-        return null;
+function translationWrappersFor(range) {
+    if (!range || !range.commonAncestorContainer.isConnected) {
+        return [];
     }
 
     const node = range.commonAncestorContainer;
     const element = node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
-    return element?.closest?.(`[${CONFIG.translationAttr}]`) || null;
+    if (!element) {
+        return [];
+    }
+
+    const wrappers = new Set();
+    const closest = element.closest?.(`[${CONFIG.translationAttr}]`);
+    if (closest && range.intersectsNode(closest)) {
+        wrappers.add(closest);
+    }
+
+    element.querySelectorAll?.(`[${CONFIG.translationAttr}]`).forEach((wrapper) => {
+        if (range.intersectsNode(wrapper)) {
+            wrappers.add(wrapper);
+        }
+    });
+
+    return [...wrappers].filter((wrapper) =>
+        STATE.translations.get(wrapper)?.translated
+    );
 }
 
 /**
@@ -138,27 +159,128 @@ function sourceNodeFor(range, scope) {
 }
 
 /**
- * The range that will actually be replaced, and its text.
+ * The part of a selection that falls inside one block.
+ * @param {Range} saved
+ * @param {HTMLElement} block
+ * @returns {Range}
+ */
+function clipRangeToBlock(saved, block) {
+    if (block.contains(saved.startContainer) && block.contains(saved.endContainer)) {
+        return saved.cloneRange();
+    }
+
+    const range = document.createRange();
+
+    if (block.contains(saved.startContainer)) {
+        range.setStart(saved.startContainer, saved.startOffset);
+    } else {
+        range.setStart(block, 0);
+    }
+
+    if (block.contains(saved.endContainer)) {
+        range.setEnd(saved.endContainer, saved.endOffset);
+    } else {
+        range.setEnd(block, block.childNodes.length);
+    }
+
+    return range;
+}
+
+/**
+ * One translatable block and its prepared text.
+ * @param {Range} range
+ * @param {HTMLElement|null} block
+ * @param {Object|null} [oldRecord] Existing translation being re-translated
+ * @returns {{range: Range, block: HTMLElement|null, oldRecord: Object|null,
+ *     prepared: Object}}
+ */
+function translationTarget(range, block, oldRecord = null) {
+    const text = oldRecord
+        ? oldRecord.originalNodes.map((node) => node.textContent || '').join('')
+        : buildTextMap(range).text;
+
+    return {
+        range,
+        block,
+        oldRecord,
+        prepared: prepareTranslationText(text, CONFIG.translationMaxChars)
+    };
+}
+
+/**
+ * Every block a translation command should replace.
  * @param {Range} saved
  * @param {'block'|'selection'} scope
- * @returns {{range: Range, text: string}|null}
+ * @returns {Array<Object>|null}
  */
-function replacementFor(saved, scope) {
+function translationTargetsFor(saved, scope) {
     if (scope === 'block') {
         const block = closestBlock(saved.startContainer);
         if (!block || block === document.body || block === document.documentElement) {
             return null;
         }
+
         const range = document.createRange();
         range.selectNodeContents(block);
-        return { range, text: buildTextMap(range).text };
+        const target = translationTarget(range, block);
+        return target.prepared.text ? [target] : null;
     }
 
-    if (getBlocksForRange(saved).length > 1) {
+    const blocks = getBlocksForRange(saved).filter((block) =>
+        block !== document.body && block !== document.documentElement
+    );
+
+    if (blocks.length === 0) {
         return null;
     }
 
-    return { range: saved.cloneRange(), text: buildTextMap(saved).text };
+    const targets = blocks.map((block) => translationTarget(
+        clipRangeToBlock(saved, block),
+        block
+    )).filter((target) => target.prepared.text);
+
+    return targets.length > 0 ? targets : null;
+}
+
+/**
+ * Targets for re-translating wrappers that are already in the page. The text
+ * comes from the stored originals, so a swap translates the source again
+ * rather than translating the translation.
+ * @param {Range} saved
+ * @returns {Array<Object>|null}
+ */
+function retranslationTargetsFor(saved) {
+    const wrappers = translationWrappersFor(saved);
+    if (wrappers.length === 0) {
+        return null;
+    }
+
+    const targets = wrappers.map((wrapper) => {
+        const record = STATE.translations.get(wrapper);
+        const range = document.createRange();
+        range.selectNodeContents(wrapper);
+        return translationTarget(range, closestBlock(wrapper), record);
+    }).filter((target) => target.prepared.text);
+
+    return targets.length > 0 ? targets : null;
+}
+
+/**
+ * Total character count across every block, which is what the cap applies to.
+ * @param {Array<Object>} targets
+ * @returns {{characters: number, maxChars: number, tooLong: boolean}}
+ */
+function totalPrepared(targets) {
+    const characters = targets.reduce(
+        (sum, target) => sum + target.prepared.characters,
+        0
+    );
+
+    return {
+        characters,
+        maxChars: CONFIG.translationMaxChars,
+        tooLong: characters > CONFIG.translationMaxChars
+    };
 }
 
 /**
@@ -235,36 +357,25 @@ export function translateSelection(scope = 'selection') {
         return;
     }
 
-    const wrapper = translationWrapperFor(saved);
-    if (wrapper) {
-        const record = STATE.translations.get(wrapper);
-        if (record) {
-            restoreTranslation(record);
-            return;
-        }
+    const translated = translationWrappersFor(saved);
+    if (translated.length > 0) {
+        restoreTranslationRecords(translated);
+        return;
     }
 
     if (!ensureToolbar(saved)) {
         return;
     }
 
-    const replacement = replacementFor(saved, scope);
-    if (!replacement) {
+    const targets = translationTargetsFor(saved, scope);
+    if (!targets) {
         showToast(scope === 'block'
             ? 'Select text within a paragraph to translate.'
-            : 'Select text within one paragraph, or Shift-click to translate the paragraph.');
+            : 'Select text to translate.');
         return;
     }
 
-    const prepared = prepareTranslationText(
-        replacement.text,
-        CONFIG.translationMaxChars
-    );
-    if (!prepared.text) {
-        showToast('Select text or a paragraph to translate.');
-        return;
-    }
-
+    const prepared = totalPrepared(targets);
     const detected = detectSource(sourceNodeFor(saved, scope));
     const firstUse = !STATE.translationTarget;
     const target = firstUse
@@ -274,10 +385,10 @@ export function translateSelection(scope = 'selection') {
     if (prepared.tooLong) {
         openBubble({
             mode: 'error',
+            targets,
             prepared,
             detected,
             target,
-            range: replacement.range,
             scope,
             errorMessage: tooLongMessage(prepared, scope)
         });
@@ -287,10 +398,10 @@ export function translateSelection(scope = 'selection') {
     if (!detected) {
         openBubble({
             mode: 'setup',
+            targets,
             prepared,
             detected: '',
             target,
-            range: replacement.range,
             scope
         });
         return;
@@ -299,10 +410,10 @@ export function translateSelection(scope = 'selection') {
     if (!firstUse && detected === target) {
         openBubble({
             mode: 'error',
+            targets,
             prepared,
             detected,
             target,
-            range: replacement.range,
             scope,
             errorMessage: translationMessage('same', {
                 source: detected,
@@ -314,10 +425,10 @@ export function translateSelection(scope = 'selection') {
 
     openBubble({
         mode: firstUse ? 'setup' : 'progress',
+        targets,
         prepared,
         detected,
         target,
-        range: replacement.range,
         scope
     });
 
@@ -327,19 +438,82 @@ export function translateSelection(scope = 'selection') {
 }
 
 /**
+ * Open the language bubble for the saved selection without translating. This
+ * is the keyboard path for changing the target, and it re-translates an
+ * existing wrapper from its stored original.
+ */
+export function openTranslationLanguage() {
+    if (!STATE.isExtensionEnabled) {
+        return;
+    }
+
+    if (STATE.translationBubbleOpen) {
+        closeTranslationBubble();
+        return;
+    }
+
+    if (!isTranslationAvailable()) {
+        showToast(translationMessage('missing'), { error: true });
+        return;
+    }
+
+    const saved = STATE.savedRange;
+    if (!saved ||
+        !saved.commonAncestorContainer.isConnected ||
+        saved.collapsed ||
+        !saved.toString().trim()) {
+        showToast('Select text or a paragraph to set the translation language.');
+        return;
+    }
+
+    const retranslation = retranslationTargetsFor(saved);
+    const targets = retranslation || translationTargetsFor(saved, 'selection');
+    if (!targets) {
+        showToast('Select text to set the translation language.');
+        return;
+    }
+
+    if (!ensureToolbar(saved)) {
+        return;
+    }
+
+    const prepared = totalPrepared(targets);
+    const detected = retranslation
+        ? retranslation[0].oldRecord.source
+        : detectSource(sourceNodeFor(saved, 'selection'));
+    const target = STATE.translationTarget
+        ? normalizeTranslationTarget(STATE.translationTarget)
+        : suggestTranslationTarget(detected, navigator.language);
+
+    openBubble({
+        mode: prepared.tooLong ? 'error' : 'setup',
+        targets,
+        prepared,
+        detected,
+        target,
+        scope: 'selection',
+        focusTarget: true,
+        errorMessage: prepared.tooLong
+            ? tooLongMessage(prepared, 'selection')
+            : ''
+    });
+}
+
+/**
  * Build the compact language/progress/error bubble.
- * @param {{mode: 'setup'|'progress'|'error', prepared: Object,
- *     detected: string, target: string, range: Range, scope: string,
- *     errorMessage?: string}} options
+ * @param {{mode: 'setup'|'progress'|'error', targets: Array<Object>,
+ *     prepared: Object, detected: string, target: string, scope: string,
+ *     focusTarget?: boolean, errorMessage?: string}} options
  */
 function openBubble(options) {
     const {
         mode,
+        targets,
         prepared,
         detected,
         target,
-        range,
         scope,
+        focusTarget = false,
         errorMessage = ''
     } = options;
     const returnFocus = document.getElementById(CONFIG.toolbarId)
@@ -368,6 +542,8 @@ function openBubble(options) {
                 <label for="atx-translate-source">From</label>
                 <select id="atx-translate-source" class="translation-select"></select>
             </div>
+            <button type="button" class="translation-swap" aria-label="Swap languages"
+                data-tooltip="Swap languages">⇄</button>
             <div class="translation-field">
                 <label for="atx-translate-target">To</label>
                 <select id="atx-translate-target" class="translation-select"></select>
@@ -385,11 +561,11 @@ function openBubble(options) {
 
     bubbleState = {
         bubble,
+        targets,
         prepared,
         detectedSource: detected,
         sourceMode: 'auto',
         target,
-        range,
         scope,
         busy: false,
         creating: false,
@@ -399,6 +575,7 @@ function openBubble(options) {
         languages: bubble.querySelector('.translation-languages'),
         sourceSelect: bubble.querySelector('#atx-translate-source'),
         targetSelect: bubble.querySelector('#atx-translate-target'),
+        swap: bubble.querySelector('.translation-swap'),
         status: bubble.querySelector('.translation-status'),
         error: bubble.querySelector('.translation-error'),
         submit: bubble.querySelector('.translation-submit'),
@@ -427,6 +604,8 @@ function openBubble(options) {
         bubbleState.cancel.focus({ preventScroll: true });
     } else if (mode === 'error') {
         bubbleState.close.focus({ preventScroll: true });
+    } else if (focusTarget) {
+        bubbleState.targetSelect.focus({ preventScroll: true });
     } else {
         bubbleState.sourceSelect.focus({ preventScroll: true });
     }
@@ -488,6 +667,7 @@ function bindBubbleEvents(bubble) {
     bubbleState.close.addEventListener('click', () => closeTranslationBubble());
     bubbleState.submit.addEventListener('click', requestTranslation);
     bubbleState.cancel.addEventListener('click', cancelTranslation);
+    bubbleState.swap.addEventListener('click', swapLanguages);
     bubbleState.sourceSelect.addEventListener('change', () => {
         bubbleState.sourceMode = bubbleState.sourceSelect.value;
     });
@@ -501,6 +681,42 @@ function bindBubbleEvents(bubble) {
             event.stopPropagation();
         }
     });
+}
+
+/**
+ * Swap the From and To languages without starting a translation. With Auto
+ * selected, the detected source becomes the new target.
+ */
+function swapLanguages() {
+    if (!bubbleState || bubbleState.busy) {
+        return;
+    }
+
+    const state = bubbleState;
+    const source = state.sourceMode === 'auto'
+        ? state.detectedSource
+        : state.sourceMode;
+    const target = normalizeTranslationTarget(state.targetSelect.value);
+
+    if (!source) {
+        showBubbleError('Choose the source language before swapping.', false);
+        return;
+    }
+
+    if (isSameLanguage(source, target)) {
+        showBubbleError(translationMessage('same', { source, target }), false);
+        return;
+    }
+
+    hideBubbleError();
+    state.sourceMode = target;
+    state.sourceSelect.value = target;
+    state.target = source;
+    state.targetSelect.value = source;
+    setStatus(
+        `Swapped to ${translationLanguageName(target)} from ` +
+        `${translationLanguageName(source)}.`
+    );
 }
 
 /**
@@ -530,7 +746,7 @@ function requestTranslation() {
         return;
     }
 
-    if (source === target) {
+    if (isSameLanguage(source, target)) {
         showBubbleError(
             translationMessage('same', { source, target }),
             false
@@ -559,52 +775,109 @@ function requestTranslation() {
     setStatus('Preparing language pack…');
     positionTranslationBubble();
 
-    service.translate({
-        text: state.prepared.text,
-        source,
-        target,
-        createSignal: createController.signal,
-        signal: requestController.signal,
-        onProgress(loaded) {
+    translateGroup(state, source, target, createController, requestController)
+        .then((result) => {
             if (bubbleState !== state ||
                 state.requestController !== requestController) {
                 return;
             }
-
-            const percent = Math.round(loaded * 100);
-            const bucket = Math.floor(percent / 25) * 25;
-            if (bucket === lastProgressBucket) {
-                return;
-            }
-            lastProgressBucket = bucket;
-            setStatus(`Preparing language pack… ${percent}%`);
-        },
-        onReady() {
+            finishRequest(result);
+        })
+        .catch(() => {
             if (bubbleState !== state ||
                 state.requestController !== requestController) {
                 return;
             }
-            state.creating = false;
-            setStatus('Translating…');
-        }
-    }).then((result) => {
-        if (bubbleState !== state ||
-            state.requestController !== requestController) {
-            return;
-        }
-        finishRequest(result);
-    }).catch(() => {
-        if (bubbleState !== state ||
-            state.requestController !== requestController) {
-            return;
-        }
-        finishRequest({
-            ok: false,
-            code: 'failed',
-            message: translationMessage('failed'),
-            retry: true
+            finishRequest({
+                ok: false,
+                code: 'failed',
+                message: translationMessage('failed'),
+                retry: true
+            });
         });
-    });
+}
+
+/**
+ * Translate every target before touching the page. A failure or a cancel
+ * returns without applying anything.
+ * @param {Object} state
+ * @param {string} source
+ * @param {string} target
+ * @param {AbortController} createController
+ * @param {AbortController} requestController
+ * @returns {Promise<Object>}
+ */
+async function translateGroup(
+    state,
+    source,
+    target,
+    createController,
+    requestController
+) {
+    const results = [];
+    const total = state.targets.length;
+    let lastProgressBucket = -1;
+
+    for (let index = 0; index < total; index++) {
+        if (bubbleState !== state ||
+            state.requestController !== requestController) {
+            return {
+                ok: false,
+                code: 'cancelled',
+                message: '',
+                retry: false
+            };
+        }
+
+        if (total > 1) {
+            setStatus(`Translating paragraph ${index + 1} of ${total}…`);
+        }
+
+        const result = await service.translate({
+            text: state.targets[index].prepared.text,
+            source,
+            target,
+            createSignal: createController.signal,
+            signal: requestController.signal,
+            onProgress(loaded) {
+                if (bubbleState !== state ||
+                    state.requestController !== requestController) {
+                    return;
+                }
+
+                const percent = Math.round(loaded * 100);
+                const bucket = Math.floor(percent / 25) * 25;
+                if (bucket === lastProgressBucket) {
+                    return;
+                }
+                lastProgressBucket = bucket;
+                setStatus(`Preparing language pack… ${percent}%`);
+            },
+            onReady() {
+                if (bubbleState !== state ||
+                    state.requestController !== requestController) {
+                    return;
+                }
+                state.creating = false;
+                if (total === 1) {
+                    setStatus('Translating…');
+                }
+            }
+        });
+
+        if (!result.ok) {
+            return {
+                ...result,
+                message: total > 1 && result.message
+                    ? `Paragraph ${index + 1} of ${total}: ${result.message}`
+                    : result.message
+            };
+        }
+
+        results.push(result);
+    }
+
+    return { ok: true, results };
 }
 
 /**
@@ -663,14 +936,21 @@ function finishRequest(result) {
     state.languages.hidden = false;
 
     if (result.ok) {
-        applyTranslation(
-            state.range,
-            result.text,
-            result.source,
-            result.target,
-            state.prepared
+        const applied = applyTranslationGroup(
+            state.targets,
+            result.results
         );
         closeTranslationBubble();
+        if (applied > 0) {
+            const name = translationLanguageName(result.results[0].target);
+            showToast(
+                applied > 1
+                    ? `Translated ${applied} paragraphs to ${name}. ` +
+                        'Undo restores them together.'
+                    : `Translated to ${name}. ` +
+                        'Press Alt+Shift+G again or Undo to restore.'
+            );
+        }
         return;
     }
 
@@ -686,146 +966,224 @@ function finishRequest(result) {
 }
 
 /**
- * Replace the range with the translated wrapper and record it.
- * @param {Range} range
- * @param {string} text
- * @param {string} source
- * @param {string} target
- * @param {{text: string}} prepared
+ * Replace every target with its translated wrapper in one transaction. All
+ * translations are already in hand, so a DOM failure rolls back every block
+ * and leaves the page as it was.
+ * @param {Array<Object>} targets
+ * @param {Array<Object>} results
+ * @returns {number} Number of blocks applied
  */
-function applyTranslation(range, text, source, target, prepared) {
-    if (!range || !range.commonAncestorContainer.isConnected) {
-        showToast('The selection is no longer on the page.', { error: true });
-        return;
+function applyTranslationGroup(targets, results) {
+    if (targets.length === 0 || targets.length !== results.length) {
+        showToast('The translation could not be applied to the page.',
+            { error: true });
+        return 0;
     }
 
-    // A slow language-pack download can outlive the text the bubble was opened
-    // for. Replacing different text would destroy content the user never asked
-    // to translate, so compare before touching the page.
-    const current = prepareTranslationText(
-        buildTextMap(range).text,
-        CONFIG.translationMaxChars
-    ).text;
-    if (prepared && current !== prepared.text) {
-        showToast('The page text changed while translating. Select it again.',
-            { error: true });
-        return;
+    for (let index = 0; index < targets.length; index++) {
+        const target = targets[index];
+
+        if (!target.range || !target.range.commonAncestorContainer.isConnected) {
+            showToast('The selection is no longer on the page.', { error: true });
+            return 0;
+        }
+
+        // A slow language-pack download can outlive the text the bubble was
+        // opened for. Compare before touching the page, except when the
+        // source is a stored original belonging to an existing wrapper.
+        if (!target.oldRecord) {
+            const current = prepareTranslationText(
+                buildTextMap(target.range).text,
+                CONFIG.translationMaxChars
+            ).text;
+            if (current !== target.prepared.text) {
+                showToast(
+                    'The page text changed while translating. Select it again.',
+                    { error: true }
+                );
+                return 0;
+            }
+        }
     }
 
     STATE.isApplyingCommand = true;
-    let wrapper = null;
-    let originalNodes = [];
+    const applied = [];
+
     try {
-        restoreTranslationsInRange(range);
-        const fragment = range.extractContents();
-        originalNodes = Array.from(fragment.childNodes);
-        if (originalNodes.length === 0) {
-            throw new Error('empty selection');
+        for (let index = 0; index < targets.length; index++) {
+            const target = targets[index];
+            const result = results[index];
+            let range = target.range;
+
+            if (target.oldRecord) {
+                const old = target.oldRecord;
+                if (!setTranslationState(old, 'original')) {
+                    throw new Error('the previous translation is no longer on the page');
+                }
+                STATE.translations.delete(old.wrapper);
+
+                const first = old.originalNodes.find((node) => node.isConnected);
+                const last = [...old.originalNodes].reverse()
+                    .find((node) => node.isConnected);
+                if (!first || !last) {
+                    throw new Error('the original text is no longer on the page');
+                }
+
+                range = document.createRange();
+                range.setStartBefore(first);
+                range.setEndAfter(last);
+            } else {
+                restoreTranslationsInRange(range);
+            }
+
+            const fragment = range.extractContents();
+            const originalNodes = Array.from(fragment.childNodes);
+            if (originalNodes.length === 0) {
+                throw new Error('empty selection');
+            }
+
+            const wrapper = document.createElement('span');
+            wrapper.setAttribute(CONFIG.translationAttr, result.target);
+            wrapper.setAttribute('lang', result.target);
+            wrapper.setAttribute('dir', 'auto');
+            wrapper.textContent = result.text;
+            range.insertNode(wrapper);
+
+            const record = {
+                wrapper,
+                originalNodes,
+                parent: wrapper.parentNode,
+                next: wrapper.nextSibling,
+                source: result.source,
+                target: result.target,
+                translated: true
+            };
+            STATE.translations.set(wrapper, record);
+            applied.push({ record, oldRecord: target.oldRecord || null });
         }
 
-        wrapper = document.createElement('span');
-        wrapper.setAttribute(CONFIG.translationAttr, target);
-        wrapper.setAttribute('lang', target);
-        wrapper.setAttribute('dir', 'auto');
-        wrapper.textContent = text;
-        range.insertNode(wrapper);
-
-        const record = {
-            wrapper,
-            originalNodes,
-            parent: wrapper.parentNode,
-            next: wrapper.nextSibling,
-            source,
-            target,
-            translated: true
-        };
-        STATE.translations.set(wrapper, record);
-
-        const selection = window.getSelection();
-        if (selection) {
-            const selected = document.createRange();
-            selected.selectNodeContents(wrapper);
-            selection.removeAllRanges();
-            selection.addRange(selected);
-            STATE.savedRange = selected.cloneRange();
-        }
+        const records = applied.map((item) => item.record);
+        selectTranslationGroup(records, 'translated');
 
         pushHistory({
-            type: 'translation',
+            type: 'translationGroup',
             label: 'Translate',
-            changes: [],
-            record,
-            before: 'original',
-            after: 'translated'
+            group: records.map((record) => ({
+                record,
+                before: 'original',
+                after: 'translated'
+            }))
         });
 
+        const target = results[0].target;
         STATE.translationTarget = target;
         saveSyncedPreferences({ translationTarget: target });
         updateToolbarState();
-        showToast(
-            `Translated to ${translationLanguageName(target)}. ` +
-            'Press Alt+Shift+G again or Undo to restore.'
-        );
+        return applied.length;
     } catch (error) {
         console.error('Translation could not be applied:', error);
-        if (wrapper) {
-            STATE.translations.delete(wrapper);
-            if (wrapper.isConnected) {
-                wrapper.remove();
+
+        for (let index = applied.length - 1; index >= 0; index--) {
+            const { record, oldRecord } = applied[index];
+            const parent = record.parent;
+            const next = record.next;
+
+            STATE.translations.delete(record.wrapper);
+            if (record.wrapper.isConnected) {
+                record.wrapper.remove();
             }
-        }
-        if (originalNodes.length > 0 && range.startContainer.isConnected) {
-            const restore = document.createDocumentFragment();
-            for (const node of originalNodes) {
-                restore.appendChild(node);
+
+            const fragment = document.createDocumentFragment();
+            for (const node of record.originalNodes) {
+                fragment.appendChild(node);
             }
-            try {
-                range.insertNode(restore);
-                const selection = window.getSelection();
-                if (selection) {
-                    const restored = document.createRange();
-                    restored.setStartBefore(originalNodes[0]);
-                    restored.setEndAfter(
-                        originalNodes[originalNodes.length - 1]
-                    );
-                    selection.removeAllRanges();
-                    selection.addRange(restored);
-                    STATE.savedRange = restored.cloneRange();
-                }
-            } catch (restoreError) {
-                console.error(
-                    'The original text could not be restored:',
-                    restoreError
+
+            if (parent?.isConnected) {
+                parent.insertBefore(
+                    fragment,
+                    next && next.parentNode === parent ? next : null
                 );
             }
+
+            // A re-translation replaces an existing wrapper; put it back so a
+            // failed swap changes nothing.
+            if (oldRecord) {
+                try {
+                    if (setTranslationState(oldRecord, 'translated')) {
+                        STATE.translations.set(oldRecord.wrapper, oldRecord);
+                    }
+                } catch (restoreError) {
+                    console.error(
+                        'The previous translation could not be restored:',
+                        restoreError
+                    );
+                }
+            }
         }
+
+        // Keep a usable selection on the original text after a rollback.
+        const firstRecord = applied[0]?.record;
+        const firstNode = firstRecord?.originalNodes
+            .find((node) => node.isConnected);
+        const lastNode = firstRecord
+            ? [...firstRecord.originalNodes].reverse()
+                .find((node) => node.isConnected)
+            : null;
+        if (firstNode && lastNode) {
+            const selection = window.getSelection();
+            if (selection) {
+                const range = document.createRange();
+                range.setStartBefore(firstNode);
+                range.setEndAfter(lastNode);
+                selection.removeAllRanges();
+                selection.addRange(range);
+                STATE.savedRange = range.cloneRange();
+            }
+        }
+
         showToast('The translation could not be applied to the page.',
             { error: true });
+        return 0;
     } finally {
         STATE.isApplyingCommand = false;
     }
 }
 
 /**
- * Restore a translation's original text and add the restore to history.
- * @param {Object} record
+ * Restore one or more translations and add the restore to history.
+ * @param {HTMLElement[]} wrappers
  */
-function restoreTranslation(record) {
-    if (!setTranslationState(record, 'original')) {
+function restoreTranslationRecords(wrappers) {
+    const restored = [];
+    const records = wrappers
+        .map((wrapper) => STATE.translations.get(wrapper))
+        .filter(Boolean);
+
+    for (const record of records) {
+        if (setTranslationState(record, 'original')) {
+            restored.push(record);
+        }
+    }
+
+    if (restored.length === 0) {
         showToast('The original text is no longer on the page.', { error: true });
         return;
     }
 
+    selectTranslationGroup(restored, 'original');
     pushHistory({
-        type: 'translation',
-        label: 'Restore original',
-        changes: [],
-        record,
-        before: 'translated',
-        after: 'original'
+        type: 'translationGroup',
+        label: restored.length > 1 ? 'Restore translations' : 'Restore original',
+        group: restored.map((record) => ({
+            record,
+            before: 'translated',
+            after: 'original'
+        }))
     });
     updateToolbarState();
-    showToast('Original text restored');
+    showToast(restored.length > 1
+        ? `${restored.length} translations restored`
+        : 'Original text restored');
 }
 
 /**
@@ -998,17 +1356,23 @@ export function syncTranslationButton() {
         return;
     }
 
-    const wrapper = translationWrapperFor(STATE.savedRange);
-    const record = wrapper ? STATE.translations.get(wrapper) : null;
-    const translated = Boolean(record && record.translated);
+    const wrappers = translationWrappersFor(STATE.savedRange);
+    const translated = wrappers.length > 0;
     const target = STATE.translationTarget
         ? normalizeTranslationTarget(STATE.translationTarget)
         : '';
 
     if (translated) {
         button.textContent = '↺';
-        button.dataset.tooltip = `Show original (${SHORTCUT_LABELS.translate})`;
-        button.setAttribute('aria-label', 'Show original');
+        button.dataset.tooltip = wrappers.length > 1
+            ? `Restore ${wrappers.length} translations (${SHORTCUT_LABELS.translate})`
+            : `Show original (${SHORTCUT_LABELS.translate})`;
+        button.setAttribute(
+            'aria-label',
+            wrappers.length > 1
+                ? `Restore ${wrappers.length} translations`
+                : 'Show original'
+        );
         button.setAttribute('aria-pressed', 'true');
         button.removeAttribute('aria-haspopup');
         button.removeAttribute('aria-expanded');

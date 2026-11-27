@@ -104,6 +104,15 @@ previous sentence, and `Space` pauses or resumes while reading, outside text
 fields and controls. A selection inside a translated wrapper stays scoped to
 that wrapper so the target language is not applied to the rest of the page.
 
+### Selecting a paragraph or sentence
+
+`Alt+Shift+Up` (`Option+Shift+Up` on macOS) selects the paragraph around the
+caret, and `Alt+Shift+Down` selects the sentence. With text already selected,
+both expand from where the selection starts. The scope is announced ("Paragraph
+selected" or "Sentence selected"), the toolbar follows the new range, and the
+shortcuts are ignored inside text fields and editable regions so they never
+replace normal text editing.
+
 ### Reading presets
 
 Comfortable, Dyslexia-friendly, Low vision, and Focus set the saved font,
@@ -111,6 +120,15 @@ spacing, highlight, and reading-aid choices. They do not restyle the current
 page on their own: the next Font, Spacing, or Highlight command uses the preset.
 In the page settings dialog the Focus preset also turns focus mode on. The
 options page mirrors the text-styling presets; the aids are toggled on the page.
+
+### Settings search
+
+Both the in-page Settings dialog and the options page start with a labelled
+**Search settings** field. Typing filters sections and rows by their visible
+label and help text, and a polite live region reports the number of matching
+sections or "No settings match". `Escape` clears the filter and keeps the
+dialog open; **Clear** does the same from a button. Filtering only hides
+controls and never changes a saved setting.
 
 ### Reading aids
 
@@ -146,11 +164,14 @@ re-render can discard it.
 
 The source comes from the nearest `lang` attribute or the page language;
 Shift-click translates the whole paragraph. A selection spanning several blocks
-is rejected with a short message. The first use or an unknown source opens a
-compact language bubble; after the target is saved, Translate starts directly.
-The bubble also carries language-pack progress and Cancel, errors and Try again,
-and the 5,000-character cap. The target can be changed in the in-page Settings
-dialog or the options page.
+translates every block, keeps the list, quote, and table structure, and applies
+as one undoable change: a failed or cancelled block leaves the page unchanged.
+The first use or an unknown source opens a compact language bubble; after the
+target is saved, Translate starts directly. The bubble also carries language-pack
+progress and Cancel, errors and Try again, a **Swap languages** button, and the
+5,000-character cap. `Alt+Shift+S` (`Option+Shift+S`) opens the same bubble to
+change the target without translating immediately. The target can also be
+changed in the in-page Settings dialog or the options page.
 
 The translated text is ordinary page text: selectable, copyable, and read by
 Read Aloud. Read Aloud uses the wrapper's target language and prefers a matching
@@ -164,7 +185,7 @@ closes/cancels, and focus returns to **Translate**.
 
 - 50 undo steps per page.
 - 100 per-site rules.
-- 5,000 characters per translation.
+- 5,000 characters per translation (the whole selection).
 - Keyboard shortcuts can conflict with the Windows `Alt+Shift` layout switch;
   use the toolbar buttons or rebind **Focus Toolbar** at
   `chrome://extensions/shortcuts`.

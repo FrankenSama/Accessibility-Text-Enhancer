@@ -109,7 +109,11 @@ export const SHORTCUT_LABELS = {
     continueReading: IS_MAC ? 'Option+Shift+C' : 'Alt+Shift+C',
     focusMode: IS_MAC ? 'Option+Shift+D' : 'Alt+Shift+D',
     readingRuler: IS_MAC ? 'Option+Shift+L' : 'Alt+Shift+L',
-    translate: IS_MAC ? 'Option+Shift+G' : 'Alt+Shift+G'
+    translate: IS_MAC ? 'Option+Shift+G' : 'Alt+Shift+G',
+    // The reading ruler already owns L, so language setup uses S.
+    language: IS_MAC ? 'Option+Shift+S' : 'Alt+Shift+S',
+    selectParagraph: IS_MAC ? 'Option+Shift+Up' : 'Alt+Shift+Up',
+    selectSentence: IS_MAC ? 'Option+Shift+Down' : 'Alt+Shift+Down'
 };
 
 // ARIA keyshortcuts use the platform-neutral Alt name; on macOS the Option
@@ -119,7 +123,8 @@ export const SHORTCUT_ARIA = {
     continueReading: 'Alt+Shift+C',
     focusMode: 'Alt+Shift+D',
     readingRuler: 'Alt+Shift+L',
-    translate: 'Alt+Shift+G'
+    translate: 'Alt+Shift+G',
+    language: 'Alt+Shift+S'
 };
 
 // Commands that change readability, so they apply to the nearest block

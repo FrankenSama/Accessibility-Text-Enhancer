@@ -65,6 +65,64 @@ h1 {
     font-size: 15px;
 }
 
+.settings-search {
+    margin-bottom: 20px;
+}
+
+.settings-search label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 600;
+}
+
+.settings-search-row {
+    display: flex;
+    align-items: stretch;
+    gap: 8px;
+}
+
+.settings-search-input {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--card-bg);
+    color: var(--text);
+    font: inherit;
+}
+
+.settings-search-clear {
+    flex: 0 0 auto;
+    padding: 8px 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--secondary);
+    color: var(--text);
+    font: inherit;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.settings-search-clear:hover {
+    background: var(--secondary-hover);
+}
+
+.settings-search-clear[hidden] {
+    display: none;
+}
+
+.search-status {
+    min-height: 0;
+    margin: 6px 0 0;
+    color: var(--muted);
+    font-size: 13px;
+}
+
+[data-atx-search-hidden] {
+    display: none !important;
+}
+
 .card {
     background: var(--card-bg);
     border: 1px solid var(--border);
@@ -279,7 +337,9 @@ input[type="range"] {
 
 .btn:focus-visible,
 select:focus-visible,
-input[type="range"]:focus-visible {
+input[type="range"]:focus-visible,
+input[type="search"]:focus-visible,
+.settings-search-clear:focus-visible {
     outline: 3px solid var(--accent);
     outline-offset: 2px;
 }
@@ -378,6 +438,18 @@ input[type="range"]:focus-visible {
     select {
         background: Field;
         color: FieldText;
+    }
+
+    .settings-search-input {
+        background: Field;
+        color: FieldText;
+        border-color: CanvasText;
+    }
+
+    .settings-search-clear {
+        background: ButtonFace;
+        color: ButtonText;
+        border-color: CanvasText;
     }
 
     .status {
