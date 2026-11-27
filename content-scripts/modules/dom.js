@@ -504,10 +504,21 @@ export function getSentenceRange(node, offset = 0) {
         return null;
     }
 
-    const sentence = sentences.find((item) =>
-        position >= item.start && position < item.end
-    ) || sentences.find((item) => position === item.end) ||
-        sentences[sentences.length - 1];
+    // Pick the sentence containing the caret. A caret in the whitespace
+    // between two sentences stays with the previous one rather than jumping
+    // to the end of the block.
+    let sentence = sentences[0];
+    for (const item of sentences) {
+        if (position >= item.start && position <= item.end) {
+            sentence = item;
+            break;
+        }
+        if (item.end < position) {
+            sentence = item;
+        } else {
+            break;
+        }
+    }
 
     return rangeFromOffsets(map, sentence.start, sentence.end);
 }
