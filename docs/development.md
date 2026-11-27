@@ -44,12 +44,15 @@ content-scripts/
     settings-io.js             Versioned settings file build/parse
     settings.js                In-page settings dialog
     settings-search.js         Shared label/help filter for both settings pages
+    settings-transfer.js       Shared import, export, and download logic
     reading.js                 Speech session, chunks, highlight, continuous read
     reading-aids.js            DOM-free ruler/spotlight geometry
     reading-aids-ui.js         Focus mode and reading-ruler overlays
     reading-profiles.js        Built-in reading presets
     translation.js             DOM-free Translator service and languages
-    translation-inline.js      In-place wrapper, bubble, toggle, history
+    translation-targets.js     Block collection, source text, and the cap
+    translation-apply.js       All-or-nothing apply, rollback, grouped history
+    translation-inline.js      In-place bubble, toggle, target, and shortcuts
     toast.js                   Single polite live region
     feedback.js                Shared toast wording
 options/                       Options page
@@ -74,10 +77,10 @@ SECURITY.md                    Private reporting
 - **Reading** (`reading.js`) turns a range into a text map, splits it into sentences and speech chunks, queues utterances, paints the follow-along highlight with the CSS Custom Highlight API, and scrolls the spoken sentence into view. Continuous reading keeps the full map for sentence navigation while the active speech range starts at the target sentence.
 - **Reading aids** (`reading-aids.js`, `reading-aids-ui.js`) are DOM-free geometry plus transient overlays. They are `aria-hidden`, never enter the tab order, and read `rulerSource`/`focusDim` from state. Focus mode follows the selection or the spoken sentence.
 - **Reading presets** (`reading-profiles.js`) are code constants that write the existing text-default keys; they do not store a separate profile object.
-- **Translation** (`translation.js`, `translation-inline.js`) uses Chrome's on-device Translator API. The service handles language normalization, the 5,000-character cap, caching, signals, and error mapping. The in-place module resolves one target per block, translates every block before touching the DOM, applies all-or-nothing, and records one grouped history entry for the whole selection. Each wrapper is a `span[data-atx-translation]` with its original nodes kept for the toggle, history, and re-translation. The compact bubble carries language selection, **Swap languages**, progress/Cancel, and errors with Try again.
+- **Translation** (`translation.js`, `translation-targets.js`, `translation-apply.js`, `translation-inline.js`) uses Chrome's on-device Translator API. The service handles language normalization, the 5,000-character cap, caching, signals, and error mapping. Target collection prepares one source text per block, substituting a wrapper's stored original when a block already contains a translation. Apply runs every block before touching the DOM, rolls back nested and replaced translations on failure, and records one grouped history entry. Superseded translations are removed from the map and history so Undo cannot resurrect a wrapper the page no longer tracks. The compact bubble carries language selection, **Swap languages**, progress/Cancel, and errors with Try again.
 - **Settings search** (`settings-search.js`) filters cards and rows by visible label and help text on both settings surfaces. It only toggles a `data-atx-search-hidden` attribute and a polite result count; it never reads or writes a stored preference.
 - **Selection expansion** (`dom.js`) resolves the paragraph or sentence around a caret into a normal DOM range, so `Alt+Shift+Up`/`Down` reuse the existing toolbar, commands, and scope rules.
-- **Settings** (`settings.js`, `options/options.js`) share the same defaults and settings file shapes. The in-page dialog also owns the transient reading aids and translation target; the options page mirrors the persisted preferences.
+- **Settings** (`settings.js`, `options/options.js`, `settings-transfer.js`) share the same defaults, settings file shapes, and import/export helpers. The in-page dialog also owns the transient reading aids and translation target; the options page mirrors the persisted preferences.
 
 ### Invariants
 

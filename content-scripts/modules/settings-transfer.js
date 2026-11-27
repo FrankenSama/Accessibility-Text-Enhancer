@@ -3,6 +3,7 @@
 // downloading can live in one place.
 
 import { CONFIG } from './core.js';
+import { getMountNode } from './dom.js';
 import {
     normalizeTextDefaults,
     pickTextDefaults
@@ -121,7 +122,7 @@ export function downloadSettingsFile(settings) {
     link.href = url;
     link.download =
         `accessibility-text-enhancer-settings-v${settings.appVersion}-${date}.json`;
-    document.body.appendChild(link);
+    getMountNode().appendChild(link);
     link.click();
     link.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
