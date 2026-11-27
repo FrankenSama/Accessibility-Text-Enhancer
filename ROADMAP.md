@@ -2,7 +2,7 @@
 
 This roadmap tracks the accessibility work planned for Accessibility Text Enhancer. It is a living document: items move between phases as the project learns from real use, and nothing here is a commitment to a date.
 
-**Latest GitHub release:** v1.9.0 · **Chrome Web Store:** v1.8.1 · **Last updated:** 2026-11-27
+**Latest GitHub release:** v1.9.1 · **Chrome Web Store:** v1.8.1 · **Last updated:** 2026-11-27
 
 ## Guiding principles
 
@@ -45,9 +45,11 @@ This roadmap tracks the accessibility work planned for Accessibility Text Enhanc
 
 **v1.7.0 (in-place selection translation, released):** adds a **Translate** toolbar button and `Alt+Shift+G` shortcut. The selection, or the paragraph on Shift-click, is replaced in place by its translation using Chrome's built-in Translator API. The wrapper carries `lang` and `dir="auto"` with a dotted underline; pressing Translate again, Undo/Redo, or Reset page restores the original. A compact first-use/progress/error bubble detects the source, saves and syncs the target, shows language-pack progress with Cancel, and offers Try again. The target is changed in Settings or the options page. Multi-block selections are rejected; links or emphasis containing the whole selection stay around the translation, while internal markup is flattened and restored by undo. The page change is undoable and read aloud uses the target language. Needs Chrome 138+ on desktop and an HTTPS page. Adds `translationTarget` to schema 4 settings exports. No new permissions.
 
-**Distribution:** v1.9.0 is the latest GitHub release: a translation and selection upgrade over v1.8.1, with the same GPLv3 package and no new permissions. It adds multi-block translation as one undoable group, Swap languages and the `Alt+Shift+S` language shortcut, paragraph/sentence selection, and Settings search. The v1.9.0 NVDA pass is recorded in [`docs/smoke-test.md`](docs/smoke-test.md) (13/13). The Chrome Web Store remains on v1.8.1 until the v1.9.0 package is uploaded.
+**v1.9.1 (hardening, released):** fixes translation-history and rollback loose ends and refreshes Settings search when a collapsed group appears. Re-translating a wrapper, or translating a block that already contains one, now replaces the superseded history entry, so one Undo returns to the original text and the Translate button and Reset page stay in sync. Block translation prepares its source from the stored originals instead of translating the translation, a failed apply restores nested translations, and a failure between extraction and insertion reinserts the original block. Search no longer treats hidden Custom-spacing labels as matches and re-runs when the group is revealed. Splits the translation hotspot into target, apply, and bubble modules and extracts shared settings transfer logic. No new permissions, network requests, or schema changes. Full harness 1,166 pass; NVDA 15/15; package 31/31.
 
-**Next:** v1.9.0 is released. v2.0.0 remains the platform and reach phase. Release plans are working documents kept locally and are not tracked; this roadmap is the public summary.
+**Distribution:** v1.9.1 is the latest GitHub release: a hardening patch over v1.9.0 with the same GPLv3 package and no behavior changes beyond the fixes above. The v1.9.1 NVDA pass is recorded in [`docs/smoke-test.md`](docs/smoke-test.md) (15/15). The Chrome Web Store remains on v1.8.1 until the v1.9.1 package is uploaded.
+
+**Next:** v1.9.1 is released. v2.0.0 remains the platform and reach phase. Release plans are working documents kept locally and are not tracked; this roadmap is the public summary.
 
 ---
 
@@ -297,7 +299,7 @@ These are worth investigating but are not scheduled:
 
 ## Release checklist
 
-Use this list for every release. The v1.4.0, v1.4.1, v1.5.0, v1.5.1, v1.6.0, v1.7.0, v1.8.0, v1.8.1, and v1.9.0 runs are recorded in the release notes and [`docs/smoke-test.md`](docs/smoke-test.md). The store step was last completed for v1.8.1 on 2026-11-27; the checklist stays unchecked as a template for the next release.
+Use this list for every release. The v1.4.0, v1.4.1, v1.5.0, v1.5.1, v1.6.0, v1.7.0, v1.8.0, v1.8.1, v1.9.0, and v1.9.1 runs are recorded in the release notes and [`docs/smoke-test.md`](docs/smoke-test.md). The store step was last completed for v1.8.1 on 2026-11-27; the checklist stays unchecked as a template for the next release.
 
 - [ ] Browser harness green (all suites, including real-extension load and command smoke tests)
 - [ ] Keyboard-only harness checks: focus, traversal, apply, undo
